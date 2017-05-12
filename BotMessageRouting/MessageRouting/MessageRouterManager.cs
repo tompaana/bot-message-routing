@@ -48,7 +48,7 @@ namespace Underscore.Bot.MessageRouting
         /// Constructor.
         /// </summary>
         /// <param name="routingDataManager">The routing data manager.</param>
-        private MessageRouterManager(IRoutingDataManager routingDataManager)
+        public MessageRouterManager(IRoutingDataManager routingDataManager)
         {
             RoutingDataManager = routingDataManager;
             BackChannelId = DefaultBackChannelId;
