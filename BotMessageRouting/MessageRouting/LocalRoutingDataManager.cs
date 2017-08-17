@@ -1,6 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 
 namespace Underscore.Bot.MessageRouting
@@ -252,8 +253,16 @@ namespace Underscore.Bot.MessageRouting
                 }
                 else
                 {
-                    PendingRequests.Add(party);
-                    result.Type = MessageRouterResultType.EngagementInitiated;
+                    if (!AggregationParties.Any()
+                        && Convert.ToBoolean(ConfigurationManager.AppSettings[MessageRouterManager.RejectPendingRequestIfNoAggregationChannelAppSetting]))
+                    {
+                        result.Type = MessageRouterResultType.NoAgentsAvailable;
+                    }
+                    else
+                    {
+                        PendingRequests.Add(party);
+                        result.Type = MessageRouterResultType.EngagementInitiated;
+                    }
                 }
             }
             else
@@ -560,8 +569,7 @@ namespace Underscore.Bot.MessageRouting
 
             foreach (Party conversationOwnerParty in conversationOwnerParties)
             {
-                Party conversationClientParty = null;
-                EngagedParties.TryGetValue(conversationOwnerParty, out conversationClientParty);
+                EngagedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
 
                 if (EngagedParties.Remove(conversationOwnerParty))
                 {                   

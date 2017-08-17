@@ -119,7 +119,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="conversationOwnerParty">The conversation owner party.</param>
         /// <param name="conversationClientParty">The conversation client (customer) party.</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation. The expected result type, when successful, is EngagementAdded.</returns>
         MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="party">The party whose engagements to remove.</param>
         /// <param name="engagementProfile">The engagement profile of the party (owner/client/either).</param>
-        /// <returns>A list of operation results.</returns>
+        /// <returns>A list of operation results. The expected result types, when successful, are EngagementRemoved.</returns>
         IList<MessageRouterResult> RemoveEngagement(Party party, EngagementProfile engagementProfile);
 
         /// <summary>
@@ -199,6 +199,11 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>The engagements (parties in conversation) as a string.
         /// Will return an empty string, if no engagements exist.</returns>
         string EngagementsAsString();
+
+#if DEBUG
+        string GetLastMessageRouterResults();
+        void AddMessageRouterResult(MessageRouterResult result);
+#endif
         #endregion
     }
 }
