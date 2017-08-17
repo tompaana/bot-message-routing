@@ -12,6 +12,7 @@ namespace Underscore.Bot.MessageRouting
         EngagementRejected,
         EngagementAdded,
         EngagementRemoved,
+        NoAgentsAvailable,
         NoAggregationChannel,
         FailedToForwardMessage,
         Error // Generic error including e.g. null arguments

@@ -94,14 +94,14 @@ namespace Underscore.Bot.MessageRouting
 
         /// <summary>
         /// Checks if the given party is part of the same conversation as this one.
-        /// I.e. the service URL, channel ID and conversation details need to match.
+        /// I.e. the channel ID and conversation details need to match.
         /// </summary>
         /// <param name="other">Another party.</param>
         /// <returns>True, if these are part of same conversation. False otherwise.</returns>
         public bool IsPartOfSameConversation(Party other)
         {
             return (other != null
-                && other.ServiceUrl.Equals(ServiceUrl)
+                //&& other.ServiceUrl.Equals(ServiceUrl) // Service URL cannot be guaranteed, by the bot framework, to stay the same!
                 && other.ChannelId.Equals(ChannelId)
                 && other.ConversationAccount.Id.Equals(ConversationAccount.Id));
         }
