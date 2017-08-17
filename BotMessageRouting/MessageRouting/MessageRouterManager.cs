@@ -126,7 +126,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="messageText">The message to broadcast.</param>
         /// <returns></returns>
-        public async Task BroadcastMessageToAggregationChannels(string messageText)
+        public async Task BroadcastMessageToAggregationChannelsAsync(string messageText)
         {
             foreach (Party aggregationChannel in RoutingDataManager.GetAggregationParties())
             {
