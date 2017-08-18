@@ -33,12 +33,12 @@ Don't worry, if you prefer the Node.js SDK; in that case check out
 
 ### Interfaces ###
 
-#### [IRoutingDataManager](/BotMessageRouting/MessageRouting/IRoutingDataManager.cs) ####
+#### [IRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/IRoutingDataManager.cs) ####
 
 An interface for managing the parties (users/bot), aggregation channel details, the list of engaged
 parties and pending requests. **Note:** In production this data should be stored in e.g. a table
-storage! [LocalRoutingDataManager](/BotMessageRouting/MessageRouting/LocalRoutingDataManager.cs) is
-provided for testing, but it provides only an in-memory solution.
+storage! [LocalRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/LocalRoutingDataManager.cs)
+is provided for testing, but it provides only an in-memory solution.
 
 #### [IMessageRouterResultHandler](/BotMessageRouting/MessageRouting/IMessageRouterResultHandler.cs) ####
 
