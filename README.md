@@ -1,9 +1,6 @@
 Bot Message Routing (component)
 ===============================
 
-**Note: This is still a work-in-progress!** The development will move into a separate branch once
-the first release is out soon.
-
 This project is a message routing component for chatbots built with
 [Microsoft Bot Framework](https://dev.botframework.com/) C# SDK. It enables routing messages between
 users on different channels. In addition, it can be used in advanced customer service scenarios
