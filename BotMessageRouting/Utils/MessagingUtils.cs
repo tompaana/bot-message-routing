@@ -1,8 +1,9 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Threading.Tasks;
+using Underscore.Bot.Models;
 
-namespace Underscore.Bot.MessageRouting
+namespace Underscore.Bot.Utils
 {
     /// <summary>
     /// Utility methods.

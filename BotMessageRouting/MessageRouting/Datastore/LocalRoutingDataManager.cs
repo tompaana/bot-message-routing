@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using Underscore.Bot.Models;
 
-namespace Underscore.Bot.MessageRouting
+namespace Underscore.Bot.MessageRouting.DataStore
 {
     /// <summary>
     /// Routing data manager that stores the data locally.
