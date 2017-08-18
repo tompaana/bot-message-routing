@@ -20,9 +20,15 @@ namespace Underscore.Bot.Utils
         /// Constructs a party instance using the sender (from) of the given activity.
         /// </summary>
         /// <param name="activity"></param>
+        /// <param name="engageable">If true, will construct EngageableParty instance instead of Party. True by default.</param>
         /// <returns>A newly created Party instance.</returns>
-        public static Party CreateSenderParty(IActivity activity)
+        public static Party CreateSenderParty(IActivity activity, bool engageable = true)
         {
+            if (engageable)
+            {
+                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
+            }
+
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
         }
 
@@ -30,9 +36,15 @@ namespace Underscore.Bot.Utils
         /// Constructs a party instance using the recipient of the given activity.
         /// </summary>
         /// <param name="activity"></param>
+        /// <param name="engageable">If true, will construct EngageableParty instance instead of Party. True by default.</param>
         /// <returns>A newly created Party instance.</returns>
-        public static Party CreateRecipientParty(IActivity activity)
+        public static Party CreateRecipientParty(IActivity activity, bool engageable = true)
         {
+            if (engageable)
+            {
+                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+            }
+
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
         }
 

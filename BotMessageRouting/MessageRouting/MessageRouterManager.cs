@@ -324,13 +324,13 @@ namespace Underscore.Bot.MessageRouting
                         ConversationAccount directConversationAccount =
                             new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
 
-                        Party acceptorPartyEngaged = new Party(
+                        Party acceptorPartyEngaged = new EngageableParty(
                             conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
                             conversationOwnerParty.ChannelAccount, directConversationAccount);
 
                         RoutingDataManager.AddParty(acceptorPartyEngaged);
                         RoutingDataManager.AddParty(
-                            new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+                            new EngageableParty(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
 
                         result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
                         result.ConversationResourceResponse = response;

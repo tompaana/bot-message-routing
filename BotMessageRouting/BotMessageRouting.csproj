@@ -108,6 +108,7 @@
     <Compile Include="MessageRouting\IMessageRouterResultHandler.cs" />
     <Compile Include="MessageRouting\MessageRouterManager.cs" />
     <Compile Include="MessageRouting\MessageRouterResult.cs" />
+    <Compile Include="Models\EngageableParty.cs" />
     <Compile Include="Utils\MessagingUtils.cs" />
     <Compile Include="Models\Party.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
