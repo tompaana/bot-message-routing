@@ -1,2 +1,0 @@
-D:\Projects\tompaana\bot-message-routing\BotMessageRouting\obj\Release\BotMessageRouting.csprojResolveAssemblyReference.cache
-D:\Projects\tompaana\bot-message-routing\BotMessageRouting\obj\Release\BotMessageRouting.csproj.CoreCompileInputs.cache
