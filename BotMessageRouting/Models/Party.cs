@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Underscore.Bot.MessageRouting
+namespace Underscore.Bot.Models
 {
     /// <summary>
     /// Represents a party in a conversation, for example:

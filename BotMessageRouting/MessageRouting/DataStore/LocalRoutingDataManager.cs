@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using Underscore.Bot.Models;
 
-namespace Underscore.Bot.MessageRouting
+namespace Underscore.Bot.MessageRouting.DataStore
 {
     /// <summary>
     /// Routing data manager that stores the data locally.
@@ -130,7 +131,7 @@ namespace Underscore.Bot.MessageRouting
             ChannelAccount channelAccount, ConversationAccount conversationAccount,
             bool isUser = true)
         {
-            Party newParty = new Party(serviceUrl, channelId, channelAccount, conversationAccount);
+            Party newParty = new EngageableParty(serviceUrl, channelId, channelAccount, conversationAccount);
             return AddParty(newParty, isUser);
         }
 
@@ -154,7 +155,7 @@ namespace Underscore.Bot.MessageRouting
                 {
                     foreach (Party party in partiesToRemove)
                     {
-                        if (partiesToRemove.Remove(party))
+                        if (partyList.Remove(party))
                         {
                             wasRemoved = true;
                         }
@@ -260,6 +261,11 @@ namespace Underscore.Bot.MessageRouting
                     }
                     else
                     {
+                        if (party is EngageableParty)
+                        {
+                            (party as EngageableParty).RequestMadeTime = DateTime.UtcNow;
+                        }
+
                         PendingRequests.Add(party);
                         result.Type = MessageRouterResultType.EngagementInitiated;
                     }
@@ -276,6 +282,11 @@ namespace Underscore.Bot.MessageRouting
 
         public virtual bool RemovePendingRequest(Party party)
         {
+            if (party is EngageableParty)
+            {
+                (party as EngageableParty).ResetRequestMadeTime();
+            }
+
             return PendingRequests.Remove(party);
         }
 
@@ -341,6 +352,20 @@ namespace Underscore.Bot.MessageRouting
                 {
                     EngagedParties.Add(conversationOwnerParty, conversationClientParty);
                     PendingRequests.Remove(conversationClientParty);
+
+                    DateTime engagementStartedTime = DateTime.UtcNow;
+
+                    if (conversationClientParty is EngageableParty)
+                    {
+                        (conversationClientParty as EngageableParty).ResetRequestMadeTime();
+                        (conversationClientParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                    }
+
+                    if (conversationOwnerParty is EngageableParty)
+                    {
+                        (conversationOwnerParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                    }
+
                     result.Type = MessageRouterResultType.EngagementAdded;
                 }
                 catch (ArgumentException e)
@@ -572,7 +597,17 @@ namespace Underscore.Bot.MessageRouting
                 EngagedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
 
                 if (EngagedParties.Remove(conversationOwnerParty))
-                {                   
+                {
+                    if (conversationOwnerParty is EngageableParty)
+                    {
+                        (conversationOwnerParty as EngageableParty).ResetEngagementStartedTime();
+                    }
+
+                    if (conversationClientParty is EngageableParty)
+                    {
+                        (conversationClientParty as EngageableParty).ResetEngagementStartedTime();
+                    }
+
                     messageRouterResults.Add(new MessageRouterResult()
                     {
                         Type = MessageRouterResultType.EngagementRemoved,

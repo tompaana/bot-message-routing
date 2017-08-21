@@ -3,6 +3,9 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting
 {
@@ -147,8 +150,10 @@ namespace Underscore.Bot.MessageRouting
             Activity activity, bool tryToInitiateEngagementIfNotEngaged,
             bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
-            MessageRouterResult result = new MessageRouterResult();
-            result.Type = MessageRouterResultType.NoActionTaken;
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                Type = MessageRouterResultType.NoActionTaken
+            };
 
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
@@ -297,41 +302,49 @@ namespace Underscore.Bot.MessageRouting
             {
                 ConnectorClient connectorClient = new ConnectorClient(new Uri(conversationOwnerParty.ServiceUrl));
 
-                ConversationResourceResponse response =
-                    await connectorClient.Conversations.CreateDirectConversationAsync(
-                        botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
-
-                // ResponseId and conversationOwnerParty.ConversationAccount.Id are not consistent
-                // with each other across channels. Here we need the ConversationAccountId to route
-                // messages correctly across channels, e.g.:
-                // * In Slack they are the same:
-                //      * response.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
-                //      * conversationOwnerParty.ConversationAccount.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
-                // * In Skype they are not:
-                //      * response.Id: 8:daltskin
-                //      * conversationOwnerParty.ConversationAccount.Id: 29:11MZyI5R2Eak3t7bFjDwXmjQYnSl7aTBEB8zaSMDIEpA
-                if (response != null && !string.IsNullOrEmpty(conversationOwnerParty.ConversationAccount.Id))
+                try
                 {
-                    // The conversation account of the conversation owner for this 1:1 chat is different -
-                    // thus, we need to create a new party instance
-                    ConversationAccount directConversationAccount =
-                        new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
+                    ConversationResourceResponse response =
+                        await connectorClient.Conversations.CreateDirectConversationAsync(
+                            botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
 
-                    Party acceptorPartyEngaged = new Party(
-                        conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
-                        conversationOwnerParty.ChannelAccount, directConversationAccount);
+                    // ResponseId and conversationOwnerParty.ConversationAccount.Id are not consistent
+                    // with each other across channels. Here we need the ConversationAccountId to route
+                    // messages correctly across channels, e.g.:
+                    // * In Slack they are the same:
+                    //      * response.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                    //      * conversationOwnerParty.ConversationAccount.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                    // * In Skype they are not:
+                    //      * response.Id: 8:daltskin
+                    //      * conversationOwnerParty.ConversationAccount.Id: 29:11MZyI5R2Eak3t7bFjDwXmjQYnSl7aTBEB8zaSMDIEpA
+                    if (response != null && !string.IsNullOrEmpty(conversationOwnerParty.ConversationAccount.Id))
+                    {
+                        // The conversation account of the conversation owner for this 1:1 chat is different -
+                        // thus, we need to create a new party instance
+                        ConversationAccount directConversationAccount =
+                            new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
 
-                    RoutingDataManager.AddParty(acceptorPartyEngaged);
-                    RoutingDataManager.AddParty(
-                        new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+                        Party acceptorPartyEngaged = new EngageableParty(
+                            conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
+                            conversationOwnerParty.ChannelAccount, directConversationAccount);
 
-                    result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
-                    result.ConversationResourceResponse = response;
+                        RoutingDataManager.AddParty(acceptorPartyEngaged);
+                        RoutingDataManager.AddParty(
+                            new EngageableParty(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+
+                        result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
+                        result.ConversationResourceResponse = response;
+                    }
+                    else
+                    {
+                        result.Type = MessageRouterResultType.Error;
+                        result.ErrorMessage = "Failed to create a direct conversation";
+                    }
                 }
-                else
+                catch (Exception e)
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = "Failed to create a direct conversation";
+                    result.ErrorMessage = $"Failed to create a direct conversation: {e.Message}";
                 }
             }
             else

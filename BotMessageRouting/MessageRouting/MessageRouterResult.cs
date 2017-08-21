@@ -1,5 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
+using Underscore.Bot.Models;
 
 namespace Underscore.Bot.MessageRouting
 {

@@ -1,9 +1,6 @@
 Bot Message Routing (component)
 ===============================
 
-**Note: This is still a work-in-progress!** The development will move into a separate branch once
-the first release is out soon.
-
 This project is a message routing component for chatbots built with
 [Microsoft Bot Framework](https://dev.botframework.com/) C# SDK. It enables routing messages between
 users on different channels. In addition, it can be used in advanced customer service scenarios
@@ -33,12 +30,12 @@ Don't worry, if you prefer the Node.js SDK; in that case check out
 
 ### Interfaces ###
 
-#### [IRoutingDataManager](/BotMessageRouting/MessageRouting/IRoutingDataManager.cs) ####
+#### [IRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/IRoutingDataManager.cs) ####
 
 An interface for managing the parties (users/bot), aggregation channel details, the list of engaged
 parties and pending requests. **Note:** In production this data should be stored in e.g. a table
-storage! [LocalRoutingDataManager](/BotMessageRouting/MessageRouting/LocalRoutingDataManager.cs) is
-provided for testing, but it provides only an in-memory solution.
+storage! [LocalRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/LocalRoutingDataManager.cs)
+is provided for testing, but it provides only an in-memory solution.
 
 #### [IMessageRouterResultHandler](/BotMessageRouting/MessageRouting/IMessageRouterResultHandler.cs) ####
 
