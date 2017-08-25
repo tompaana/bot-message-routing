@@ -570,19 +570,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return matchingParties;
         }
 
-        /// <returns>The engagements (parties in conversation) as a string.</returns>
-        public string EngagementsAsString()
-        {
-            string parties = string.Empty;
-
-            foreach (KeyValuePair<Party, Party> keyValuePair in EngagedParties)
-            {
-                parties += keyValuePair.Key + " -> " + keyValuePair.Value + "\n";
-            }
-
-            return parties;
-        }
-
         /// <summary>
         /// Removes the engagements of the given conversation owners.
         /// </summary>
@@ -621,6 +608,18 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
 #if DEBUG
+        public string EngagementsAsString()
+        {
+            string parties = string.Empty;
+
+            foreach (KeyValuePair<Party, Party> keyValuePair in EngagedParties)
+            {
+                parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
+            }
+
+            return parties;
+        }
+
         public string GetLastMessageRouterResults()
         {
             string lastResultsAsString = string.Empty;
