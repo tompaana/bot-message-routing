@@ -161,6 +161,8 @@ PublishScripts/
 # NuGet v3's project.json files produces more ignoreable files
 *.nuget.props
 *.nuget.targets
+# NuGet executable
+nuget.exe
 
 # Microsoft Azure Build Output
 csx/
@@ -253,6 +255,3 @@ paket-files/
 
 # Package and web configs
 #*.config
-
-# Nuget CLI tool
-nuget.exe

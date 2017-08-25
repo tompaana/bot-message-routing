@@ -197,12 +197,13 @@ namespace Underscore.Bot.MessageRouting.DataStore
         #endregion
 
         #region Methods for debugging
+#if DEBUG
         /// <returns>The engagements (parties in conversation) as a string.
         /// Will return an empty string, if no engagements exist.</returns>
         string EngagementsAsString();
 
-#if DEBUG
         string GetLastMessageRouterResults();
+
         void AddMessageRouterResult(MessageRouterResult result);
 #endif
         #endregion
