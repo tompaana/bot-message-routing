@@ -82,7 +82,6 @@ conversation.
   called when a chat request is accepted.
 * `EndEngagement`: Ends the engagement and severs the connection between the users so that the
   messages are no longer relayed.
-* `HandleBackChannelMessage`: Handles (hidden) messages from the agent UI component.
 * `HandleMessageAsync`: Handles the incoming messages: Relays the messages between engaged parties.
 
 ### Other classes ###

@@ -26,7 +26,7 @@ namespace Underscore.Bot.Utils
         {
             if (engageable)
             {
-                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
+                return new PartyWithTimestamps(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
             }
 
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
@@ -42,7 +42,7 @@ namespace Underscore.Bot.Utils
         {
             if (engageable)
             {
-                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+                return new PartyWithTimestamps(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
             }
 
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);

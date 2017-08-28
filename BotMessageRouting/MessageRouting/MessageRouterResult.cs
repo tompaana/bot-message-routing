@@ -1,5 +1,4 @@
 ﻿using Microsoft.Bot.Connector;
-using System;
 using Underscore.Bot.Models;
 
 namespace Underscore.Bot.MessageRouting
@@ -79,6 +78,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         public MessageRouterResult()
         {
+            Type = MessageRouterResultType.NoActionTaken;
             ErrorMessage = string.Empty;
         }
 

@@ -7,7 +7,7 @@ namespace Underscore.Bot.Models
     /// Like Party, but with timestamps to mark times for when requests were made etc.
     /// </summary>
     [Serializable]
-    public class EngageableParty : Party
+    public class PartyWithTimestamps : Party
     {
         /// <summary>
         /// Represents the time when a request was made.
@@ -32,7 +32,7 @@ namespace Underscore.Bot.Models
         /// <summary>
         /// Constructor.
         /// </summary>
-        public EngageableParty(string serviceUrl, string channelId,
+        public PartyWithTimestamps(string serviceUrl, string channelId,
             ChannelAccount channelAccount, ConversationAccount conversationAccount)
             : base(serviceUrl, channelId, channelAccount, conversationAccount)
         {

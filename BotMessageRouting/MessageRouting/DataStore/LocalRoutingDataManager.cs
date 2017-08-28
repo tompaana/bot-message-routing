@@ -131,7 +131,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             ChannelAccount channelAccount, ConversationAccount conversationAccount,
             bool isUser = true)
         {
-            Party newParty = new EngageableParty(serviceUrl, channelId, channelAccount, conversationAccount);
+            Party newParty = new PartyWithTimestamps(serviceUrl, channelId, channelAccount, conversationAccount);
             return AddParty(newParty, isUser);
         }
 
@@ -261,9 +261,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     }
                     else
                     {
-                        if (party is EngageableParty)
+                        if (party is PartyWithTimestamps)
                         {
-                            (party as EngageableParty).RequestMadeTime = DateTime.UtcNow;
+                            (party as PartyWithTimestamps).RequestMadeTime = DateTime.UtcNow;
                         }
 
                         PendingRequests.Add(party);
@@ -282,9 +282,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         public virtual bool RemovePendingRequest(Party party)
         {
-            if (party is EngageableParty)
+            if (party is PartyWithTimestamps)
             {
-                (party as EngageableParty).ResetRequestMadeTime();
+                (party as PartyWithTimestamps).ResetRequestMadeTime();
             }
 
             return PendingRequests.Remove(party);
@@ -355,15 +355,15 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     DateTime engagementStartedTime = DateTime.UtcNow;
 
-                    if (conversationClientParty is EngageableParty)
+                    if (conversationClientParty is PartyWithTimestamps)
                     {
-                        (conversationClientParty as EngageableParty).ResetRequestMadeTime();
-                        (conversationClientParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                        (conversationClientParty as PartyWithTimestamps).ResetRequestMadeTime();
+                        (conversationClientParty as PartyWithTimestamps).EngagementStartedTime = engagementStartedTime;
                     }
 
-                    if (conversationOwnerParty is EngageableParty)
+                    if (conversationOwnerParty is PartyWithTimestamps)
                     {
-                        (conversationOwnerParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                        (conversationOwnerParty as PartyWithTimestamps).EngagementStartedTime = engagementStartedTime;
                     }
 
                     result.Type = MessageRouterResultType.EngagementAdded;
@@ -585,14 +585,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 if (EngagedParties.Remove(conversationOwnerParty))
                 {
-                    if (conversationOwnerParty is EngageableParty)
+                    if (conversationOwnerParty is PartyWithTimestamps)
                     {
-                        (conversationOwnerParty as EngageableParty).ResetEngagementStartedTime();
+                        (conversationOwnerParty as PartyWithTimestamps).ResetEngagementStartedTime();
                     }
 
-                    if (conversationClientParty is EngageableParty)
+                    if (conversationClientParty is PartyWithTimestamps)
                     {
-                        (conversationClientParty as EngageableParty).ResetEngagementStartedTime();
+                        (conversationClientParty as PartyWithTimestamps).ResetEngagementStartedTime();
                     }
 
                     messageRouterResults.Add(new MessageRouterResult()

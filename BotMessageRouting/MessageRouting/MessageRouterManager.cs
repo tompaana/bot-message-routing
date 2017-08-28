@@ -16,33 +16,11 @@ namespace Underscore.Bot.MessageRouting
     {
         // Constants
         public const string RejectPendingRequestIfNoAggregationChannelAppSetting = "RejectPendingRequestIfNoAggregationChannel";
-        private const string DefaultBackChannelId = "backchannel";
-        private const string DefaultPartyPropertyId = "conversationId";
 
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
         /// </summary>
         public IRoutingDataManager RoutingDataManager
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// The ID for back channel messages that should establish a 1:1 conversation relationship.
-        /// See HandleBackChannelMessage().
-        /// </summary>
-        public string BackChannelId
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// The ID for finding the party details from back channel messages.
-        /// See HandleBackChannelMessage().
-        /// </summary>
-        public string PartyPropertyId
         {
             get;
             set;
@@ -55,8 +33,6 @@ namespace Underscore.Bot.MessageRouting
         public MessageRouterManager(IRoutingDataManager routingDataManager)
         {
             RoutingDataManager = routingDataManager;
-            BackChannelId = DefaultBackChannelId;
-            PartyPropertyId = DefaultPartyPropertyId;
         }
 
         /// <summary>
@@ -157,26 +133,15 @@ namespace Underscore.Bot.MessageRouting
 
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
+            
+            result = await HandleMessageAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
 
-            // Check for back channel messages
-            // If agent UI is in use, conversation requests are accepted by these messages
-            if (HandleBackChannelMessage(activity).Type == MessageRouterResultType.EngagementAdded)
+            if (result.Type == MessageRouterResultType.NoActionTaken)
             {
-                // A back channel message was detected and handled
-                result.Type = MessageRouterResultType.OK;
-            }
-            else
-            {
-                // No command to the bot was issued so it must be an actual message then
-                result = await HandleMessageAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
-
-                if (result.Type == MessageRouterResultType.NoActionTaken)
+                // The message was not handled, because the sender is not engaged in a conversation
+                if (tryToInitiateEngagementIfNotEngaged)
                 {
-                    // The message was not handled, because the sender is not engaged in a conversation
-                    if (tryToInitiateEngagementIfNotEngaged)
-                    {
-                        result = InitiateEngagement(activity);
-                    }
+                    result = InitiateEngagement(activity);
                 }
             }
 
@@ -324,13 +289,13 @@ namespace Underscore.Bot.MessageRouting
                         ConversationAccount directConversationAccount =
                             new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
 
-                        Party acceptorPartyEngaged = new EngageableParty(
+                        Party acceptorPartyEngaged = new PartyWithTimestamps(
                             conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
                             conversationOwnerParty.ChannelAccount, directConversationAccount);
 
                         RoutingDataManager.AddParty(acceptorPartyEngaged);
                         RoutingDataManager.AddParty(
-                            new EngageableParty(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+                            new PartyWithTimestamps(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
 
                         result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
                         result.ConversationResourceResponse = response;
@@ -386,52 +351,6 @@ namespace Underscore.Bot.MessageRouting
             }
 
             return messageRouterResults;
-        }
-
-        /// <summary>
-        /// Checks the given activity for back channel messages and handles them, if detected.
-        /// Currently the only back channel message supported is for adding engagements
-        /// (establishing 1:1 conversations).
-        /// </summary>
-        /// <param name="activity">The activity to check for back channel messages.</param>
-        /// <returns>The result; if the type of the result is
-        /// MessageRouterResultType.EngagementAdded, the operation was successful.</returns>
-        public MessageRouterResult HandleBackChannelMessage(Activity activity)
-        {
-            MessageRouterResult messageRouterResult = new MessageRouterResult();
-
-            if (activity == null || string.IsNullOrEmpty(activity.Text))
-            {
-                messageRouterResult.Type = MessageRouterResultType.Error;
-                messageRouterResult.ErrorMessage = $"The given activity ({nameof(activity)}) is either null or the message is missing";
-            }
-            else if (activity.Text.StartsWith(BackChannelId))
-            {
-                if (activity.ChannelData == null)
-                {
-                    messageRouterResult.Type = MessageRouterResultType.Error;
-                    messageRouterResult.ErrorMessage = "No channel data";
-                }
-                else
-                {
-                    // Handle accepted request and start 1:1 conversation
-                    string partyAsJsonString = ((JObject)activity.ChannelData)[BackChannelId][DefaultPartyPropertyId].ToString();
-                    Party conversationClientParty = Party.FromJsonString(partyAsJsonString);
-
-                    Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
-
-                    messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
-                        conversationOwnerParty, conversationClientParty);
-                    messageRouterResult.Activity = activity;
-                }
-            }
-            else
-            {
-                // No back channel message detected
-                messageRouterResult.Type = MessageRouterResultType.NoActionTaken;
-            }
-
-            return messageRouterResult;
         }
 
         /// <summary>
