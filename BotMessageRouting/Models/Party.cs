@@ -28,7 +28,7 @@ namespace Underscore.Bot.Models
         }
 
         /// <summary>
-        /// Conversation account - represents a specific user.
+        /// Channel account - represents a specific user.
         /// 
         /// Can be null and if so this party is considered to cover (everyone in the given)
         /// channel/conversation.
