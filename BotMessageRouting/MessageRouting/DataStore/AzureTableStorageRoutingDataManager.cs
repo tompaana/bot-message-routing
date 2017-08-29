@@ -36,7 +36,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
+        public MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
         {
             throw new NotImplementedException();
         }
@@ -61,7 +61,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public string EngagementsAsString()
+        public string ConnectionsToString()
         {
             throw new NotImplementedException();
         }
@@ -71,7 +71,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public Party FindEngagedPartyByChannel(string channelId, ChannelAccount channelAccount)
+        public Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount)
         {
             throw new NotImplementedException();
         }
@@ -101,7 +101,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public Party GetEngagedCounterpart(Party partyWhoseCounterpartToFind)
+        public Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind)
         {
             throw new NotImplementedException();
         }
@@ -121,7 +121,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public bool IsEngaged(Party party, EngagementProfile engagementProfile)
+        public bool IsConnected(Party party, ConnectionProfile connectionProfile)
         {
             throw new NotImplementedException();
         }
@@ -131,7 +131,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             throw new NotImplementedException();
         }
 
-        public IList<MessageRouterResult> RemoveEngagement(Party party, EngagementProfile engagementProfile)
+        public IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile)
         {
             throw new NotImplementedException();
         }

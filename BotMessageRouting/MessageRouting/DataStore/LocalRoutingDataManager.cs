@@ -58,11 +58,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
-        /// Contains 1:1 associations between parties i.e. parties engaged in a conversation.
+        /// Contains 1:1 associations between parties i.e. parties connected in a conversation.
         /// Furthermore, the key party is considered to be the conversation owner e.g. in
         /// a customer service situation the customer service agent.
         /// </summary>
-        protected Dictionary<Party, Party> EngagedParties
+        protected Dictionary<Party, Party> ConnectedParties
         {
             get;
             set;
@@ -85,7 +85,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             UserParties = new List<Party>();
             BotParties = new List<Party>();
             PendingRequests = new List<Party>();
-            EngagedParties = new Dictionary<Party, Party>();
+            ConnectedParties = new Dictionary<Party, Party>();
 #if DEBUG
             LastMessageRouterResults = new List<MessageRouterResult>();
 #endif
@@ -131,7 +131,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             ChannelAccount channelAccount, ConversationAccount conversationAccount,
             bool isUser = true)
         {
-            Party newParty = new EngageableParty(serviceUrl, channelId, channelAccount, conversationAccount);
+            Party newParty = new PartyWithTimestamps(serviceUrl, channelId, channelAccount, conversationAccount);
             return AddParty(newParty, isUser);
         }
 
@@ -174,7 +174,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     messageRouterResults.Add(new MessageRouterResult()
                     {
-                        Type = MessageRouterResultType.EngagementRejected,
+                        Type = MessageRouterResultType.ConnectionRejected,
                         ConversationClientParty = pendingRequestToRemove
                     });
                 }
@@ -182,10 +182,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (wasRemoved)
             {
-                // Check if the party exists in EngagedParties
+                // Check if the party exists in ConnectedParties
                 List<Party> keys = new List<Party>();
 
-                foreach (var partyPair in EngagedParties)
+                foreach (var partyPair in ConnectedParties)
                 {
                     if (partyPair.Key.HasMatchingChannelInformation(partyToRemove)
                         || partyPair.Value.HasMatchingChannelInformation(partyToRemove))
@@ -196,7 +196,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (Party key in keys)
                 {
-                    messageRouterResults.AddRange(RemoveEngagement(key, EngagementProfile.Owner));
+                    messageRouterResults.AddRange(Disconnect(key, ConnectionProfile.Owner));
                 }
             }
 
@@ -250,7 +250,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
                 if (PendingRequests.Contains(party))
                 {
-                    result.Type = MessageRouterResultType.EngagementAlreadyInitiated;
+                    result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
                 }
                 else
                 {
@@ -261,13 +261,13 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     }
                     else
                     {
-                        if (party is EngageableParty)
+                        if (party is PartyWithTimestamps)
                         {
-                            (party as EngageableParty).RequestMadeTime = DateTime.UtcNow;
+                            (party as PartyWithTimestamps).ConnectionRequestTime = DateTime.UtcNow;
                         }
 
                         PendingRequests.Add(party);
-                        result.Type = MessageRouterResultType.EngagementInitiated;
+                        result.Type = MessageRouterResultType.ConnectionRequested;
                     }
                 }
             }
@@ -282,63 +282,63 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         public virtual bool RemovePendingRequest(Party party)
         {
-            if (party is EngageableParty)
+            if (party is PartyWithTimestamps)
             {
-                (party as EngageableParty).ResetRequestMadeTime();
+                (party as PartyWithTimestamps).ResetConnectionRequestTime();
             }
 
             return PendingRequests.Remove(party);
         }
 
-        public virtual bool IsEngaged(Party party, EngagementProfile engagementProfile)
+        public virtual bool IsConnected(Party party, ConnectionProfile connectionProfile)
         {
-            bool isEngaged = false;
+            bool isConnected = false;
 
             if (party != null)
             {
-                switch (engagementProfile)
+                switch (connectionProfile)
                 {
-                    case EngagementProfile.Client:
-                        isEngaged = EngagedParties.Values.Contains(party);
+                    case ConnectionProfile.Client:
+                        isConnected = ConnectedParties.Values.Contains(party);
                         break;
-                    case EngagementProfile.Owner:
-                        isEngaged = EngagedParties.Keys.Contains(party);
+                    case ConnectionProfile.Owner:
+                        isConnected = ConnectedParties.Keys.Contains(party);
                         break;
-                    case EngagementProfile.Any:
-                        isEngaged = (EngagedParties.Values.Contains(party) || EngagedParties.Keys.Contains(party));
+                    case ConnectionProfile.Any:
+                        isConnected = (ConnectedParties.Values.Contains(party) || ConnectedParties.Keys.Contains(party));
                         break;
                     default:
                         break;
                 }
             }
 
-            return isEngaged;
+            return isConnected;
         }
 
-        public virtual Party GetEngagedCounterpart(Party partyWhoseCounterpartToFind)
+        public virtual Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind)
         {
             Party counterparty = null;
 
-            if (IsEngaged(partyWhoseCounterpartToFind, EngagementProfile.Client))
+            if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Client))
             {
-                for (int i = 0; i < EngagedParties.Count; ++i)
+                for (int i = 0; i < ConnectedParties.Count; ++i)
                 {
-                    if (EngagedParties.Values.ElementAt(i).Equals(partyWhoseCounterpartToFind))
+                    if (ConnectedParties.Values.ElementAt(i).Equals(partyWhoseCounterpartToFind))
                     {
-                        counterparty = EngagedParties.Keys.ElementAt(i);
+                        counterparty = ConnectedParties.Keys.ElementAt(i);
                         break;
                     }
                 }
             }
-            else if (IsEngaged(partyWhoseCounterpartToFind, EngagementProfile.Owner))
+            else if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Owner))
             {
-                EngagedParties.TryGetValue(partyWhoseCounterpartToFind, out counterparty);
+                ConnectedParties.TryGetValue(partyWhoseCounterpartToFind, out counterparty);
             }
 
             return counterparty;
         }
 
-        public virtual MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
+        public virtual MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -350,29 +350,29 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
                 try
                 {
-                    EngagedParties.Add(conversationOwnerParty, conversationClientParty);
+                    ConnectedParties.Add(conversationOwnerParty, conversationClientParty);
                     PendingRequests.Remove(conversationClientParty);
 
-                    DateTime engagementStartedTime = DateTime.UtcNow;
+                    DateTime connectionStartedTime = DateTime.UtcNow;
 
-                    if (conversationClientParty is EngageableParty)
+                    if (conversationClientParty is PartyWithTimestamps)
                     {
-                        (conversationClientParty as EngageableParty).ResetRequestMadeTime();
-                        (conversationClientParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                        (conversationClientParty as PartyWithTimestamps).ResetConnectionRequestTime();
+                        (conversationClientParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
                     }
 
-                    if (conversationOwnerParty is EngageableParty)
+                    if (conversationOwnerParty is PartyWithTimestamps)
                     {
-                        (conversationOwnerParty as EngageableParty).EngagementStartedTime = engagementStartedTime;
+                        (conversationOwnerParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
                     }
 
-                    result.Type = MessageRouterResultType.EngagementAdded;
+                    result.Type = MessageRouterResultType.Connected;
                 }
                 catch (ArgumentException e)
                 {
                     result.Type = MessageRouterResultType.Error;
                     result.ErrorMessage = e.Message;
-                    System.Diagnostics.Debug.WriteLine($"Failed to add engagement between parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Failed to connect parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
                 }
             }
             else
@@ -384,7 +384,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return result;
         }
 
-        public virtual IList<MessageRouterResult> RemoveEngagement(Party party, EngagementProfile engagementProfile)
+        public virtual IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile)
         {
             IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
@@ -392,19 +392,19 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
                 List<Party> keysToRemove = new List<Party>();
 
-                foreach (var partyPair in EngagedParties)
+                foreach (var partyPair in ConnectedParties)
                 {
                     bool removeThisPair = false;
 
-                    switch (engagementProfile)
+                    switch (connectionProfile)
                     {
-                        case EngagementProfile.Client:
+                        case ConnectionProfile.Client:
                             removeThisPair = partyPair.Value.Equals(party);
                             break;
-                        case EngagementProfile.Owner:
+                        case ConnectionProfile.Owner:
                             removeThisPair = partyPair.Key.Equals(party);
                             break;
-                        case EngagementProfile.Any:
+                        case ConnectionProfile.Any:
                             removeThisPair = (partyPair.Value.Equals(party) || partyPair.Key.Equals(party));
                             break;
                         default:
@@ -415,7 +415,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     {
                         keysToRemove.Add(partyPair.Key);
 
-                        if (engagementProfile == EngagementProfile.Owner)
+                        if (connectionProfile == ConnectionProfile.Owner)
                         {
                             // Since owner is the key in the dictionary, there can be only one
                             break;
@@ -423,7 +423,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     }
                 }
 
-                messageRouterResults = RemoveEngagements(keysToRemove);
+                messageRouterResults = RemoveConnections(keysToRemove);
             }
 
             return messageRouterResults;
@@ -435,7 +435,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             UserParties.Clear();
             BotParties.Clear();
             PendingRequests.Clear();
-            EngagedParties.Clear();
+            ConnectedParties.Clear();
 #if DEBUG
             LastMessageRouterResults.Clear();
 #endif
@@ -519,13 +519,13 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return botParty;
         }
 
-        public virtual Party FindEngagedPartyByChannel(string channelId, ChannelAccount channelAccount)
+        public virtual Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount)
         {
             Party foundParty = null;
 
             try
             {
-                foundParty = EngagedParties.Keys.Single(party =>
+                foundParty = ConnectedParties.Keys.Single(party =>
                         (party.ChannelId.Equals(channelId)
                          && party.ChannelAccount != null
                          && party.ChannelAccount.Id.Equals(channelAccount.Id)));
@@ -533,7 +533,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 if (foundParty == null)
                 {
                     // Not found in keys, try the values
-                    foundParty = EngagedParties.Values.First(party =>
+                    foundParty = ConnectedParties.Values.First(party =>
                             (party.ChannelId.Equals(channelId)
                              && party.ChannelAccount != null
                              && party.ChannelAccount.Id.Equals(channelAccount.Id)));
@@ -571,33 +571,33 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
-        /// Removes the engagements of the given conversation owners.
+        /// Removes the connections of the given conversation owners.
         /// </summary>
-        /// <param name="conversationOwnerParties">The conversation owners whose engagements to remove.</param>
-        /// <returns>The number of engagements removed.</returns>
-        protected virtual IList<MessageRouterResult> RemoveEngagements(IList<Party> conversationOwnerParties)
+        /// <param name="conversationOwnerParties">The conversation owners whose connections to remove.</param>
+        /// <returns>The number of connections removed.</returns>
+        protected virtual IList<MessageRouterResult> RemoveConnections(IList<Party> conversationOwnerParties)
         {
             IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
             foreach (Party conversationOwnerParty in conversationOwnerParties)
             {
-                EngagedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
+                ConnectedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
 
-                if (EngagedParties.Remove(conversationOwnerParty))
+                if (ConnectedParties.Remove(conversationOwnerParty))
                 {
-                    if (conversationOwnerParty is EngageableParty)
+                    if (conversationOwnerParty is PartyWithTimestamps)
                     {
-                        (conversationOwnerParty as EngageableParty).ResetEngagementStartedTime();
+                        (conversationOwnerParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
                     }
 
-                    if (conversationClientParty is EngageableParty)
+                    if (conversationClientParty is PartyWithTimestamps)
                     {
-                        (conversationClientParty as EngageableParty).ResetEngagementStartedTime();
+                        (conversationClientParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
                     }
 
                     messageRouterResults.Add(new MessageRouterResult()
                     {
-                        Type = MessageRouterResultType.EngagementRemoved,
+                        Type = MessageRouterResultType.Disconnected,
                         ConversationOwnerParty = conversationOwnerParty,
                         ConversationClientParty = conversationClientParty
                     });
@@ -608,11 +608,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
 #if DEBUG
-        public string EngagementsAsString()
+        public string ConnectionsToString()
         {
             string parties = string.Empty;
 
-            foreach (KeyValuePair<Party, Party> keyValuePair in EngagedParties)
+            foreach (KeyValuePair<Party, Party> keyValuePair in ConnectedParties)
             {
                 parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
             }

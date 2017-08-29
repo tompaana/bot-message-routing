@@ -1,18 +1,17 @@
 ﻿using Microsoft.Bot.Connector;
-using System;
 using Underscore.Bot.Models;
 
 namespace Underscore.Bot.MessageRouting
 {
     public enum MessageRouterResultType
     {
-        NoActionTaken, // The result handler should ignore results with this type
-        OK, // The result handler should ignore results with this type
-        EngagementInitiated,
-        EngagementAlreadyInitiated,
-        EngagementRejected,
-        EngagementAdded,
-        EngagementRemoved,
+        NoActionTaken, // No action taken - The result handler should ignore results with this type
+        OK, // Action taken, but the result handler should ignore results with this type
+        ConnectionRequested,
+        ConnectionAlreadyRequested,
+        ConnectionRejected,
+        Connected,
+        Disconnected,
         NoAgentsAvailable,
         NoAggregationChannel,
         FailedToForwardMessage,
@@ -47,8 +46,8 @@ namespace Underscore.Bot.MessageRouting
         /// <summary>
         /// A valid ConversationResourceResponse of the newly created direct conversation
         /// (between the bot [who will relay messages] and the conversation owner),
-        /// if the engagement was added and a conversation created successfully
-        /// (MessageRouterResultType is EngagementAdded).
+        /// if the connection was added and a conversation created successfully
+        /// (MessageRouterResultType is Connected).
         /// </summary>
         public ConversationResourceResponse ConversationResourceResponse
         {
@@ -79,6 +78,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         public MessageRouterResult()
         {
+            Type = MessageRouterResultType.NoActionTaken;
             ErrorMessage = string.Empty;
         }
 

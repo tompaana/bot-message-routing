@@ -1,18 +1,17 @@
 ﻿using Microsoft.Bot.Connector;
-using System;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
 
 namespace Underscore.Bot.MessageRouting.DataStore
 {
     /// <summary>
-    /// Defines the type of engagement:
-    /// - None: No engagement
+    /// Defines the type of the connection:
+    /// - None: No connection
     /// - Client: E.g. a customer
     /// - Owner: E.g. a customer service agent
     /// - Any: Either a client or an owner
     /// </summary>
-    public enum EngagementProfile
+    public enum ConnectionProfile
     {
         None,
         Client,
@@ -37,7 +36,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="newParty">The new party to add.</param>
         /// <param name="isUser">If true, will try to add the party to the list of users.
-        /// If false, will try to add it to the list of bot identities.</param>
+        /// If false, will try to add it to the list of bot identities. True by default.</param>
         /// <returns>True, if the given party was added. False otherwise (was null or already stored).</returns>
         bool AddParty(Party newParty, bool isUser = true);
 
@@ -98,38 +97,38 @@ namespace Underscore.Bot.MessageRouting.DataStore
         bool RemovePendingRequest(Party party);
 
         /// <summary>
-        /// Checks if the given party is engaged in a 1:1 conversation as defined by the engagement
-        /// profile (e.g. as a customer, as an agent or either one).
+        /// Checks if the given party is connected in a 1:1 conversation as defined by
+        /// the connection profile (e.g. as a customer, as an agent or either one).
         /// </summary>
         /// <param name="party">The party to check.</param>
-        /// <param name="engagementProfile">Defines whether to look for clients, owners or both.</param>
-        /// <returns>True, if the party is engaged as defined by the given engagement profile.
+        /// <param name="connectionProfile">Defines whether to look for clients, owners or both.</param>
+        /// <returns>True, if the party is connected as defined by the given connection profile.
         /// False otherwise.</returns>
-        bool IsEngaged(Party party, EngagementProfile engagementProfile);
+        bool IsConnected(Party party, ConnectionProfile connectionProfile);
 
         /// <summary>
         /// Resolves the given party's counterpart in a 1:1 conversation.
         /// </summary>
         /// <param name="partyWhoseCounterpartToFind">The party whose counterpart to resolve.</param>
         /// <returns>The counterpart or null, if not found.</returns>
-        Party GetEngagedCounterpart(Party partyWhoseCounterpartToFind);
+        Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind);
 
         /// <summary>
-        /// Creates a new engagement between the given parties. The method also clears the pending
+        /// Creates a new connection between the given parties. The method also clears the pending
         /// request of the client party, if one exists.
         /// </summary>
         /// <param name="conversationOwnerParty">The conversation owner party.</param>
         /// <param name="conversationClientParty">The conversation client (customer) party.</param>
-        /// <returns>The result of the operation. The expected result type, when successful, is EngagementAdded.</returns>
-        MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
+        /// <returns>The result of the operation. The expected result type, when successful, is Connected.</returns>
+        MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
-        /// Removes an engagement(s) of the given party i.e. ends the 1:1 conversations.
+        /// Removes connection(s) of the given party i.e. ends the 1:1 conversations.
         /// </summary>
-        /// <param name="party">The party whose engagements to remove.</param>
-        /// <param name="engagementProfile">The engagement profile of the party (owner/client/either).</param>
-        /// <returns>A list of operation results. The expected result types, when successful, are EngagementRemoved.</returns>
-        IList<MessageRouterResult> RemoveEngagement(Party party, EngagementProfile engagementProfile);
+        /// <param name="party">The party whose connections to remove.</param>
+        /// <param name="connectionProfile">The connection profile of the party (owner/client/either).</param>
+        /// <returns>A list of operation results. The expected result types, when successful, are Disconnected.</returns>
+        IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile);
 
         /// <summary>
         /// Deletes all existing routing data permanently.
@@ -180,12 +179,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
         Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount);
 
         /// <summary>
-        /// Tries to find a party engaged in a conversation.
+        /// Tries to find a party connected in a conversation.
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
         /// <param name="channelAccount">The channel account.</param>
         /// <returns>The party matching the given details or null if not found.</returns>
-        Party FindEngagedPartyByChannel(string channelId, ChannelAccount channelAccount);
+        Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount);
 
         /// <summary>
         /// Finds the parties from the given list that match the channel account (and ID) of the given party.
@@ -198,9 +197,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         #region Methods for debugging
 #if DEBUG
-        /// <returns>The engagements (parties in conversation) as a string.
-        /// Will return an empty string, if no engagements exist.</returns>
-        string EngagementsAsString();
+        /// <returns>The connections (parties in conversation) as a string.
+        /// Will return an empty string, if no connections exist.</returns>
+        string ConnectionsToString();
 
         string GetLastMessageRouterResults();
 

@@ -20,13 +20,14 @@ namespace Underscore.Bot.Utils
         /// Constructs a party instance using the sender (from) of the given activity.
         /// </summary>
         /// <param name="activity"></param>
-        /// <param name="engageable">If true, will construct EngageableParty instance instead of Party. True by default.</param>
+        /// <param name="withTimestamps">If true, will construct a Party instance with timestamps
+        /// instead of the regular Party. True by default.</param>
         /// <returns>A newly created Party instance.</returns>
-        public static Party CreateSenderParty(IActivity activity, bool engageable = true)
+        public static Party CreateSenderParty(IActivity activity, bool withTimestamps = true)
         {
-            if (engageable)
+            if (withTimestamps)
             {
-                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
+                return new PartyWithTimestamps(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
             }
 
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
@@ -36,13 +37,13 @@ namespace Underscore.Bot.Utils
         /// Constructs a party instance using the recipient of the given activity.
         /// </summary>
         /// <param name="activity"></param>
-        /// <param name="engageable">If true, will construct EngageableParty instance instead of Party. True by default.</param>
-        /// <returns>A newly created Party instance.</returns>
-        public static Party CreateRecipientParty(IActivity activity, bool engageable = true)
+        /// <param name="withTimestamps">If true, will construct a Party instance with timestamps
+        /// instead of the regular Party. True by default.</param>
+        public static Party CreateRecipientParty(IActivity activity, bool withTimestamps = true)
         {
-            if (engageable)
+            if (withTimestamps)
             {
-                return new EngageableParty(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+                return new PartyWithTimestamps(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
             }
 
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
