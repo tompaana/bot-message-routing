@@ -137,9 +137,9 @@ namespace Underscore.Bot.Models
 
         public override string ToString()
         {
-            return "[" + ServiceUrl + "; " + ChannelId + "; "
-                + ((ChannelAccount == null) ? "(no specific user); " : ("{" + ChannelAccount.Id + "; " + ChannelAccount.Name + "}; "))
-                + "{" + ConversationAccount.Id + "; " + ConversationAccount.Name + "}]";
+            return $"[{ServiceUrl}; {ChannelId}; "
+                + ((ChannelAccount == null) ? "(no specific user); " : ($"{{{ChannelAccount.Id}; {ChannelAccount.Name}}}; "))
+                + $"{{{ConversationAccount.Id}; {ConversationAccount.Name}}}]";
         }
     }
 }

@@ -13,17 +13,17 @@ namespace Underscore.Bot.Models
         /// Represents the time when a request was made.
         /// DateTime.MinValue will indicate that no request is pending.
         /// </summary>
-        public DateTime RequestMadeTime
+        public DateTime ConnectionRequestTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Represents the time when an engagement (1:1 conversation) was started.
-        /// DateTime.MinValue will indicate that this party is not engaged in a conversation.
+        /// Represents the time when the connection (1:1 conversation) was established.
+        /// DateTime.MinValue will indicate that this party is not connected.
         /// </summary>
-        public DateTime EngagementStartedTime
+        public DateTime ConnectionEstablishedTime
         {
             get;
             set;
@@ -36,18 +36,18 @@ namespace Underscore.Bot.Models
             ChannelAccount channelAccount, ConversationAccount conversationAccount)
             : base(serviceUrl, channelId, channelAccount, conversationAccount)
         {
-            ResetRequestMadeTime();
-            ResetEngagementStartedTime();
+            ResetConnectionRequestTime();
+            ResetConnectionEstablishedTime();
         }
 
-        public void ResetRequestMadeTime()
+        public void ResetConnectionRequestTime()
         {
-            RequestMadeTime = DateTime.MinValue;
+            ConnectionRequestTime = DateTime.MinValue;
         }
 
-        public void ResetEngagementStartedTime()
+        public void ResetConnectionEstablishedTime()
         {
-            EngagementStartedTime = DateTime.MinValue;
+            ConnectionEstablishedTime = DateTime.MinValue;
         }
     }
 }
