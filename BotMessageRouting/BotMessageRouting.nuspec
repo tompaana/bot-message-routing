@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Underscore.Bot.MessageRouting</id>
-    <version>0.9.5.0</version>
+    <version>0.9.2.0</version>
     <title>Bot Message Routing component</title>
     <authors>Tomi Paananen et al. (see README on project website)</authors>
     <owners>Tomi Paananen</owners>
