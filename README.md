@@ -10,6 +10,9 @@ connected with a human customer service agent.
 **For an example on how to take this code into use, see
 [Intermediator Bot Sample](https://github.com/tompaana/intermediator-bot-sample).**
 
+This project is also available as
+[NuGet package](https://www.nuget.org/packages/Underscore.Bot.MessageRouting).
+
 Don't worry, if you prefer the Node.js SDK; in that case check out
 [this sample](https://github.com/palindromed/Bot-HandOff)!
 
