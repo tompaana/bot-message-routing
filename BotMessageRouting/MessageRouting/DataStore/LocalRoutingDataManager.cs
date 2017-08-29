@@ -250,7 +250,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
                 if (PendingRequests.Contains(party))
                 {
-                    result.Type = MessageRouterResultType.TryingToConnect;
+                    result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
                 }
                 else
                 {
@@ -267,7 +267,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                         }
 
                         PendingRequests.Add(party);
-                        result.Type = MessageRouterResultType.Connecting;
+                        result.Type = MessageRouterResultType.ConnectionRequested;
                     }
                 }
             }

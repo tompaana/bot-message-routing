@@ -7,8 +7,8 @@ namespace Underscore.Bot.MessageRouting
     {
         NoActionTaken, // No action taken - The result handler should ignore results with this type
         OK, // Action taken, but the result handler should ignore results with this type
-        Connecting,
-        TryingToConnect, // Connection attempt already initiated
+        ConnectionRequested,
+        ConnectionAlreadyRequested,
         ConnectionRejected,
         Connected,
         Disconnected,
