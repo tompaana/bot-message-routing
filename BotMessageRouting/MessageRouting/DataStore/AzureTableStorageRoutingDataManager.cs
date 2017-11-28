@@ -25,6 +25,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         public AzureTableStorageRoutingDataManager()
         {
+            //using StorageHelper
             table = StorageHelper.CreateStorageAccountFromConnectionString("Party");
             tableConversation = StorageHelper.CreateStorageAccountFromConnectionString("PartyConversation");
 #if DEBUG
