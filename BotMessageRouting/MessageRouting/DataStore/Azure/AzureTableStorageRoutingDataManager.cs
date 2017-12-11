@@ -237,7 +237,16 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         protected bool AddParty(string tableKey, Party party)
         {
             CloudTable cloudTable = _cloudTableClient.GetTableReference(tableKey);
-            cloudTable.CreateIfNotExists();
+
+            try
+            {
+                cloudTable.CreateIfNotExists();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"{e.Message}");
+            }
+
             PartyTableEntity partyTableEntity = new PartyTableEntity(party);
             TableOperation insertTableOperation = TableOperation.Insert(partyTableEntity);
             TableResult tableResult = cloudTable.Execute(insertTableOperation);
