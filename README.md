@@ -118,6 +118,7 @@ project).
 Special thanks to the key contributors (in alphabetical order):
 
 * [Jamie D](https://github.com/daltskin)
+* [Lucas Humenhuk](https://github.com/lcarli)
 * [Lilian Kasem](https://github.com/liliankasem)
 * [Edouard Mathon](https://github.com/edouard-mathon)
 * [Gary Pretty](https://github.com/garypretty)
