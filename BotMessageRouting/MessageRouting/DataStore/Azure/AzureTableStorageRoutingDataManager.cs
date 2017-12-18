@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.Bot.Connector;
+﻿using Microsoft.Bot.Connector;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
-using Underscore.Bot.Models;
-using System.Linq;
-using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
 using System.Configuration;
+using Underscore.Bot.Models;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {

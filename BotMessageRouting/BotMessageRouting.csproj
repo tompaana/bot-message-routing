@@ -129,7 +129,7 @@
     <Compile Include="MessageRouting\IMessageRouterResultHandler.cs" />
     <Compile Include="MessageRouting\MessageRouterManager.cs" />
     <Compile Include="MessageRouting\MessageRouterResult.cs" />
-    <Compile Include="Models\Conversation.cs" />
+    <Compile Include="Models\ConversationEntity.cs" />
     <Compile Include="Models\PartyEntity.cs" />
     <Compile Include="Models\PartyWithTimestamps.cs" />
     <Compile Include="Models\PartyWithTimestampsEntity.cs" />

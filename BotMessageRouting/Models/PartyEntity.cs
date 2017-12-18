@@ -1,7 +1,5 @@
 ﻿using Microsoft.Bot.Connector;
 using Microsoft.WindowsAzure.Storage.Table;
-using System;
-using Underscore.Bot.Models;
 
 namespace Underscore.Bot.Models
 

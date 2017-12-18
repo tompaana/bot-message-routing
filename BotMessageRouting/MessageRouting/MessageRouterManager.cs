@@ -194,15 +194,27 @@ namespace Underscore.Bot.MessageRouting
 
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
-        /// the sender in the given activity. This method does nothing, if a request for the same
+        /// the given party. This method does nothing, if a request for the same user already exists.
+        /// </summary>
+        /// <param name="requestorParty">The requestor party.</param>
+        /// <returns>The result of the operation.</returns>
+        public MessageRouterResult RequestConnection(Party requestorParty)
+        {
+            MessageRouterResult messageRouterResult =
+                RoutingDataManager.AddPendingRequest(requestorParty);
+            return messageRouterResult;
+        }
+
+        /// <summary>
+        /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
+        /// the SENDER in the given activity. This method does nothing, if a request for the same
         /// user already exists.
         /// </summary>
-        /// <param name="activity">The activity.</param>
+        /// <param name="activity">The activity. The SENDER in this activity (From property) is considered the requestor.</param>
         /// <returns>The result of the operation.</returns>
         public MessageRouterResult RequestConnection(Activity activity)
         {
-            MessageRouterResult messageRouterResult =
-                RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));
+            MessageRouterResult messageRouterResult = RequestConnection(MessagingUtils.CreateSenderParty(activity));
             messageRouterResult.Activity = activity;
             return messageRouterResult;
         }

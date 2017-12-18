@@ -1,5 +1,5 @@
-﻿using System;
-using Microsoft.Bot.Connector;
+﻿using Microsoft.Bot.Connector;
+using System;
 
 namespace Underscore.Bot.Models
 {

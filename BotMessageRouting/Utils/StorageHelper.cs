@@ -3,9 +3,6 @@ using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Web;
 
 namespace Underscore.Bot.Utils
 {
@@ -14,18 +11,12 @@ namespace Underscore.Bot.Utils
         public static CloudStorageAccount CreateStorageAccountFromConnectionString()
         {
             CloudStorageAccount storageAccount;
-            const string Message = "Conta do Azure Storage inválida. Por favor, verifique a string de conexão.";
 
             try
             {
                 storageAccount = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageConnectionString"]);
             }
-            catch (FormatException)
-            {
-
-                throw;
-            }
-            catch (ArgumentException)
+            catch
             {
 
                 throw;
@@ -37,28 +28,19 @@ namespace Underscore.Bot.Utils
         public static CloudTable CreateStorageAccountFromConnectionString(string tableName)
         {
             CloudStorageAccount storageAccount;
-            const string Message = "Conta do Azure Storage inválida. Por favor, verifique a string de conexão.";
 
             try
             {
                 storageAccount = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageConnectionString"]);
                 return GetTable(storageAccount, tableName);
             }
-            catch (FormatException)
-            {
-
+            catch
+            { 
                 throw;
             }
-            catch (ArgumentException)
-            {
-
-                throw;
-            }
-
-            return null;
         }
 
-        public static CloudTable GetTable (CloudStorageAccount storageAccount, string tableName)
+        public static CloudTable GetTable(CloudStorageAccount storageAccount, string tableName)
         {
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
             return tableClient.GetTableReference(tableName);
@@ -66,19 +48,20 @@ namespace Underscore.Bot.Utils
 
         public static T Get<T>(CloudTable table, string PartitionKey, string RowKey) where T : TableEntity
         {
-
-            // Create a retrieve operation that takes a customer entity.
+            // Create a retrieve operation that takes a customer entity
             TableOperation retrieveOperation = TableOperation.Retrieve<T>(PartitionKey, RowKey);
 
-            // Execute the retrieve operation.
+            // Execute the retrieve operation
             TableResult retrievedResult = table.Execute(retrieveOperation);
 
             T result = null;
-            // Print the phone number of the result.
+
+            // Print the phone number of the result
             if (retrievedResult.Result != null)
             {
                 result = retrievedResult.Result as T;
             }
+
             return result;
         }
 
@@ -86,43 +69,43 @@ namespace Underscore.Bot.Utils
         {
             try
             {
-                // Create the TableOperation that inserts the customer entity.
+                // Create the TableOperation that inserts the customer entity
                 TableOperation insertOperation = TableOperation.Insert(data);
 
-                // Execute the insert operation.
+                // Execute the insert operation
                 table.Execute(insertOperation);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-
+                System.Diagnostics.Debug.WriteLine($"Failed to insert the given entity into the table: {e.Message}");
             }
         }
 
         public static void InsertBatch<T>(CloudTable table, List<T> data) where T : TableEntity
         {
-            // Create the batch operation.
+            // Create the batch operation
             TableBatchOperation batchOperation = new TableBatchOperation();
 
-            // Add both customer entities to the batch insert operation.
+            // Add both customer entities to the batch insert operation
             foreach (TableEntity d in data)
             {
                 batchOperation.Insert(d);
             }
 
-            // Execute the batch operation.
+            // Execute the batch operation
             table.ExecuteBatch(batchOperation);
         }
 
         public static void Replace<T>(CloudTable table, string PartitionKey, string RowKey,
                T ReplacementData, Boolean InsertOrReplace) where T : TableEntity
         {
-            // Create a retrieve operation that takes a customer entity.
+            // Create a retrieve operation that takes a customer entity
             TableOperation retrieveOperation = TableOperation.Retrieve<T>(PartitionKey, RowKey);
 
-            // Execute the operation.
+            // Execute the operation
             TableResult retrievedResult = table.Execute(retrieveOperation);
 
-            // Assign the result to a CustomerEntity object.
+            // Assign the result to a CustomerEntity object
             T updateEntity = retrievedResult.Result as T;
 
             if (updateEntity != null)
@@ -141,7 +124,7 @@ namespace Underscore.Bot.Utils
                     updateOperation = TableOperation.Replace(ReplacementData);
                 }
 
-                // Execute the operation.
+                // Execute the operation
                 table.Execute(updateOperation);
             }
         }
@@ -155,28 +138,26 @@ namespace Underscore.Bot.Utils
         /// <param name="ReplacementData">The replacement data.</param>
         public static bool DeleteEntry<T>(CloudTable table, string pkey, string rkey) where T : TableEntity
         {
-
-            // Create a retrieve operation that expects a customer entity.
+            // Create a retrieve operation that expects a customer entity
             TableOperation retrieveOperation = TableOperation.Retrieve<T>(pkey, rkey);
 
-            // Execute the operation.
+            // Execute the operation
             TableResult retrievedResult = table.Execute(retrieveOperation);
 
-            // Assign the result to a CustomerEntity.
+            // Assign the result to a CustomerEntity
             T deleteEntity = retrievedResult.Result as T;
 
-            // Create the Delete TableOperation.
+            // Create the Delete TableOperation
             if (deleteEntity != null)
             {
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
-                // Execute the operation.
+                // Execute the operation
                 table.Execute(deleteOperation);
                 return true;
             }
 
             return false;
-
         }
 
         /// <summary>
@@ -184,7 +165,7 @@ namespace Underscore.Bot.Utils
         /// </summary>
         public static void DeleteTable(CloudTable table)
         {
-            // Delete the table it if exists.
+            // Delete the table it if exists
             table.DeleteIfExists();
         }
     }
