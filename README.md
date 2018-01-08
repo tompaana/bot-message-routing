@@ -1,6 +1,8 @@
 Bot Message Routing (component)
 ===============================
 
+[![Build status](https://ci.appveyor.com/api/projects/status/ig99aq8273sx2tyh?svg=true)](https://ci.appveyor.com/project/tompaana/bot-message-routing)
+
 This project is a message routing component for chatbots built with
 [Microsoft Bot Framework](https://dev.botframework.com/) C# SDK. It enables routing messages between
 users on different channels. In addition, it can be used in advanced customer service scenarios
@@ -117,6 +119,7 @@ project).
 
 Special thanks to the key contributors (in alphabetical order):
 
+* [Syed Hassaan Ahmed](https://github.com/syedhassaanahmed)
 * [Jamie D](https://github.com/daltskin)
 * [Lucas Humenhuk](https://github.com/lcarli)
 * [Lilian Kasem](https://github.com/liliankasem)
