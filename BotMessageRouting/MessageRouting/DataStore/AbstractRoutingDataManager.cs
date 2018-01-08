@@ -15,10 +15,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
     [Serializable]
     public abstract class AbstractRoutingDataManager : IRoutingDataManager
     {
+        /// <summary>
+        /// A global time provider.
+        /// Used for providing the current time for various of events.
+        /// For instance, the time when a connection request is made may be useful for customer
+        /// agent front-ends to see who has waited the longest and/or to collect response times.
+        /// </summary>
         public virtual GlobalTimeProvider GlobalTimeProvider
         {
             get;
-            set;
+            protected set;
         }
 
 #if DEBUG
@@ -29,8 +35,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 #endif
 
-        public AbstractRoutingDataManager()
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="globalTimeProvider">The global time provider for providing the current
+        /// time for various events such as when a connection is requested.</param>
+        public AbstractRoutingDataManager(GlobalTimeProvider globalTimeProvider = null)
         {
+            GlobalTimeProvider = globalTimeProvider ?? new GlobalTimeProvider();
 #if DEBUG
             LastMessageRouterResults = new List<MessageRouterResult>();
 #endif

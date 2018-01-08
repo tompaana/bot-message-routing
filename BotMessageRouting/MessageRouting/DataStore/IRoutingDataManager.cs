@@ -25,12 +25,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
     /// </summary>
     public interface IRoutingDataManager
     {
-        GlobalTimeProvider GlobalTimeProvider
-        {
-            get;
-            set;
-        }
-
         #region CRUD methods
         /// <returns>The user parties as a readonly list.</returns>
         IList<Party> GetUserParties();

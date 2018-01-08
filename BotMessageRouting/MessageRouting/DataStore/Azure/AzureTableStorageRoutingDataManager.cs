@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Underscore.Bot.Models;
 using Underscore.Bot.Models.Azure;
+using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
@@ -24,7 +25,14 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         protected CloudTable _partiesTable;
         protected CloudTable _connectionsTable;
 
-        public AzureTableStorageRoutingDataManager(string connectionString) : base()
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
+        /// <param name="globalTimeProvider">The global time provider for providing the current
+        /// time for various events such as when a connection is requested.</param>
+        public AzureTableStorageRoutingDataManager(string connectionString, GlobalTimeProvider globalTimeProvider)
+            : base(globalTimeProvider)
         {
             _partiesTable = AzureStorageHelper.GetTable(connectionString, TableNameParties);
             _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);

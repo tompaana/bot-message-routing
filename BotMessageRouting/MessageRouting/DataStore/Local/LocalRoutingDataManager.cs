@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Local
 {
@@ -67,7 +68,13 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             set;
         }
 
-        public LocalRoutingDataManager() : base()
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="globalTimeProvider">The global time provider for providing the current
+        /// time for various events such as when a connection is requested.</param>
+        public LocalRoutingDataManager(GlobalTimeProvider globalTimeProvider = null)
+            : base(globalTimeProvider)
         {
             AggregationParties = new List<Party>();
             UserParties = new List<Party>();

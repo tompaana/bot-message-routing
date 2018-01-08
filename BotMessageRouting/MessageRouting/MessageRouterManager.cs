@@ -24,22 +24,13 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-        public GlobalTimeProvider GlobalTimeProvider
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="routingDataManager">The routing data manager.</param>
-        /// <param name="globalTimeProvider">The global time provider.</param>
-        public MessageRouterManager(IRoutingDataManager routingDataManager, GlobalTimeProvider globalTimeProvider = null)
+        public MessageRouterManager(IRoutingDataManager routingDataManager)
         {
             RoutingDataManager = routingDataManager;
-            GlobalTimeProvider = globalTimeProvider ?? new GlobalTimeProvider();
-            RoutingDataManager.GlobalTimeProvider = GlobalTimeProvider;
         }
 
         /// <summary>
@@ -411,7 +402,8 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="activity">The activity to handle.</param>
         /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
         /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation.
+        /// MessageRouterResultType.NoActionTaken indicates that the sender was not connected.</returns>
         public async Task<MessageRouterResult> RouteMessageIfSenderIsConnectedAsync(
             Activity activity, bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
