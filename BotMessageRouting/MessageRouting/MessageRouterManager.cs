@@ -25,13 +25,22 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
+        public GlobalTimeProvider GlobalTimeProvider
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="routingDataManager">The routing data manager.</param>
-        public MessageRouterManager(IRoutingDataManager routingDataManager)
+        /// <param name="globalTimeProvider">The global time provider.</param>
+        public MessageRouterManager(IRoutingDataManager routingDataManager, GlobalTimeProvider globalTimeProvider = null)
         {
             RoutingDataManager = routingDataManager;
+            GlobalTimeProvider = globalTimeProvider ?? new GlobalTimeProvider();
+            RoutingDataManager.GlobalTimeProvider = GlobalTimeProvider;
         }
 
         /// <summary>
@@ -238,14 +247,14 @@ namespace Underscore.Bot.MessageRouting
                 ConversationClientParty = partyToReject
             };
 
-            if (RoutingDataManager.RemovePendingRequest(partyToReject))
-            {
-                result.Type = MessageRouterResultType.ConnectionRejected;
-            }
-            else
+            if (RoutingDataManager.RemovePendingRequest(partyToReject).Type == MessageRouterResultType.Error)
             {
                 result.Type = MessageRouterResultType.Error;
                 result.ErrorMessage = $"Failed to remove the pending request of user \"{partyToReject.ChannelAccount?.Name}\"";
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.ConnectionRejected;
             }
 
             return result;

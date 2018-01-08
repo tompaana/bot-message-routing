@@ -1,0 +1,662 @@
+﻿using Microsoft.Bot.Connector;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
+
+namespace Underscore.Bot.MessageRouting.DataStore
+{
+    /// <summary>
+    /// This class reduces the amount of code needed for data store specific implementations by
+    /// containing the business logic that works in most cases, but abstracting the simplest,
+    /// data store specific read and write operations (methods starting with "Execute").
+    /// </summary>
+    public abstract class AbstractRoutingDataManager : IRoutingDataManager
+    {
+        public virtual GlobalTimeProvider GlobalTimeProvider
+        {
+            get;
+            set;
+        }
+
+#if DEBUG
+        protected IList<MessageRouterResult> LastMessageRouterResults
+        {
+            get;
+            set;
+        }
+#endif
+
+        public AbstractRoutingDataManager()
+        {
+#if DEBUG
+            LastMessageRouterResults = new List<MessageRouterResult>();
+#endif
+        }
+
+        public abstract IList<Party> GetUserParties();
+        public abstract IList<Party> GetBotParties();
+
+        public virtual bool AddParty(Party partyToAdd, bool isUser = true)
+        {
+            if (partyToAdd == null || (isUser ? GetUserParties().Contains(partyToAdd) : GetBotParties().Contains(partyToAdd)))
+            {
+                return false;
+            }
+
+            if (!isUser && partyToAdd.ChannelAccount == null)
+            {
+                throw new NullReferenceException($"Channel account of a bot party ({nameof(partyToAdd.ChannelAccount)}) cannot be null");
+            }
+
+            ExecuteAddParty(partyToAdd, isUser);
+            return true;
+        }
+
+        public virtual IList<MessageRouterResult> RemoveParty(Party partyToRemove)
+        {
+            List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+            bool wasRemoved = false;
+
+            // Check user and bot parties
+            for (int i = 0; i < 2; ++i)
+            {
+                bool isUser = (i == 0);
+                IList<Party> partyList = isUser ? GetUserParties() : GetBotParties();
+                IList<Party> partiesToRemove = FindPartiesWithMatchingChannelAccount(partyToRemove, partyList);
+
+                if (partiesToRemove != null)
+                {
+                    foreach (Party party in partiesToRemove)
+                    {
+                        if (ExecuteRemoveParty(party, isUser))
+                        {
+                            wasRemoved = true;
+                        }
+                    }
+                }
+            }
+
+            // Check pending requests
+            IList<Party> pendingRequestsToRemove = FindPartiesWithMatchingChannelAccount(partyToRemove, GetPendingRequests());
+
+            foreach (Party pendingRequestToRemove in pendingRequestsToRemove)
+            {
+                MessageRouterResult removePendingRequestResult = RemovePendingRequest(pendingRequestToRemove);
+
+                if (removePendingRequestResult.Type == MessageRouterResultType.ConnectionRejected)
+                {
+                    // Pending request was removed
+                    wasRemoved = true;
+
+                    messageRouterResults.Add(removePendingRequestResult);
+                }
+            }
+
+            if (wasRemoved)
+            {
+                // Check if the party exists in ConnectedParties
+                List<Party> keys = new List<Party>();
+
+                foreach (var partyPair in GetConnectedParties())
+                {
+                    if (partyPair.Key.HasMatchingChannelInformation(partyToRemove)
+                        || partyPair.Value.HasMatchingChannelInformation(partyToRemove))
+                    {
+                        keys.Add(partyPair.Key);
+                    }
+                }
+
+                foreach (Party key in keys)
+                {
+                    messageRouterResults.AddRange(Disconnect(key, ConnectionProfile.Owner));
+                }
+            }
+
+            return messageRouterResults;
+        }
+
+        public abstract IList<Party> GetAggregationParties();
+
+        public virtual bool AddAggregationParty(Party aggregationPartyToAdd)
+        {
+            if (aggregationPartyToAdd != null)
+            {
+                if (aggregationPartyToAdd.ChannelAccount != null)
+                {
+                    throw new ArgumentException("Aggregation party cannot contain a channel account");
+                }
+
+                if (!!GetAggregationParties().Contains(aggregationPartyToAdd))
+                {
+                    ExecuteAddAggregationParty(aggregationPartyToAdd);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public virtual bool RemoveAggregationParty(Party aggregationPartyToRemove)
+        {
+            return ExecuteRemoveAggregationParty(aggregationPartyToRemove);
+        }
+
+        public abstract IList<Party> GetPendingRequests();
+
+        public virtual MessageRouterResult AddPendingRequest(Party requestorParty)
+        {
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                ConversationClientParty = requestorParty
+            };
+
+            if (requestorParty != null)
+            {
+                if (GetPendingRequests().Contains(requestorParty))
+                {
+                    result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
+                }
+                else
+                {
+                    if (!GetAggregationParties().Any()
+                        && Convert.ToBoolean(ConfigurationManager.AppSettings[MessageRouterManager.RejectPendingRequestIfNoAggregationChannelAppSetting]))
+                    {
+                        result.Type = MessageRouterResultType.NoAgentsAvailable;
+                    }
+                    else
+                    {
+                        if (requestorParty is PartyWithTimestamps)
+                        {
+                            (requestorParty as PartyWithTimestamps).ConnectionRequestTime = GetCurrentGlobalTime();
+                        }
+
+                        ExecuteAddPendingRequest(requestorParty);
+                        result.Type = MessageRouterResultType.ConnectionRequested;
+                    }
+                }
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = "The given party instance is null";
+            }
+
+            return result;
+        }
+
+        public virtual MessageRouterResult RemovePendingRequest(Party requestorParty)
+        {
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                ConversationClientParty = requestorParty
+            };
+
+            if (GetPendingRequests().Contains(requestorParty))
+            {
+                if (requestorParty is PartyWithTimestamps)
+                {
+                    (requestorParty as PartyWithTimestamps).ResetConnectionRequestTime();
+                }
+
+                if (ExecuteRemovePendingRequest(requestorParty))
+                {
+                    result.Type = MessageRouterResultType.ConnectionRejected;
+                }
+                else
+                {
+                    result.Type = MessageRouterResultType.Error;
+                    result.ErrorMessage = "Failed to remove the pending request of the given party";
+                }
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = "Could not find a pending request for the given party";
+            }
+
+            return result;
+        }
+
+        public virtual bool IsConnected(Party party, ConnectionProfile connectionProfile)
+        {
+            bool isConnected = false;
+
+            if (party != null)
+            {
+                switch (connectionProfile)
+                {
+                    case ConnectionProfile.Client:
+                        isConnected = GetConnectedParties().Values.Contains(party);
+                        break;
+                    case ConnectionProfile.Owner:
+                        isConnected = GetConnectedParties().Keys.Contains(party);
+                        break;
+                    case ConnectionProfile.Any:
+                        isConnected = (GetConnectedParties().Values.Contains(party) || GetConnectedParties().Keys.Contains(party));
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return isConnected;
+        }
+
+        public abstract Dictionary<Party, Party> GetConnectedParties();
+
+        public virtual Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind)
+        {
+            Party counterparty = null;
+            Dictionary<Party, Party> connectedParties = GetConnectedParties();
+
+            if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Client))
+            {
+                for (int i = 0; i < connectedParties.Count; ++i)
+                {
+                    if (connectedParties.Values.ElementAt(i).Equals(partyWhoseCounterpartToFind))
+                    {
+                        counterparty = connectedParties.Keys.ElementAt(i);
+                        break;
+                    }
+                }
+            }
+            else if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Owner))
+            {
+                connectedParties.TryGetValue(partyWhoseCounterpartToFind, out counterparty);
+            }
+
+            return counterparty;
+        }
+
+        public virtual MessageRouterResult ConnectAndClearPendingRequest(
+            Party conversationOwnerParty, Party conversationClientParty)
+        {
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                ConversationOwnerParty = conversationOwnerParty,
+                ConversationClientParty = conversationClientParty
+            };
+
+            if (conversationOwnerParty != null && conversationClientParty != null)
+            {
+                try
+                {
+                    ExecuteAddConnection(conversationOwnerParty, conversationClientParty);
+                    ExecuteRemovePendingRequest(conversationClientParty);
+
+                    DateTime connectionStartedTime = GetCurrentGlobalTime();
+
+                    if (conversationClientParty is PartyWithTimestamps)
+                    {
+                        (conversationClientParty as PartyWithTimestamps).ResetConnectionRequestTime();
+                        (conversationClientParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
+                    }
+
+                    if (conversationOwnerParty is PartyWithTimestamps)
+                    {
+                        (conversationOwnerParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
+                    }
+
+                    result.Type = MessageRouterResultType.Connected;
+                }
+                catch (ArgumentException e)
+                {
+                    result.Type = MessageRouterResultType.Error;
+                    result.ErrorMessage = e.Message;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Failed to connect parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
+                }
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = "Either the owner or the client is missing";
+            }
+
+            return result;
+        }
+
+        public virtual IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile)
+        {
+            IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+
+            if (party != null)
+            {
+                List<Party> keysToRemove = new List<Party>();
+
+                foreach (var partyPair in GetConnectedParties())
+                {
+                    bool removeThisPair = false;
+
+                    switch (connectionProfile)
+                    {
+                        case ConnectionProfile.Client:
+                            removeThisPair = partyPair.Value.Equals(party);
+                            break;
+                        case ConnectionProfile.Owner:
+                            removeThisPair = partyPair.Key.Equals(party);
+                            break;
+                        case ConnectionProfile.Any:
+                            removeThisPair = (partyPair.Value.Equals(party) || partyPair.Key.Equals(party));
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (removeThisPair)
+                    {
+                        keysToRemove.Add(partyPair.Key);
+
+                        if (connectionProfile == ConnectionProfile.Owner)
+                        {
+                            // Since owner is the key in the dictionary, there can be only one
+                            break;
+                        }
+                    }
+                }
+
+                messageRouterResults = RemoveConnections(keysToRemove);
+            }
+
+            return messageRouterResults;
+        }
+
+        public virtual void DeleteAll()
+        {
+#if DEBUG
+            LastMessageRouterResults.Clear();
+#endif
+        }
+
+        public virtual bool IsAssociatedWithAggregation(Party party)
+        {
+            IList<Party> aggregationParties = GetAggregationParties();
+
+            return (party != null && aggregationParties != null && aggregationParties.Count() > 0
+                    && aggregationParties.Where(aggregationParty =>
+                        aggregationParty.ConversationAccount.Id == party.ConversationAccount.Id
+                        && aggregationParty.ServiceUrl == party.ServiceUrl
+                        && aggregationParty.ChannelId == party.ChannelId).Count() > 0);
+        }
+
+        public virtual string ResolveBotNameInConversation(Party party)
+        {
+            string botName = null;
+
+            if (party != null)
+            {
+                Party botParty = FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
+
+                if (botParty != null && botParty.ChannelAccount != null)
+                {
+                    botName = botParty.ChannelAccount.Name;
+                }
+            }
+
+            return botName;
+        }
+
+        public virtual Party FindExistingUserParty(Party partyToFind)
+        {
+            Party foundParty = null;
+
+            try
+            {
+                foundParty = GetUserParties().First(party => partyToFind.Equals(party));
+            }
+            catch (ArgumentNullException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            return foundParty;
+        }
+
+        public virtual Party FindPartyByChannelAccountIdAndConversationId(
+            string channelAccountId, string conversationId)
+        {
+            Party userParty = null;
+
+            try
+            {
+                userParty = GetUserParties().Single(party =>
+                        (party.ChannelAccount.Id.Equals(channelAccountId)
+                         && party.ConversationAccount.Id.Equals(conversationId)));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            return userParty;
+        }
+
+        public virtual Party FindBotPartyByChannelAndConversation(
+            string channelId, ConversationAccount conversationAccount)
+        {
+            Party botParty = null;
+
+            try
+            {
+                botParty = GetBotParties().Single(party =>
+                        (party.ChannelId.Equals(channelId)
+                         && party.ConversationAccount.Id.Equals(conversationAccount.Id)));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            return botParty;
+        }
+
+        public virtual Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount)
+        {
+            Party foundParty = null;
+
+            try
+            {
+                foundParty = GetConnectedParties().Keys.Single(party =>
+                        (party.ChannelId.Equals(channelId)
+                         && party.ChannelAccount != null
+                         && party.ChannelAccount.Id.Equals(channelAccount.Id)));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            if (foundParty == null)
+            {
+                try
+                {
+                    // Not found in keys, try the values
+                    foundParty = GetConnectedParties().Values.First(party =>
+                            (party.ChannelId.Equals(channelId)
+                             && party.ChannelAccount != null
+                             && party.ChannelAccount.Id.Equals(channelAccount.Id)));
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+
+            return foundParty;
+        }
+
+        public virtual IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> partyCandidates)
+        {
+            IList<Party> matchingParties = null;
+            IEnumerable<Party> foundParties = null;
+
+            try
+            {
+                foundParties = partyCandidates.Where(party => party.HasMatchingChannelInformation(partyToFind));
+            }
+            catch (ArgumentNullException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find parties: {e.Message}");
+            }
+            catch (InvalidOperationException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find parties: {e.Message}");
+            }
+
+            if (foundParties != null)
+            {
+                matchingParties = foundParties.ToArray();
+            }
+
+            return matchingParties;
+        }
+
+#if DEBUG
+        public virtual string ConnectionsToString()
+        {
+            string parties = string.Empty;
+
+            foreach (KeyValuePair<Party, Party> keyValuePair in GetConnectedParties())
+            {
+                parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
+            }
+
+            return parties;
+        }
+
+        public virtual string GetLastMessageRouterResults()
+        {
+            string lastResultsAsString = string.Empty;
+
+            foreach (MessageRouterResult result in LastMessageRouterResults)
+            {
+                lastResultsAsString += $"{result.ToString()}\n";
+            }
+
+            return lastResultsAsString;
+        }
+
+        public virtual void AddMessageRouterResult(MessageRouterResult result)
+        {
+            if (result != null)
+            {
+                if (LastMessageRouterResults.Count > 9)
+                {
+                    LastMessageRouterResults.Remove(LastMessageRouterResults.ElementAt(0));
+                }
+
+                LastMessageRouterResults.Add(result);
+            }
+        }
+
+        public virtual void ClearMessageRouterResults()
+        {
+            LastMessageRouterResults.Clear();
+        }
+#endif
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="partyToAdd"></param>
+        /// <param name="isUser"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddParty(Party partyToAdd, bool isUser);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="partyToRemove"></param>
+        /// <param name="isUser"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveParty(Party partyToRemove, bool isUser);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="aggregationPartyToAdd"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddAggregationParty(Party aggregationPartyToAdd);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="aggregationPartyToRemove"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="requestorParty"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddPendingRequest(Party requestorParty);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="requestorParty"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemovePendingRequest(Party requestorParty);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="conversationOwnerParty"></param>
+        /// <param name="conversationClientParty"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="conversationOwnerParty"></param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveConnection(Party conversationOwnerParty);
+
+        /// <returns>The current global "now" time.</returns>
+        protected virtual DateTime GetCurrentGlobalTime()
+        {
+            return (GlobalTimeProvider == null) ? DateTime.UtcNow : GlobalTimeProvider.GetCurrentTime();
+        }
+
+        /// <summary>
+        /// Removes the connections of the given conversation owners.
+        /// </summary>
+        /// <param name="conversationOwnerParties">The conversation owners whose connections to remove.</param>
+        /// <returns>The operation result(s).</returns>
+        protected virtual IList<MessageRouterResult> RemoveConnections(IList<Party> conversationOwnerParties)
+        {
+            IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+
+            foreach (Party conversationOwnerParty in conversationOwnerParties)
+            {
+                Dictionary<Party, Party> connectedParties = GetConnectedParties();
+                connectedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
+
+                if (ExecuteRemoveConnection(conversationOwnerParty))
+                {
+                    if (conversationOwnerParty is PartyWithTimestamps)
+                    {
+                        (conversationOwnerParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
+                    }
+
+                    if (conversationClientParty is PartyWithTimestamps)
+                    {
+                        (conversationClientParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
+                    }
+
+                    messageRouterResults.Add(new MessageRouterResult()
+                    {
+                        Type = MessageRouterResultType.Disconnected,
+                        ConversationOwnerParty = conversationOwnerParty,
+                        ConversationClientParty = conversationClientParty
+                    });
+                }
+            }
+
+            return messageRouterResults;
+        }
+    }
+}

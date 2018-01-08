@@ -1,254 +1,204 @@
-﻿using Microsoft.Bot.Connector;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Table;
-using System;
+﻿using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Configuration;
+using System.Linq;
 using Underscore.Bot.Models;
+using Underscore.Bot.Models.Azure;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
-    /// <summary>
-    /// Routing data manager that stores the data in Azure Table storage services.
-    /// Caching policy: If the local query finds nothing, update the data from the storage.
-    /// See IRoutingDataManager for general documentation of properties and methods.
-    /// 
-    /// NOTE: DO NOT USE THIS CLASS - THIS IS NOT FAR FROM A PLACEHOLDER CURRENTLY
-    /// 
-    /// See also Get started with Azure Table storage using .NET article:
-    /// https://docs.microsoft.com/en-us/azure/storage/storage-dotnet-how-to-use-tables
-    /// </summary>
-    public class AzureTableStorageRoutingDataManager : IRoutingDataManager
+    public class AzureTableStorageRoutingDataManager : AbstractRoutingDataManager
     {
-        public const string StorageConnectionStringKey = "AzureTableStorageConnectionString";
+        protected const string TableNameParties = "Parties";
+        protected const string TableNameConnections = "Connections";
+        protected const string PartitionKey = "PartitionKey";
 
-        // See https://docs.microsoft.com/fi-fi/rest/api/storageservices/understanding-the-table-service-data-model
-        protected const string UserPartiesTableKey = "userparties";
-        protected const string BotPartiesTableKey = "botparties";
-        protected const string AggregationPartiesTableKey = "aggregationparties";
-        protected const string PendingRequestsTableKey = "pendingrequests";
-        protected const string ConnectedPartiesTableKey = "connectedparties";
-#if DEBUG
-        protected const string MessageRouterResultsTableKey = "messagerouterresults";
-#endif
+        protected CloudTable _partiesTable;
+        protected CloudTable _connectionsTable;
 
-        protected CloudTableClient _cloudTableClient;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="connectionString">The connection string for the Azure Table Storage.
-        /// If the value is null, the constructor will look for the connection string in the app settings.</param>
-        public AzureTableStorageRoutingDataManager(string connectionString = null)
+        public AzureTableStorageRoutingDataManager(string connectionString) : base()
         {
-            string resolvedConnectionString = null;
+            _partiesTable = AzureStorageHelper.GetTable(connectionString, TableNameParties);
+            _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
+        }
 
-            if (string.IsNullOrEmpty(connectionString))
+        public override IList<Party> GetUserParties()
+        {
+            List<PartyEntity> partyEntities =
+                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                    .Where(x => x.PartyEntityType == PartyEntityType.User.ToString()).ToList();
+
+            return ToPartyList(partyEntities);
+        }
+
+        public override IList<Party> GetBotParties()
+        {
+            List<PartyEntity> partyEntities =
+                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                    .Where(x => x.PartyEntityType == PartyEntityType.Bot.ToString()).ToList();
+
+            return ToPartyList(partyEntities);
+        }
+
+        public override IList<Party> GetAggregationParties()
+        {
+            List<PartyEntity> partyEntities =
+                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                    .Where(x => x.PartyEntityType == PartyEntityType.Aggregation.ToString()).ToList();
+
+            return ToPartyList(partyEntities);
+        }
+
+        public override IList<Party> GetPendingRequests()
+        {
+            List<PartyEntity> partyEntities =
+                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                    .Where(x => x.PartyEntityType == PartyEntityType.PendingRequest.ToString()).ToList();
+
+            return ToPartyList(partyEntities);
+        }
+
+        public override Dictionary<Party, Party> GetConnectedParties()
+        {
+            Dictionary<Party, Party> connectedParties = new Dictionary<Party, Party>();
+            List<ConnectionEntity> connectionEntities =
+                _connectionsTable.ExecuteQuery(new TableQuery<ConnectionEntity>()).ToList();
+
+            foreach (var connectionEntity in connectionEntities)
             {
-                resolvedConnectionString = ConfigurationManager.AppSettings[StorageConnectionStringKey];
-            }
-            else
-            {
-                resolvedConnectionString = connectionString;
-            }
-
-            if (string.IsNullOrEmpty(resolvedConnectionString))
-            {
-                throw new ArgumentNullException($"Failed to find connection string in app settings (with key \"{StorageConnectionStringKey}\" nor was non-null string given to constructor");
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Azure Table Storage connection string: \"{resolvedConnectionString}\"");
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse(resolvedConnectionString);
-            _cloudTableClient = cloudStorageAccount.CreateCloudTableClient();
-        }
-
-        public IList<Party> GetUserParties()
-        {
-            return GetParties(UserPartiesTableKey);
-        }
-
-        public IList<Party> GetBotParties()
-        {
-            return GetParties(BotPartiesTableKey);
-        }
-
-        public bool AddParty(Party newParty, bool isUser = true)
-        {
-            return AddParty(isUser ? UserPartiesTableKey : BotPartiesTableKey, newParty);
-        }
-
-        public bool AddParty(string serviceUrl, string channelId,
-            ChannelAccount channelAccount, ConversationAccount conversationAccount, bool isUser = true)
-        {
-            Party newParty = new PartyWithTimestamps(serviceUrl, channelId, channelAccount, conversationAccount);
-            return AddParty(newParty, isUser);
-        }
-
-        public MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
-        {
-            throw new NotImplementedException();
-        }
-
-        public MessageRouterResult AddPendingRequest(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void DeleteAll()
-        {
-            throw new NotImplementedException();
-        }
-
-        public string ConnectionsToString()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindExistingUserParty(Party partyToFind)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> parties)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindPartyByChannelAccountIdAndConversationId(string channelAccountId, string conversationId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<Party> GetAggregationParties()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool AddAggregationParty(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<Party> GetPendingRequests()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsAssociatedWithAggregation(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsConnected(Party party, ConnectionProfile connectionProfile)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool RemoveAggregationParty(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<MessageRouterResult> RemoveParty(Party partyToRemove)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool RemovePendingRequest(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string ResolveBotNameInConversation(Party party)
-        {
-            throw new NotImplementedException();
-        }
-
-#if DEBUG
-        public string GetLastMessageRouterResults()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddMessageRouterResult(MessageRouterResult result)
-        {
-            throw new NotImplementedException();
-        }
-#endif
-
-        /// <summary>
-        /// Extracts the Party instances from the given collection.
-        /// </summary>
-        /// <param name="partyTableEntities">A container of PartyTableEntity instances.</param>
-        /// <returns>A list of Party instances.</returns>
-        protected IList<Party> PartyTableEntitiesToPartyList(IEnumerable<PartyTableEntity> partyTableEntities)
-        {
-            IList<Party> parties = new List<Party>();
-
-            foreach (PartyTableEntity partyTableEntity in partyTableEntities)
-            {
-                parties.Add(partyTableEntity.Party);
+                connectedParties.Add(
+                    JsonConvert.DeserializeObject<PartyEntity>(connectionEntity.Owner).ToParty(),
+                    JsonConvert.DeserializeObject<PartyEntity>(connectionEntity.Client).ToParty());
             }
 
-            return parties;
+            return connectedParties;
+        }
+
+        public override void DeleteAll()
+        {
+            base.DeleteAll();
+
+            var partyEntities = _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>());
+
+            foreach (var partyEntity in partyEntities)
+            {
+                AzureStorageHelper.DeleteEntry<PartyEntity>(
+                    _partiesTable, partyEntity.PartitionKey, partyEntity.RowKey);
+            }
+
+            var connectionEntities = _connectionsTable.ExecuteQuery(new TableQuery<ConnectionEntity>());
+
+            foreach (var connectionEntity in connectionEntities)
+            {
+                AzureStorageHelper.DeleteEntry<ConnectionEntity>(
+                    _connectionsTable, connectionEntity.PartitionKey, connectionEntity.RowKey);
+            }
+        }
+
+        protected override bool ExecuteAddParty(Party partyToAdd, bool isUser)
+        {
+            return AzureStorageHelper.Insert<PartyEntity>(
+                _partiesTable,
+                new PartyEntity(partyToAdd, isUser ? PartyEntityType.User : PartyEntityType.Bot));
+        }
+
+        protected override bool ExecuteRemoveParty(Party partyToRemove, bool isUser)
+        {
+            return AzureStorageHelper.DeleteEntry<PartyEntity>(
+                _partiesTable,
+                PartyEntity.CreatePartitionKey(partyToRemove, isUser ? PartyEntityType.User : PartyEntityType.Bot),
+                PartyEntity.CreateRowKey(partyToRemove));
+        }
+
+        protected override bool ExecuteAddAggregationParty(Party aggregationPartyToAdd)
+        {
+            return AzureStorageHelper.Insert<PartyEntity>(
+                _partiesTable, new PartyEntity(aggregationPartyToAdd, PartyEntityType.Aggregation));
+        }
+
+        protected override bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove)
+        {
+            var partyEntitiesToRemove = GetPartyEntitiesByPropertyNameAndValue(
+                PartitionKey,
+                PartyEntity.CreatePartitionKey(aggregationPartyToRemove, PartyEntityType.Aggregation))
+                    .FirstOrDefault();
+
+            return AzureStorageHelper.DeleteEntry<PartyEntity>(
+                _partiesTable, partyEntitiesToRemove.PartitionKey, partyEntitiesToRemove.RowKey);
+        }
+
+        protected override bool ExecuteAddPendingRequest(Party requestorParty)
+        {
+            return AzureStorageHelper.Insert<PartyEntity>(
+                _partiesTable, new PartyEntity(requestorParty, PartyEntityType.PendingRequest));
+        }
+
+        protected override bool ExecuteRemovePendingRequest(Party requestorParty)
+        {
+            return AzureStorageHelper.DeleteEntry<PartyEntity>(
+                _partiesTable,
+                PartyEntity.CreatePartitionKey(requestorParty, PartyEntityType.PendingRequest),
+                PartyEntity.CreateRowKey(requestorParty));
+        }
+
+        protected override bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty)
+        {
+            return AzureStorageHelper.Insert<ConnectionEntity>(_connectionsTable, new ConnectionEntity()
+            {
+                PartitionKey = conversationClientParty.ConversationAccount.Id,
+                RowKey = conversationOwnerParty.ConversationAccount.Id,
+                Client = JsonConvert.SerializeObject(new PartyEntity(conversationClientParty, PartyEntityType.Client)),
+                Owner = JsonConvert.SerializeObject(new PartyEntity(conversationOwnerParty, PartyEntityType.Owner))
+            });
+        }
+
+        protected override bool ExecuteRemoveConnection(Party conversationOwnerParty)
+        {
+            Dictionary<Party, Party> connectedParties = GetConnectedParties();
+
+            if (connectedParties != null && connectedParties.Remove(conversationOwnerParty))
+            {
+                Party conversationClientParty = GetConnectedCounterpart(conversationOwnerParty);
+
+                return AzureStorageHelper.DeleteEntry<ConnectionEntity>(
+                    _connectionsTable,
+                    conversationClientParty.ConversationAccount.Id,
+                    conversationOwnerParty.ConversationAccount.Id);
+            }
+
+            return false;
         }
 
         /// <summary>
-        /// Returns the parties from the table with the given key.
-        /// If the table with given key does not exist, one is created.
+        /// Resolves the parties in the party (cloud) table by the given property name and value.
         /// </summary>
-        /// <param name="tableKey">The table key.</param>
-        /// <returns>A list of Party instances in the table.</returns>
-        protected IList<Party> GetParties(string tableKey)
+        /// <param name="propertyName">The property name for the filter.</param>
+        /// <param name="value">Party property values to match.</param>
+        /// <returns>The party entities in the table matching the given property name and value.</returns>
+        protected virtual IEnumerable<PartyEntity> GetPartyEntitiesByPropertyNameAndValue(string propertyName, string value)
         {
-            CloudTable cloudTable = _cloudTableClient.GetTableReference(tableKey);
-            cloudTable.CreateIfNotExists();
-            return PartyTableEntitiesToPartyList(cloudTable.ExecuteQuery(new TableQuery<PartyTableEntity>()));
+            TableQuery<PartyEntity> tableQuery =
+                new TableQuery<PartyEntity>()
+                    .Where(TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.Equal, value));
+
+            return _partiesTable.ExecuteQuery(tableQuery);
         }
 
         /// <summary>
-        /// 
+        /// Converts the given entities into a party list.
         /// </summary>
-        /// <param name="tableKey"></param>
-        /// <param name="party"></param>
-        /// <returns></returns>
-        protected bool AddParty(string tableKey, Party party)
+        /// <param name="partyEntities">The entities to convert.</param>
+        /// <returns>A newly created list of parties based on the given entities.</returns>
+        protected virtual List<Party> ToPartyList(IEnumerable<PartyEntity> partyEntities)
         {
-            CloudTable cloudTable = _cloudTableClient.GetTableReference(tableKey);
+            List<Party> partyList = new List<Party>();
 
-            try
+            foreach (var partyEntity in partyEntities)
             {
-                cloudTable.CreateIfNotExists();
-            }
-            catch (StorageException e)
-            {
-                System.Diagnostics.Debug.WriteLine($"{e.Message}");
+                partyList.Add(partyEntity.ToParty());
             }
 
-            PartyTableEntity partyTableEntity = new PartyTableEntity(party);
-            TableOperation insertTableOperation = TableOperation.Insert(partyTableEntity);
-            TableResult tableResult = cloudTable.Execute(insertTableOperation);
-            return (tableResult.HttpStatusCode == 200 || tableResult.HttpStatusCode == 201);
+            return partyList.ToList();
         }
     }
 }

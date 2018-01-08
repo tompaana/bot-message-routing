@@ -1,6 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore
 {
@@ -24,6 +25,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
     /// </summary>
     public interface IRoutingDataManager
     {
+        GlobalTimeProvider GlobalTimeProvider
+        {
+            get;
+            set;
+        }
+
         #region CRUD methods
         /// <returns>The user parties as a readonly list.</returns>
         IList<Party> GetUserParties();
@@ -34,25 +41,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Adds the given party to the data.
         /// </summary>
-        /// <param name="newParty">The new party to add.</param>
+        /// <param name="partyToAdd">The new party to add.</param>
         /// <param name="isUser">If true, will try to add the party to the list of users.
         /// If false, will try to add it to the list of bot identities. True by default.</param>
         /// <returns>True, if the given party was added. False otherwise (was null or already stored).</returns>
-        bool AddParty(Party newParty, bool isUser = true);
-
-        /// <summary>
-        /// Adds a new party with the given properties to the data.
-        /// </summary>
-        /// <param name="serviceUrl">The service URL.</param>
-        /// <param name="channelId">The channel ID (e.g. "skype").</param>
-        /// <param name="channelAccount">The channel account (read: user/bot ID).</param>
-        /// <param name="conversationAccount">The conversation account (ID and name).</param>
-        /// <param name="isUser">If true, will try to add the party to the list of users.
-        /// If false, will try to add it to the list of bot identities.</param>
-        /// <returns>True, if the party was added. False otherwise (identical party already stored).</returns>
-        bool AddParty(string serviceUrl, string channelId,
-            ChannelAccount channelAccount, ConversationAccount conversationAccount,
-            bool isUser = true);
+        bool AddParty(Party partyToAdd, bool isUser = true);
 
         /// <summary>
         /// Removes the party from all possible containers.
@@ -68,16 +61,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Adds the given aggregation party.
         /// </summary>
-        /// <param name="party">The party to be added as an aggregation party (channel).</param>
+        /// <param name="aggregationPartyToAdd">The party to be added as an aggregation party (channel).</param>
         /// <returns>True, if added. False otherwise (e.g. matching request already exists).</returns>
-        bool AddAggregationParty(Party party);
+        bool AddAggregationParty(Party aggregationPartyToAdd);
 
         /// <summary>
         /// Removes the given aggregation party.
         /// </summary>
-        /// <param name="party">The aggregation party to remove.</param>
+        /// <param name="aggregationPartyToRemove">The aggregation party to remove.</param>
         /// <returns>True, if removed successfully. False otherwise.</returns>
-        bool RemoveAggregationParty(Party party);
+        bool RemoveAggregationParty(Party aggregationPartyToRemove);
 
         /// <returns>The (parties with) pending requests as a readonly list.</returns>
         IList<Party> GetPendingRequests();
@@ -85,16 +78,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Adds the pending request for the given party.
         /// </summary>
-        /// <param name="party">The party whose pending request to add.</param>
+        /// <param name="requestorParty">The party whose pending request to add.</param>
         /// <returns>The result of the operation.</returns>
-        MessageRouterResult AddPendingRequest(Party party);
+        MessageRouterResult AddPendingRequest(Party requestorParty);
 
         /// <summary>
         /// Removes the pending request of the given party.
         /// </summary>
-        /// <param name="party">The party whose request to remove.</param>
-        /// <returns>True, if removed successfully. False otherwise.</returns>
-        bool RemovePendingRequest(Party party);
+        /// <param name="requestorParty">The party whose request to remove.</param>
+        /// <returns>The result of the operation.</returns>
+        MessageRouterResult RemovePendingRequest(Party requestorParty);
 
         /// <summary>
         /// Checks if the given party is connected in a 1:1 conversation as defined by
@@ -105,6 +98,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <returns>True, if the party is connected as defined by the given connection profile.
         /// False otherwise.</returns>
         bool IsConnected(Party party, ConnectionProfile connectionProfile);
+
+        /// <returns>The connected parties, if any, where the key of the returned dictionary is the
+        /// conversation owner and the value is the conversation client.</returns>
+        Dictionary<Party, Party> GetConnectedParties();
 
         /// <summary>
         /// Resolves the given party's counterpart in a 1:1 conversation.
@@ -190,9 +187,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Finds the parties from the given list that match the channel account (and ID) of the given party.
         /// </summary>
         /// <param name="partyToFind">The party containing the channel details to match.</param>
-        /// <param name="parties">The list of parties (candidates).</param>
+        /// <param name="partyCandidates">The list of party candidates.</param>
         /// <returns>A newly created list of matching parties or null if none found.</returns>
-        IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> parties);
+        IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> partyCandidates);
         #endregion
 
         #region Methods for debugging
@@ -204,6 +201,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         string GetLastMessageRouterResults();
 
         void AddMessageRouterResult(MessageRouterResult result);
+
+        void ClearMessageRouterResults();
 #endif
         #endregion
     }
