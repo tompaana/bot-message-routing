@@ -10,12 +10,11 @@ namespace Underscore.Bot.MessageRouting
 {
     /// <summary>
     /// Provides the main interface for message routing.
+    /// 
+    /// Note that your bot should only ever have but one instance of this class!
     /// </summary>
     public class MessageRouterManager
     {
-        // Constants
-        public const string RejectPendingRequestIfNoAggregationChannelAppSetting = "RejectPendingRequestIfNoAggregationChannel";
-
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
         /// </summary>
@@ -110,6 +109,19 @@ namespace Underscore.Bot.MessageRouting
         }
 
         /// <summary>
+        /// Sends the given message activity to all the aggregation channels, if any exist.
+        /// </summary>
+        /// <param name="messageActivity">The message activity to broadcast.</param>
+        /// <returns></returns>
+        public async Task BroadcastMessageToAggregationChannelsAsync(IMessageActivity messageActivity)
+        {
+            foreach (Party aggregationChannel in RoutingDataManager.GetAggregationParties())
+            {
+                await SendMessageToPartyByBotAsync(aggregationChannel, messageActivity);
+            }
+        }
+
+        /// <summary>
         /// Sends the given message to all the aggregation channels, if any exist.
         /// </summary>
         /// <param name="messageText">The message to broadcast.</param>
@@ -123,17 +135,29 @@ namespace Underscore.Bot.MessageRouting
         }
 
         /// <summary>
-        /// Handles the new activity.
+        /// Handles the new activity:
+        ///   1. Adds both the sender and the receiver of the given activity into the routing data
+        ///      storage (if they do not already exist there). 
+        ///   2. The message in the given activity is routed to the appropriate receiver (user),
+        ///      if the its sender is connected in a conversation.
+        ///   3. If connection requests are set to happen automatically
+        ///      (tryToRequestConnectionIfNotConnected is true) and the sender is not yet
+        ///      connected in a conversation, a request is made.
         /// </summary>
         /// <param name="activity">The activity to handle.</param>
         /// <param name="tryToRequestConnectionIfNotConnected">If true, will try to initiate
         /// the connection (1:1 conversation) automatically, if the sender is not connected already.</param>
+        /// <param name="rejectPendingRequestIfNoAggregationChannel">If true and the automatical
+        /// connection request is made, will reject all requests, if there is no aggregation channel.</param>
         /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
         /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
         /// <returns>The result of the operation.</returns>        
         public async Task<MessageRouterResult> HandleActivityAsync(
-            Activity activity, bool tryToRequestConnectionIfNotConnected,
-            bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
+            Activity activity,
+            bool tryToRequestConnectionIfNotConnected,
+            bool rejectPendingRequestIfNoAggregationChannel,
+            bool addClientNameToMessage = true,
+            bool addOwnerNameToMessage = false)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -143,14 +167,14 @@ namespace Underscore.Bot.MessageRouting
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
             
-            result = await HandleMessageAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
+            result = await RouteMessageIfSenderIsConnected(activity, addClientNameToMessage, addOwnerNameToMessage);
 
             if (result.Type == MessageRouterResultType.NoActionTaken)
             {
                 // The message was not handled, because the sender is not connected in a conversation
                 if (tryToRequestConnectionIfNotConnected)
                 {
-                    result = RequestConnection(activity);
+                    result = RequestConnection(activity, rejectPendingRequestIfNoAggregationChannel);
                 }
             }
 
@@ -192,6 +216,7 @@ namespace Underscore.Bot.MessageRouting
 
         /// <summary>
         /// Removes the given party from the routing data.
+        /// For convenience.
         /// </summary>
         /// <param name="partyToRemove">The party to remove.</param>
         /// <returns>The results. If the number of results is more than 0, the operation was successful.</returns>
@@ -206,11 +231,13 @@ namespace Underscore.Bot.MessageRouting
         /// the given party. This method does nothing, if a request for the same user already exists.
         /// </summary>
         /// <param name="requestorParty">The requestor party.</param>
+        /// <param name="rejectPendingRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation.</returns>
-        public MessageRouterResult RequestConnection(Party requestorParty)
+        public MessageRouterResult RequestConnection(
+            Party requestorParty, bool rejectPendingRequestIfNoAggregationChannel = false)
         {
             MessageRouterResult messageRouterResult =
-                RoutingDataManager.AddPendingRequest(requestorParty);
+                RoutingDataManager.AddPendingRequest(requestorParty, rejectPendingRequestIfNoAggregationChannel);
             return messageRouterResult;
         }
 
@@ -220,10 +247,13 @@ namespace Underscore.Bot.MessageRouting
         /// user already exists.
         /// </summary>
         /// <param name="activity">The activity. The SENDER in this activity (From property) is considered the requestor.</param>
+        /// <param name="rejectPendingRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation.</returns>
-        public MessageRouterResult RequestConnection(Activity activity)
+        public MessageRouterResult RequestConnection(
+            Activity activity, bool rejectPendingRequestIfNoAggregationChannel = false)
         {
-            MessageRouterResult messageRouterResult = RequestConnection(MessagingUtils.CreateSenderParty(activity));
+            MessageRouterResult messageRouterResult =
+                RequestConnection(MessagingUtils.CreateSenderParty(activity), rejectPendingRequestIfNoAggregationChannel);
             messageRouterResult.Activity = activity;
             return messageRouterResult;
         }
@@ -304,8 +334,9 @@ namespace Underscore.Bot.MessageRouting
                             await connectorClient.Conversations.CreateDirectConversationAsync(
                                 botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        System.Diagnostics.Debug.WriteLine($"Failed to create a direct conversation: {e.Message}");
                         // Do nothing here as we fallback (continue without creating a direct conversation)
                     }
 
@@ -373,15 +404,15 @@ namespace Underscore.Bot.MessageRouting
         }
 
         /// <summary>
-        /// Handles the incoming message activities. For instance, if it is a message from party
-        /// connected in a 1:1 chat, the message will be forwarded to the counterpart in whatever
-        /// channel that party is on.
+        /// Routes the message in the given activity, if the sender is connected in a conversation.
+        /// For instance, if it is a message from party connected in a 1:1 chat, the message will
+        /// be forwarded to the counterpart in whatever channel that party is on.
         /// </summary>
         /// <param name="activity">The activity to handle.</param>
         /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
         /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
         /// <returns>The result of the operation.</returns>
-        public async Task<MessageRouterResult> HandleMessageAsync(
+        public async Task<MessageRouterResult> RouteMessageIfSenderIsConnected(
             Activity activity, bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
             MessageRouterResult result = new MessageRouterResult()

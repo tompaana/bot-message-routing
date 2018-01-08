@@ -146,7 +146,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         public abstract IList<Party> GetPendingRequests();
 
-        public virtual MessageRouterResult AddPendingRequest(Party requestorParty)
+        public virtual MessageRouterResult AddPendingRequest(
+            Party requestorParty, bool rejectPendingRequestIfNoAggregationChannel = false)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -155,14 +156,18 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (requestorParty != null)
             {
-                if (GetPendingRequests().Contains(requestorParty))
+                if (IsAssociatedWithAggregation(requestorParty))
+                {
+                    result.Type = MessageRouterResultType.Error;
+                    result.ErrorMessage = $"The given party ({requestorParty.ChannelAccount?.Name}) is associated with aggregation and hence invalid to request a connection";
+                }
+                else if (GetPendingRequests().Contains(requestorParty))
                 {
                     result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
                 }
                 else
                 {
-                    if (!GetAggregationParties().Any()
-                        && Convert.ToBoolean(ConfigurationManager.AppSettings[MessageRouterManager.RejectPendingRequestIfNoAggregationChannelAppSetting]))
+                    if (!GetAggregationParties().Any() && rejectPendingRequestIfNoAggregationChannel)
                     {
                         result.Type = MessageRouterResultType.NoAgentsAvailable;
                     }
