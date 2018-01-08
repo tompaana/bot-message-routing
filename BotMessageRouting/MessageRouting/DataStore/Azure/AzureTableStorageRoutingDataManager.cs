@@ -1,5 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Underscore.Bot.Models;
@@ -7,6 +8,13 @@ using Underscore.Bot.Models.Azure;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
+    /// <summary>
+    /// Routing data manager that stores the data in Azure Table Storage.
+    /// 
+    /// See IRoutingDataManager and AbstractRoutingDataManager for general documentation of
+    /// properties and methods.
+    /// </summary>
+    [Serializable]
     public class AzureTableStorageRoutingDataManager : AbstractRoutingDataManager
     {
         protected const string TableNameParties = "Parties";

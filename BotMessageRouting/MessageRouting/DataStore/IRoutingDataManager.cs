@@ -116,7 +116,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// request of the client party, if one exists.
         /// </summary>
         /// <param name="conversationOwnerParty">The conversation owner party.</param>
-        /// <param name="conversationClientParty">The conversation client (customer) party.</param>
+        /// <param name="conversationClientParty">The conversation client (customer) party
+        /// (i.e. one who requested the connection).</param>
         /// <returns>The result of the operation. The expected result type, when successful, is Connected.</returns>
         MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 

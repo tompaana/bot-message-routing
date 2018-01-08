@@ -1,7 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
@@ -13,6 +12,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
     /// containing the business logic that works in most cases, but abstracting the simplest,
     /// data store specific read and write operations (methods starting with "Execute").
     /// </summary>
+    [Serializable]
     public abstract class AbstractRoutingDataManager : IRoutingDataManager
     {
         public virtual GlobalTimeProvider GlobalTimeProvider
@@ -562,61 +562,64 @@ namespace Underscore.Bot.MessageRouting.DataStore
 #endif
 
         /// <summary>
-        /// 
+        /// Adds the given party to the collection. No sanity checks.
         /// </summary>
-        /// <param name="partyToAdd"></param>
-        /// <param name="isUser"></param>
+        /// <param name="partyToAdd">The new party to add.</param>
+        /// <param name="isUser">If true, the party is considered a user.
+        /// If false, the party is considered to be a bot.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteAddParty(Party partyToAdd, bool isUser);
 
         /// <summary>
-        /// 
+        /// Removes the given party from the collection. No sanity checks.
         /// </summary>
-        /// <param name="partyToRemove"></param>
-        /// <param name="isUser"></param>
+        /// <param name="partyToRemove">The party to remove.</param>
+        /// <param name="isUser">If true, the party is considered a user.
+        /// If false, the party is considered to be a bot.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteRemoveParty(Party partyToRemove, bool isUser);
 
         /// <summary>
-        /// 
+        /// Adds the given aggregation party to the collection. No sanity checks.
         /// </summary>
-        /// <param name="aggregationPartyToAdd"></param>
+        /// <param name="aggregationPartyToAdd">The party to be added as an aggregation party (channel).</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteAddAggregationParty(Party aggregationPartyToAdd);
 
         /// <summary>
-        /// 
+        /// Removes the given aggregation party from the collection. No sanity checks.
         /// </summary>
-        /// <param name="aggregationPartyToRemove"></param>
+        /// <param name="aggregationPartyToRemove">The aggregation party to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove);
 
         /// <summary>
-        /// 
+        /// Adds the pending request for the given party. No sanity checks.
         /// </summary>
-        /// <param name="requestorParty"></param>
+        /// <param name="requestorParty">The party whose pending request to add.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteAddPendingRequest(Party requestorParty);
 
         /// <summary>
-        /// 
+        /// Removes the pending request of the given party. No sanity checks.
         /// </summary>
-        /// <param name="requestorParty"></param>
+        /// <param name="requestorParty">The party whose request to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteRemovePendingRequest(Party requestorParty);
 
         /// <summary>
-        /// 
+        /// Adds a connection between the given parties. No sanity checks.
         /// </summary>
-        /// <param name="conversationOwnerParty"></param>
-        /// <param name="conversationClientParty"></param>
+        /// <param name="conversationOwnerParty">The conversation owner party.</param>
+        /// <param name="conversationClientParty">The conversation client (customer) party
+        /// (i.e. one who requested the connection).</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
-        /// 
+        /// Removes the connection of the given conversation owner party.
         /// </summary>
-        /// <param name="conversationOwnerParty"></param>
+        /// <param name="conversationOwnerParty">The conversation owner party.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         protected abstract bool ExecuteRemoveConnection(Party conversationOwnerParty);
 
