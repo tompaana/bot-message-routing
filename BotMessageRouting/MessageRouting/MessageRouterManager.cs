@@ -362,36 +362,76 @@ namespace Underscore.Bot.MessageRouting
         }
 
         /// <summary>
-        /// Ends the 1:1 conversation where the given party is the conversation owner
-        /// (e.g. a customer service agent).
+        /// Ends the conversation(s) of the given party.
         /// </summary>
-        /// <param name="conversationOwnerParty">The owner of the connection (conversation).</param>
-        /// <returns>The results.</returns>
-        public List<MessageRouterResult> Disconnect(Party conversationOwnerParty)
+        /// <param name="connectedParty">The party connected in a conversation.</param>
+        /// <param name="connectionProfile">The connection profile of the given party.</param>
+        /// <returns>The result(s) of the operation(s).</returns>
+        public List<MessageRouterResult> Disconnect(Party connectedParty, ConnectionProfile connectionProfile)
         {
             List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
-            Party ownerInConversation = RoutingDataManager.FindConnectedPartyByChannel(
-                conversationOwnerParty.ChannelId, conversationOwnerParty.ChannelAccount);
+            Party partyInConversation = RoutingDataManager.FindConnectedPartyByChannel(
+                connectedParty.ChannelId, connectedParty.ChannelAccount);
 
-            if (ownerInConversation != null
-                && RoutingDataManager.IsConnected(ownerInConversation, ConnectionProfile.Owner))
+            if (partyInConversation != null
+                && RoutingDataManager.IsConnected(partyInConversation, connectionProfile))
             {
-                Party otherParty = RoutingDataManager.GetConnectedCounterpart(ownerInConversation);
                 messageRouterResults.AddRange(
-                    RoutingDataManager.Disconnect(ownerInConversation, ConnectionProfile.Owner));
+                    RoutingDataManager.Disconnect(partyInConversation, connectionProfile));
             }
             else
             {
-                messageRouterResults.Add(new MessageRouterResult()
+                MessageRouterResult messageRouterResult = new MessageRouterResult()
                 {
                     Type = MessageRouterResultType.Error,
-                    ConversationOwnerParty = conversationOwnerParty,
-                    ErrorMessage = "No conversation to close found"
-                });
+                    ErrorMessage = "No connection to disconnect found"
+                };
+
+                if (connectionProfile == ConnectionProfile.Client)
+                {
+                    messageRouterResult.ConversationClientParty = connectedParty;
+                }
+                else if (connectionProfile == ConnectionProfile.Owner)
+                {
+                    messageRouterResult.ConversationOwnerParty = connectedParty;
+                }
+
+                messageRouterResults.Add(messageRouterResult);
             }
 
             return messageRouterResults;
+        }
+
+        /// <summary>
+        /// Ends the conversation(s) of the given party.
+        /// </summary>
+        /// <param name="connectedParty">The party connected in a conversation.</param>
+        /// <returns>The result(s) of the operation(s).</returns>
+        public List<MessageRouterResult> Disconnect(Party connectedParty)
+        {
+            return Disconnect(connectedParty, ConnectionProfile.Any);
+        }
+
+        /// <summary>
+        /// Ends the 1:1 conversation where the given party is the conversation client (e.g. a customer).
+        /// </summary>
+        /// <param name="conversationClientParty">The client of a connection (conversation).</param>
+        /// <returns>The result of the operation.</returns>
+        public MessageRouterResult DisconnectClient(Party conversationClientParty)
+        {
+            // There can be only one result since a client cannot be connected in multiple conversations
+            return Disconnect(conversationClientParty, ConnectionProfile.Client)[0];
+        }
+
+        /// <summary>
+        /// Ends all the conversations of the given conversation owner party (e.g. a customer service agent).
+        /// </summary>
+        /// <param name="conversationOwnerParty">The owner of a connection (conversation).</param>
+        /// <returns>The result(s) of the operation(s).</returns>
+        public List<MessageRouterResult> DisconnectOwner(Party conversationOwnerParty)
+        {
+            return Disconnect(conversationOwnerParty, ConnectionProfile.Owner);
         }
 
         /// <summary>
