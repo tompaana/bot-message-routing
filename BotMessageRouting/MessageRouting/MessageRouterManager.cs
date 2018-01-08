@@ -167,7 +167,7 @@ namespace Underscore.Bot.MessageRouting
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
             
-            result = await RouteMessageIfSenderIsConnected(activity, addClientNameToMessage, addOwnerNameToMessage);
+            result = await RouteMessageIfSenderIsConnectedAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
 
             if (result.Type == MessageRouterResultType.NoActionTaken)
             {
@@ -412,7 +412,7 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
         /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
         /// <returns>The result of the operation.</returns>
-        public async Task<MessageRouterResult> RouteMessageIfSenderIsConnected(
+        public async Task<MessageRouterResult> RouteMessageIfSenderIsConnectedAsync(
             Activity activity, bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
             MessageRouterResult result = new MessageRouterResult()
