@@ -56,7 +56,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 System.Diagnostics.Debug.WriteLine($"Failed to insert the given entity into the table: {e.Message}");
             }
 
-            return (insertResult.Result != null);
+            return (insertResult?.Result != null);
         }
 
         /// <summary>

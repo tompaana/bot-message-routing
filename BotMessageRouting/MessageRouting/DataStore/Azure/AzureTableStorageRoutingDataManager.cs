@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage.Table;
+﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
-        public AzureTableStorageRoutingDataManager(string connectionString, GlobalTimeProvider globalTimeProvider)
+        public AzureTableStorageRoutingDataManager(string connectionString, GlobalTimeProvider globalTimeProvider = null)
             : base(globalTimeProvider)
         {
             _partiesTable = AzureStorageHelper.GetTable(connectionString, TableNameParties);
@@ -40,36 +41,76 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public override IList<Party> GetUserParties()
         {
-            List<PartyEntity> partyEntities =
-                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
-                    .Where(x => x.PartyEntityType == PartyEntityType.User.ToString()).ToList();
+            List<PartyEntity> partyEntities = null;
+
+            try
+            {
+                partyEntities =
+                    _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                        .Where(x => x.PartyEntityType == PartyEntityType.User.ToString()).ToList();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to retrieve the user parties: {e.Message}");
+                return new List<Party>();
+            }
 
             return ToPartyList(partyEntities);
         }
 
         public override IList<Party> GetBotParties()
         {
-            List<PartyEntity> partyEntities =
-                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
-                    .Where(x => x.PartyEntityType == PartyEntityType.Bot.ToString()).ToList();
+            List<PartyEntity> partyEntities = null;
+
+            try
+            {
+                partyEntities =
+                    _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                        .Where(x => x.PartyEntityType == PartyEntityType.Bot.ToString()).ToList();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to retrieve the bot parties: {e.Message}");
+                return new List<Party>();
+            }
 
             return ToPartyList(partyEntities);
         }
 
         public override IList<Party> GetAggregationParties()
         {
-            List<PartyEntity> partyEntities =
-                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
-                    .Where(x => x.PartyEntityType == PartyEntityType.Aggregation.ToString()).ToList();
+            List<PartyEntity> partyEntities = null;
+
+            try
+            {
+                partyEntities =
+                    _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                        .Where(x => x.PartyEntityType == PartyEntityType.Aggregation.ToString()).ToList();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to retrieve the aggregation parties: {e.Message}");
+                return new List<Party>();
+            }
 
             return ToPartyList(partyEntities);
         }
 
         public override IList<Party> GetPendingRequests()
         {
-            List<PartyEntity> partyEntities =
-                _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
-                    .Where(x => x.PartyEntityType == PartyEntityType.PendingRequest.ToString()).ToList();
+            List<PartyEntity> partyEntities = null;
+
+            try
+            {
+                partyEntities =
+                    _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>())
+                        .Where(x => x.PartyEntityType == PartyEntityType.PendingRequest.ToString()).ToList();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to retrieve the pending requests: {e.Message}");
+                return new List<Party>();
+            }
 
             return ToPartyList(partyEntities);
         }
@@ -77,8 +118,18 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         public override Dictionary<Party, Party> GetConnectedParties()
         {
             Dictionary<Party, Party> connectedParties = new Dictionary<Party, Party>();
-            List<ConnectionEntity> connectionEntities =
-                _connectionsTable.ExecuteQuery(new TableQuery<ConnectionEntity>()).ToList();
+            List<ConnectionEntity> connectionEntities = null;
+
+            try
+            { 
+                connectionEntities =
+                    _connectionsTable.ExecuteQuery(new TableQuery<ConnectionEntity>()).ToList();
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to retrieve the connected parties: {e.Message}");
+                return connectedParties; // Return empty dictionary
+            }
 
             foreach (var connectionEntity in connectionEntities)
             {
@@ -94,12 +145,20 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         {
             base.DeleteAll();
 
-            var partyEntities = _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>());
-
-            foreach (var partyEntity in partyEntities)
+            try
             {
-                AzureStorageHelper.DeleteEntry<PartyEntity>(
-                    _partiesTable, partyEntity.PartitionKey, partyEntity.RowKey);
+                var partyEntities = _partiesTable.ExecuteQuery(new TableQuery<PartyEntity>());
+
+                foreach (var partyEntity in partyEntities)
+                {
+                    AzureStorageHelper.DeleteEntry<PartyEntity>(
+                        _partiesTable, partyEntity.PartitionKey, partyEntity.RowKey);
+                }
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to delete entries: {e.Message}");
+                return;
             }
 
             var connectionEntities = _connectionsTable.ExecuteQuery(new TableQuery<ConnectionEntity>());

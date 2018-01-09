@@ -1,7 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore
 {
@@ -73,9 +72,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Adds the pending request for the given party.
         /// </summary>
         /// <param name="requestorParty">The party whose pending request to add.</param>
-        /// <param name="rejectPendingRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
+        /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation.</returns>
-        MessageRouterResult AddPendingRequest(Party requestorParty, bool rejectPendingRequestIfNoAggregationChannel = false);
+        MessageRouterResult AddPendingRequest(Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false);
 
         /// <summary>
         /// Removes the pending request of the given party.

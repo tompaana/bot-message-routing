@@ -53,7 +53,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         public virtual bool AddParty(Party partyToAdd, bool isUser = true)
         {
-            if (partyToAdd == null || (isUser ? GetUserParties().Contains(partyToAdd) : GetBotParties().Contains(partyToAdd)))
+            if (partyToAdd == null
+                || (isUser ?
+                    GetUserParties().Contains(partyToAdd)
+                    : GetBotParties().Contains(partyToAdd)))
             {
                 return false;
             }
@@ -159,7 +162,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         public abstract IList<Party> GetPendingRequests();
 
         public virtual MessageRouterResult AddPendingRequest(
-            Party requestorParty, bool rejectPendingRequestIfNoAggregationChannel = false)
+            Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -179,7 +182,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 }
                 else
                 {
-                    if (!GetAggregationParties().Any() && rejectPendingRequestIfNoAggregationChannel)
+                    if (!GetAggregationParties().Any() && rejectConnectionRequestIfNoAggregationChannel)
                     {
                         result.Type = MessageRouterResultType.NoAgentsAvailable;
                     }
