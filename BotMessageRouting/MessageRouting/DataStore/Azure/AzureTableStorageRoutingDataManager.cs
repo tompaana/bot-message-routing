@@ -35,6 +35,11 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         public AzureTableStorageRoutingDataManager(string connectionString, GlobalTimeProvider globalTimeProvider = null)
             : base(globalTimeProvider)
         {
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new ArgumentNullException("The connection string cannot be null or empty");
+            }
+
             _partiesTable = AzureStorageHelper.GetTable(connectionString, TableNameParties);
             _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
         }

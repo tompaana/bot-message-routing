@@ -55,7 +55,7 @@ namespace BotMessageRouting.Tests
             Aggregation = 2
         }
 
-        private const uint NumberOfPartiesToCreate = 20;
+        private const uint NumberOfPartiesToCreate = 10;
         private IList<IRoutingDataManager> _routingDataManagers;
         private static bool _firstInitialization = true;
 
@@ -90,12 +90,59 @@ namespace BotMessageRouting.Tests
         }
 
         [TestMethod]
-        public void AddAndRemoveUserParties()
+        public void AddAndRemoveUserPartiesValidData()
         {
-            AddAndRemoveParties(PartyType.User);
+            AddAndRemovePartiesValidData(PartyType.User);
         }
 
-        private void AddAndRemoveParties(PartyType partyType)
+        [TestMethod]
+        public void DeleteAll()
+        {
+            IList<PartyWithTimestamps> userParties =
+                PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
+            IList<PartyWithTimestamps> botParties =
+                PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
+            IList<PartyWithTimestamps> aggregationParties =
+                PartyTestData.CreateParties(NumberOfPartiesToCreate, false);
+
+            // TODO: Connections
+
+            foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
+            {
+                Trace.WriteLine($"Testing {routingDataManager.GetType()}.DeleteAll()");
+
+                foreach (PartyWithTimestamps party in userParties)
+                {
+                    routingDataManager.AddParty(party, true);
+                }
+
+                foreach (Party party in botParties)
+                {
+                    routingDataManager.AddParty(party, false);
+                }
+
+                foreach (Party party in aggregationParties)
+                {
+                    routingDataManager.AddAggregationParty(party);
+                }
+
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetUserParties().Count);
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetBotParties().Count);
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetAggregationParties().Count);
+                // TODO: Connections
+
+                routingDataManager.DeleteAll();
+
+                Assert.AreEqual(0, routingDataManager.GetUserParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetBotParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetAggregationParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetConnectedParties().Count);
+
+                Trace.WriteLine($"Done testing {routingDataManager.GetType()}.DeleteAll()");
+            }
+        }
+
+        private void AddAndRemovePartiesValidData(PartyType partyType)
         {
             IList<PartyWithTimestamps> parties =
                 PartyTestData.CreateParties(

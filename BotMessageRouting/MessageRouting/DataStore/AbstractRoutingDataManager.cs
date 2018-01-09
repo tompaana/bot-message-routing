@@ -144,7 +144,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     throw new ArgumentException("Aggregation party cannot contain a channel account");
                 }
 
-                if (!!GetAggregationParties().Contains(aggregationPartyToAdd))
+                if (!GetAggregationParties().Contains(aggregationPartyToAdd))
                 {
                     ExecuteAddAggregationParty(aggregationPartyToAdd);
                     return true;
