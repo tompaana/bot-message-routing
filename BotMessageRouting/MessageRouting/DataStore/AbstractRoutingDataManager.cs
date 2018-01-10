@@ -164,6 +164,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         public virtual MessageRouterResult AddPendingRequest(
             Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
+            AddParty(requestorParty, true); // Make sure the requestor party is in the list of user parties
+
             MessageRouterResult result = new MessageRouterResult()
             {
                 ConversationClientParty = requestorParty

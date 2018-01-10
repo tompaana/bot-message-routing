@@ -70,6 +70,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         /// <summary>
         /// Adds the pending request for the given party.
+        /// If the requestor party does not exist in the user party container, it will be added there.
         /// </summary>
         /// <param name="requestorParty">The party whose pending request to add.</param>
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>

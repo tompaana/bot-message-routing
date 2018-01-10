@@ -4,6 +4,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
 using Underscore.Bot.MessageRouting.DataStore.Local;
@@ -19,7 +21,7 @@ namespace BotMessageRouting.Tests
         /// <summary>
         /// Testing the AzureTableStorageRoutingDataManager class requires that you have Azure Table Storage
         /// account set up. In addition, the class to test requires the connection string, which is loaded from
-        /// a settings file in your documents folder("Documents" in English Windows versions, in your user
+        /// a settings file in your documents folder("Documents" in English Windows 10 versions, in your user
         /// folder).
         /// 
         /// The name of the settings file is defined by the value of TestSettings.TestSettingsFilename string
@@ -31,6 +33,8 @@ namespace BotMessageRouting.Tests
         ///     "AzureTableStorageConnectionString": "VALUE HERE"
         /// }
         /// 
+        /// WARNING!!! THESE TESTS WILL DELETE ALL MESSAGE ROUTING DATA FROM THE AZURE STORAGE ASSOCIATED WITH
+        /// THE CONNECTION STRING SO DO NOT USE WITH YOUR PRODUCTION STORAGE!!!
         /// </summary>
         private static readonly string SettingsInstructions =
             "\n Testing the AzureTableStorageRoutingDataManager class requires that you have Azure Table Storage    " +
@@ -46,6 +50,9 @@ namespace BotMessageRouting.Tests
             "\n {                                                                                                   " +
            $"\n     \"{SettingsKeyAzureTableStorageConnectionString}\": \"VALUE HERE\"                              " +
             "\n }                                                                                                   " +
+            "\n                                                                                                     " +
+            "\n WARNING!!! THESE TESTS WILL DELETE ALL MESSAGE ROUTING DATA FROM THE AZURE STORAGE ASSOCIATED WITH  " +
+            "\n THE CONNECTION STRING SO DO NOT USE WITH YOUR PRODUCTION STORAGE!!!                                 " +
             "\n";
 
         public enum PartyType
@@ -62,6 +69,8 @@ namespace BotMessageRouting.Tests
         [TestInitialize]
         public void Initialize()
         {
+            Trace.WriteLine("--- Starting test initialization");
+
             TestSettings testSettings = new TestSettings();
             string azureTableStorageConnectionString = testSettings[SettingsKeyAzureTableStorageConnectionString];
 
@@ -80,19 +89,114 @@ namespace BotMessageRouting.Tests
                 Trace.WriteLine($"Cannot test {nameof(AzureTableStorageRoutingDataManager)} class due to missing connectiong string");
                 _firstInitialization = false;
             }
+
+            Trace.WriteLine("--- Test initialization done");
         }
 
         [TestCleanup]
         public void Cleanup()
         {
+            Trace.WriteLine("--- Starting test cleanup");
+
+            foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
+            {
+                routingDataManager.DeleteAll();
+            }
+
             _routingDataManagers.Clear();
             _routingDataManagers = null;
+
+            Trace.WriteLine("--- Test cleanup done");
+        }
+
+        /// <summary>
+        /// We expect no exceptions, but empty lists.
+        /// </summary>
+        [TestMethod]
+        public void TestGettersWhenNoDataAdded()
+        {
+            foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
+            {
+                Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
+                Assert.AreEqual(0, routingDataManager.GetUserParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetBotParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetAggregationParties().Count);
+                Assert.AreEqual(0, routingDataManager.GetConnectedParties().Count);
+                Trace.WriteLine($"--- Test \"{GetCurrentMethodName()}\" done for {routingDataManager.GetType().Name}");
+            }
         }
 
         [TestMethod]
         public void AddAndRemoveUserPartiesValidData()
         {
             AddAndRemovePartiesValidData(PartyType.User);
+        }
+
+        [TestMethod]
+        public void AddAndRemovePendingRequestValidData()
+        {
+            IList<PartyWithTimestamps> userParties =
+                PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
+
+            foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
+            {
+                Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
+
+                foreach (PartyWithTimestamps party in userParties)
+                {
+                    MessageRouterResult messageRouterResult =
+                        routingDataManager.AddPendingRequest(party, false);
+
+                    Assert.AreEqual(MessageRouterResultType.ConnectionRequested, messageRouterResult.Type);
+                    Assert.AreEqual(party, messageRouterResult.ConversationClientParty);
+                }
+
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetPendingRequests().Count);
+
+                // The requestor parties should've been added to the list of user parties as well
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetUserParties().Count);
+
+                // Try to add duplicates
+                foreach (PartyWithTimestamps party in userParties)
+                {
+                    MessageRouterResult messageRouterResult =
+                        routingDataManager.AddPendingRequest(party, false);
+
+                    Assert.AreEqual(MessageRouterResultType.ConnectionAlreadyRequested, messageRouterResult.Type);
+                    Assert.AreEqual(party, messageRouterResult.ConversationClientParty);
+                }
+
+                // We should still have the original number
+                Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetPendingRequests().Count);
+
+                int numberOfPartiesRemovedFromUserParties = 0;
+
+                for (int i = 0; i < NumberOfPartiesToCreate; ++i)
+                {
+                    if (i % 2 == 0)
+                    {
+                        MessageRouterResult messageRouterResult =
+                            routingDataManager.RemovePendingRequest(userParties[i]);
+
+                        Assert.AreEqual(MessageRouterResultType.ConnectionRejected, messageRouterResult.Type);
+                        Assert.AreEqual(userParties[i], messageRouterResult.ConversationClientParty);
+                    }
+                    else
+                    {
+                        // RemoveParty() should also remove the pending request
+                        routingDataManager.RemoveParty(userParties[i]);
+                        numberOfPartiesRemovedFromUserParties++;
+                    }
+                }
+
+                Assert.AreEqual(0, routingDataManager.GetPendingRequests().Count);
+
+                Assert.AreEqual(
+                    (int)(NumberOfPartiesToCreate - numberOfPartiesRemovedFromUserParties),
+                    routingDataManager.GetUserParties().Count);
+
+                Trace.WriteLine($"--- Test \"{GetCurrentMethodName()}\" done for {routingDataManager.GetType().Name}");
+            }
         }
 
         [TestMethod]
@@ -109,7 +213,7 @@ namespace BotMessageRouting.Tests
 
             foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
             {
-                Trace.WriteLine($"Testing {routingDataManager.GetType()}.DeleteAll()");
+                Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
 
                 foreach (PartyWithTimestamps party in userParties)
                 {
@@ -138,8 +242,16 @@ namespace BotMessageRouting.Tests
                 Assert.AreEqual(0, routingDataManager.GetAggregationParties().Count);
                 Assert.AreEqual(0, routingDataManager.GetConnectedParties().Count);
 
-                Trace.WriteLine($"Done testing {routingDataManager.GetType()}.DeleteAll()");
+                Trace.WriteLine($"--- Test \"{GetCurrentMethodName()}\" done for {routingDataManager.GetType().Name}");
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        protected string GetCurrentMethodName()
+        {
+            StackTrace stackTrace = new StackTrace();
+            StackFrame stackFrame = stackTrace?.GetFrame(1);
+            return stackFrame?.GetMethod().Name ?? "<unable to resolve method name>";
         }
 
         private void AddAndRemovePartiesValidData(PartyType partyType)
@@ -152,6 +264,7 @@ namespace BotMessageRouting.Tests
 
             foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
             {
+                Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
                 int currentActualPartyCount = 0;
 
                 foreach (PartyWithTimestamps party in parties)
@@ -177,6 +290,24 @@ namespace BotMessageRouting.Tests
 
                     Assert.AreEqual(numberOPartiesExpected, currentActualPartyCount);
                 }
+
+                // Try adding duplicates
+                foreach (PartyWithTimestamps party in parties)
+                {
+                    switch (partyType)
+                    {
+                        case PartyType.User:
+                        case PartyType.Bot:
+                            routingDataManager.AddParty(party, (partyType == PartyType.User));
+                            break;
+                        case PartyType.Aggregation:
+                            routingDataManager.AddAggregationParty(party);
+                            break;
+                    }
+                }
+
+                // Since duplicates should not be added, the number should stay the same
+                Assert.AreEqual(numberOPartiesExpected, currentActualPartyCount);
 
                 numberOPartiesExpected = currentActualPartyCount;
 
@@ -210,6 +341,8 @@ namespace BotMessageRouting.Tests
                 {
                     Assert.Fail($"The storage does not contain any parties - cannot hence test removal");
                 }
+
+                Trace.WriteLine($"--- Test \"{GetCurrentMethodName()}\" done for {routingDataManager.GetType().Name}");
             }
         }
     }
