@@ -12,10 +12,10 @@ namespace BotMessageRouting.Tests.Data
             set;
         }
 
-        public static IList<PartyWithTimestamps> CreateParties(
+        public static IList<Party> CreateParties(
             uint numberOfPartiesToCreate, bool addChannelAccount)
         {
-            IList<PartyWithTimestamps> parties = new List<PartyWithTimestamps>();
+            IList<Party> parties = new List<Party>();
 
             for (uint i = 0; i < numberOfPartiesToCreate; ++i)
             {
@@ -35,7 +35,7 @@ namespace BotMessageRouting.Tests.Data
                         $"conversationAccountId{Counter}",
                         $"conversationAccountName{Counter}");
 
-                parties.Add(new PartyWithTimestamps(
+                parties.Add(new Party(
                     $"serviceUrl{Counter}", $"channelId{Counter}", channelAccount, conversationAccount));
             }
 

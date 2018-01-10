@@ -86,9 +86,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 {
                     foreach (Party party in partiesToRemove)
                     {
-                        if (ExecuteRemoveParty(party, isUser))
+                        wasRemoved = ExecuteRemoveParty(party, isUser);
+
+                        if (wasRemoved)
                         {
-                            wasRemoved = true;
+                            messageRouterResults.Add(new MessageRouterResult()
+                            {
+                                Type = MessageRouterResultType.OK
+                            });
                         }
                     }
                 }
@@ -128,6 +133,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 {
                     messageRouterResults.AddRange(Disconnect(key, ConnectionProfile.Owner));
                 }
+            }
+
+            if (messageRouterResults.Count == 0)
+            {
+                messageRouterResults.Add(new MessageRouterResult()
+                {
+                    Type = MessageRouterResultType.NoActionTaken
+                });
             }
 
             return messageRouterResults;
@@ -190,10 +203,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     }
                     else
                     {
-                        if (requestorParty is PartyWithTimestamps)
-                        {
-                            (requestorParty as PartyWithTimestamps).ConnectionRequestTime = GetCurrentGlobalTime();
-                        }
+                        requestorParty.ConnectionRequestTime = GetCurrentGlobalTime();
 
                         ExecuteAddPendingRequest(requestorParty);
                         result.Type = MessageRouterResultType.ConnectionRequested;
@@ -218,10 +228,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (GetPendingRequests().Contains(requestorParty))
             {
-                if (requestorParty is PartyWithTimestamps)
-                {
-                    (requestorParty as PartyWithTimestamps).ResetConnectionRequestTime();
-                }
+                requestorParty.ResetConnectionRequestTime();
 
                 if (ExecuteRemovePendingRequest(requestorParty))
                 {
@@ -311,16 +318,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     DateTime connectionStartedTime = GetCurrentGlobalTime();
 
-                    if (conversationClientParty is PartyWithTimestamps)
-                    {
-                        (conversationClientParty as PartyWithTimestamps).ResetConnectionRequestTime();
-                        (conversationClientParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
-                    }
-
-                    if (conversationOwnerParty is PartyWithTimestamps)
-                    {
-                        (conversationOwnerParty as PartyWithTimestamps).ConnectionEstablishedTime = connectionStartedTime;
-                    }
+                    conversationClientParty.ResetConnectionRequestTime();
+                    conversationClientParty.ConnectionEstablishedTime = connectionStartedTime;
+                    conversationOwnerParty.ConnectionEstablishedTime = connectionStartedTime;
 
                     result.Type = MessageRouterResultType.Connected;
                 }
@@ -662,15 +662,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 if (ExecuteRemoveConnection(conversationOwnerParty))
                 {
-                    if (conversationOwnerParty is PartyWithTimestamps)
-                    {
-                        (conversationOwnerParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
-                    }
-
-                    if (conversationClientParty is PartyWithTimestamps)
-                    {
-                        (conversationClientParty as PartyWithTimestamps).ResetConnectionEstablishedTime();
-                    }
+                    conversationOwnerParty.ResetConnectionEstablishedTime();
+                    conversationClientParty.ResetConnectionEstablishedTime();
 
                     messageRouterResults.Add(new MessageRouterResult()
                     {
@@ -679,6 +672,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
                         ConversationClientParty = conversationClientParty
                     });
                 }
+            }
+
+            if (messageRouterResults.Count == 0)
+            {
+                messageRouterResults.Add(new MessageRouterResult()
+                {
+                    Type = MessageRouterResultType.NoActionTaken
+                });
             }
 
             return messageRouterResults;

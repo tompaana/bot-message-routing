@@ -130,8 +130,6 @@
     <Compile Include="MessageRouting\MessageRouterResult.cs" />
     <Compile Include="Models\Azure\ConnectionEntity.cs" />
     <Compile Include="Models\Azure\PartyEntity.cs" />
-    <Compile Include="Models\Azure\PartyWithTimestampsEntity.cs" />
-    <Compile Include="Models\PartyWithTimestamps.cs" />
     <Compile Include="Utils\GlobalTimeProvider.cs" />
     <Compile Include="Utils\MessagingUtils.cs" />
     <Compile Include="Models\Party.cs" />

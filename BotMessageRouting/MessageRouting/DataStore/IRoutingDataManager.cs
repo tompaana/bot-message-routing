@@ -42,10 +42,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         /// <summary>
         /// Removes the party from all possible containers.
-        /// Note that this method removes the party's all instances (user from all conversations).
+        /// Note that this method removes the party's all instances (user from all conversations
+        /// in addition to pending requests).
         /// </summary>
         /// <param name="partyToRemove">The party to remove.</param>
-        /// <returns>A list of operation results.</returns>
+        /// <returns>A list of operation result(s):
+        /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
+        /// - MessageRouterResultType.OK, if the party was removed from the collection AND
+        /// - MessageRouterResultType.ConnectionRejected, if the party had a pending request AND
+        /// - Disconnect() results, if the party was connected in a conversation.
+        /// </returns>
         IList<MessageRouterResult> RemoveParty(Party partyToRemove);
 
         /// <returns>The aggregation parties as a readonly list.</returns>
@@ -74,14 +80,23 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="requestorParty">The party whose pending request to add.</param>
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
-        /// <returns>The result of the operation.</returns>
-        MessageRouterResult AddPendingRequest(Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false);
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.ConnectionRequested, if a request was successfully made OR
+        /// - MessageRouterResultType.ConnectionAlreadyRequested, if a request for the given party already exists OR
+        /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation while one is required OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
+        MessageRouterResult AddPendingRequest(
+            Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false);
 
         /// <summary>
         /// Removes the pending request of the given party.
         /// </summary>
         /// <param name="requestorParty">The party whose request to remove.</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.ConnectionRejected, if the pending request was removed OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
         MessageRouterResult RemovePendingRequest(Party requestorParty);
 
         /// <summary>
@@ -112,7 +127,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="conversationOwnerParty">The conversation owner party.</param>
         /// <param name="conversationClientParty">The conversation client (customer) party
         /// (i.e. one who requested the connection).</param>
-        /// <returns>The result of the operation. The expected result type, when successful, is Connected.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.Connected, if successfully connected OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
         MessageRouterResult ConnectAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
@@ -120,7 +138,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="party">The party whose connections to remove.</param>
         /// <param name="connectionProfile">The connection profile of the party (owner/client/either).</param>
-        /// <returns>A list of operation results. The expected result types, when successful, are Disconnected.</returns>
+        /// <returns>A list of operation results:
+        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
+        /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
+        /// </returns>
         IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile);
 
         /// <summary>

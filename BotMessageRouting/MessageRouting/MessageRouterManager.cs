@@ -205,7 +205,11 @@ namespace Underscore.Bot.MessageRouting
         /// For convenience.
         /// </summary>
         /// <param name="partyToRemove">The party to remove.</param>
-        /// <returns>The results. If the number of results is more than 0, the operation was successful.</returns>
+        /// <returns>A list of operation result(s):
+        /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
+        /// - MessageRouterResultType.OK, if the party was removed from the collection AND
+        /// - MessageRouterResultType.ConnectionRejected, if the party had a pending request AND
+        /// - Disconnect() results, if the party was connected in a conversation.</returns>
         public IList<MessageRouterResult> RemoveParty(Party partyToRemove)
         {
             return RoutingDataManager.RemoveParty(partyToRemove);
@@ -217,7 +221,12 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="requestorParty">The requestor party.</param>
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.ConnectionRequested, if a request was successfully made OR
+        /// - MessageRouterResultType.ConnectionAlreadyRequested, if a request for the given party already exists OR
+        /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation while one is required OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
         public MessageRouterResult RequestConnection(
             Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
@@ -231,7 +240,12 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="activity">The activity. The SENDER in this activity (From property) is considered the requestor.</param>
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.ConnectionRequested, if a request was successfully made OR
+        /// - MessageRouterResultType.ConnectionAlreadyRequested, if a request for the given party already exists OR
+        /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation while one is required OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
         public virtual MessageRouterResult RequestConnection(
             Activity activity, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
@@ -246,7 +260,10 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="partyToReject">The party whose request to reject.</param>
         /// <param name="rejecterParty">The party rejecting the request (optional).</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.ConnectionRejected, if the pending request was removed OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// </returns>
         public virtual MessageRouterResult RejectPendingRequest(Party partyToReject, Party rejecterParty = null)
         {
             if (partyToReject == null)
@@ -254,23 +271,17 @@ namespace Underscore.Bot.MessageRouting
                 throw new ArgumentNullException($"The party to reject ({nameof(partyToReject)} cannot be null");
             }
 
-            MessageRouterResult result = new MessageRouterResult()
-            {
-                ConversationOwnerParty = rejecterParty,
-                ConversationClientParty = partyToReject
-            };
+            MessageRouterResult messageRouteResult = RoutingDataManager.RemovePendingRequest(partyToReject);
+            messageRouteResult.ConversationClientParty = partyToReject;
+            messageRouteResult.ConversationOwnerParty = rejecterParty;
 
-            if (RoutingDataManager.RemovePendingRequest(partyToReject).Type == MessageRouterResultType.Error)
+            if (messageRouteResult.Type == MessageRouterResultType.Error)
             {
-                result.Type = MessageRouterResultType.Error;
-                result.ErrorMessage = $"Failed to remove the pending request of user \"{partyToReject.ChannelAccount?.Name}\"";
-            }
-            else
-            {
-                result.Type = MessageRouterResultType.ConnectionRejected;
+                messageRouteResult.ErrorMessage =
+                    $"Failed to remove the pending request of user \"{partyToReject.ChannelAccount?.Name}\": {messageRouteResult.ErrorMessage}";
             }
 
-            return result;
+            return messageRouteResult;
         }
 
         /// <summary>
@@ -285,7 +296,14 @@ namespace Underscore.Bot.MessageRouting
         /// the bot and the conversation owner (e.g. agent) where the messages from the other (client) party are routed.
         /// Note that this will result in the conversation owner having a new separate party in the created connection
         /// (for the new direct conversation).</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>
+        /// The result of the operation:
+        /// - MessageRouterResultType.Connected, if successfully connected OR
+        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// 
+        /// The result will also contain the connected parties and note that the client's identity
+        /// will have changed, if a new direct conversation was created!
+        /// </returns>
         public virtual async Task<MessageRouterResult> ConnectAsync(
             Party conversationOwnerParty, Party conversationClientParty, bool createNewDirectConversation)
         {
@@ -330,12 +348,12 @@ namespace Underscore.Bot.MessageRouting
                         ConversationAccount directConversationAccount =
                             new ConversationAccount(id: conversationResourceResponse.Id);
 
-                        conversationOwnerParty = new PartyWithTimestamps(
+                        conversationOwnerParty = new Party(
                             conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
                             conversationOwnerParty.ChannelAccount, directConversationAccount);
 
                         RoutingDataManager.AddParty(conversationOwnerParty);
-                        RoutingDataManager.AddParty(new PartyWithTimestamps(
+                        RoutingDataManager.AddParty(new Party(
                             botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
 
                         result.ConversationResourceResponse = conversationResourceResponse;
@@ -357,7 +375,10 @@ namespace Underscore.Bot.MessageRouting
         /// Ends all 1:1 conversations of the given party.
         /// </summary>
         /// <param name="connectedParty">The party connected in a conversation.</param>
-        /// <returns>The result(s) of the operation(s).</returns>
+        /// <returns>A list of operation results:
+        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
+        /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
+        /// </returns>
         public List<MessageRouterResult> Disconnect(Party connectedParty)
         {
             return Disconnect(connectedParty, ConnectionProfile.Any);
@@ -367,7 +388,10 @@ namespace Underscore.Bot.MessageRouting
         /// Ends the 1:1 conversation where the given party is the conversation client (e.g. a customer).
         /// </summary>
         /// <param name="conversationClientParty">The client of a connection (conversation).</param>
-        /// <returns>The result of the operation.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
+        /// - MessageRouterResultType.Disconnected, when successful.
+        /// </returns>
         public MessageRouterResult DisconnectClient(Party conversationClientParty)
         {
             // There can be only one result since a client cannot be connected in multiple conversations
@@ -378,7 +402,10 @@ namespace Underscore.Bot.MessageRouting
         /// Ends all 1:1 conversations of the given conversation owner party (e.g. a customer service agent).
         /// </summary>
         /// <param name="conversationOwnerParty">The owner of a connection (conversation).</param>
-        /// <returns>The result(s) of the operation(s).</returns>
+        /// <returns>A list of operation results:
+        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
+        /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
+        /// </returns>
         public List<MessageRouterResult> DisconnectOwner(Party conversationOwnerParty)
         {
             return Disconnect(conversationOwnerParty, ConnectionProfile.Owner);
@@ -392,8 +419,11 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="activity">The activity to handle.</param>
         /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
         /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
-        /// <returns>The result of the operation.
-        /// MessageRouterResultType.NoActionTaken indicates that the sender was not connected.</returns>
+        /// <returns>The result of the operation:
+        /// - MessageRouterResultType.NoActionTaken, if no routing rule for the sender is found OR
+        /// - MessageRouterResultType.OK, if the message was routed successfully OR
+        /// - MessageRouterResultType.FailedToForwardMessage in case of an error (see the error message).
+        /// </returns>
         public virtual async Task<MessageRouterResult> RouteMessageIfSenderIsConnectedAsync(
             Activity activity, bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
@@ -464,7 +494,10 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="connectedParty">The party connected in a conversation.</param>
         /// <param name="connectionProfile">The connection profile of the given party.</param>
-        /// <returns>The result(s) of the operation(s).</returns>
+        /// <returns>A list of operation results:
+        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
+        /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
+        /// </returns>
         protected virtual List<MessageRouterResult> Disconnect(Party connectedParty, ConnectionProfile connectionProfile)
         {
             List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();

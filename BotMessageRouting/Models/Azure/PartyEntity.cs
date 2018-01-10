@@ -1,5 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using Microsoft.WindowsAzure.Storage.Table;
+using System;
 
 namespace Underscore.Bot.Models.Azure
 {
@@ -27,6 +28,8 @@ namespace Underscore.Bot.Models.Azure
         public string ConversationAccountID { get; set; }
         public string ConversationAccountName { get; set; }
         public string PartyEntityType { get; set; }
+        public DateTime ConnectionRequestTime { get; set; }
+        public DateTime ConnectionEstablishedTime { get; set; }
 
         public PartyEntity()
         {
@@ -82,11 +85,28 @@ namespace Underscore.Bot.Models.Azure
             return party.ServiceUrl;
         }
 
+        public void ResetConnectionRequestTime()
+        {
+            ConnectionRequestTime = DateTime.MinValue;
+        }
+
+        public void ResetConnectionEstablishedTime()
+        {
+            ConnectionEstablishedTime = DateTime.MinValue;
+        }
+
         public virtual Party ToParty()
         {
             ChannelAccount channelAccount = new ChannelAccount(ChannelAccountID, ChannelAccountName);
             ConversationAccount conversationAccount = new ConversationAccount(null, ConversationAccountID, ConversationAccountName);
-            return new Party(ServiceUrl, ChannelId, channelAccount, conversationAccount);
+
+            Party party = new Party(ServiceUrl, ChannelId, channelAccount, conversationAccount)
+            {
+                ConnectionRequestTime = ConnectionRequestTime,
+                ConnectionEstablishedTime = ConnectionEstablishedTime
+            };
+
+            return party;
         }
     }
 }

@@ -46,6 +46,26 @@ namespace Underscore.Bot.Models
         }
 
         /// <summary>
+        /// Represents the time when a request was made.
+        /// DateTime.MinValue will indicate that no request is pending.
+        /// </summary>
+        public DateTime ConnectionRequestTime
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Represents the time when the connection (1:1 conversation) was established.
+        /// DateTime.MinValue will indicate that this party is not connected.
+        /// </summary>
+        public DateTime ConnectionEstablishedTime
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="serviceUrl">Service URL. Must be provided.</param>
@@ -75,6 +95,9 @@ namespace Underscore.Bot.Models
             ChannelId = channelId;
             ChannelAccount = channelAccount;
             ConversationAccount = conversationAccount;
+
+            ResetConnectionRequestTime();
+            ResetConnectionEstablishedTime();
         }
 
         /// <summary>
@@ -104,6 +127,16 @@ namespace Underscore.Bot.Models
                 //&& other.ServiceUrl.Equals(ServiceUrl) // Service URL cannot be guaranteed, by the bot framework, to stay the same!
                 && other.ChannelId.Equals(ChannelId)
                 && other.ConversationAccount.Id.Equals(ConversationAccount.Id));
+        }
+
+        public void ResetConnectionRequestTime()
+        {
+            ConnectionRequestTime = DateTime.MinValue;
+        }
+
+        public void ResetConnectionEstablishedTime()
+        {
+            ConnectionEstablishedTime = DateTime.MinValue;
         }
 
         public string ToJsonString()

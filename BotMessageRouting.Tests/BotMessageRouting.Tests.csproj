@@ -62,7 +62,7 @@
     </Reference>
     <Reference Include="Microsoft.Data.Services.Client, Version=5.8.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)\packages\Microsoft.Data.Services.Client.5.8.3\lib\net40\Microsoft.Data.Services.Client.dll</HintPath>
-    </Reference>    
+    </Reference>
     <Reference Include="Microsoft.IdentityModel.Logging, Version=1.1.4.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.IdentityModel.Logging.1.1.4\lib\net451\Microsoft.IdentityModel.Logging.dll</HintPath>
     </Reference>
@@ -111,6 +111,7 @@
     <Compile Include="Data\PartyTestData.cs" />
     <Compile Include="Tests\RoutingDataManagerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\TestGlobalTimeProvider.cs" />
     <Compile Include="Utils\TestSettings.cs" />
   </ItemGroup>
   <ItemGroup>

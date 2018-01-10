@@ -10,6 +10,7 @@ using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
 using Underscore.Bot.MessageRouting.DataStore.Local;
 using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace BotMessageRouting.Tests
 {
@@ -39,7 +40,7 @@ namespace BotMessageRouting.Tests
         private static readonly string SettingsInstructions =
             "\n Testing the AzureTableStorageRoutingDataManager class requires that you have Azure Table Storage    " +
             "\n account set up. In addition, the class to test requires the connection string, which is loaded from " +
-            "\n a settings file in your documents folder (\"Documents\" in English Windows versions, in your user   " +
+            "\n a settings file in your documents folder (\"Documents\" in English Windows 10 versions, in your user" +
             "\n folder).                                                                                            " +
             "\n                                                                                                     " +
             "\n The name of the settings file is defined by the value of TestSettings.TestSettingsFilename string   " +
@@ -64,6 +65,7 @@ namespace BotMessageRouting.Tests
 
         private const uint NumberOfPartiesToCreate = 10;
         private IList<IRoutingDataManager> _routingDataManagers;
+        private GlobalTimeProvider _globalTimeProvider;
         private static bool _firstInitialization = true;
 
         [TestInitialize]
@@ -74,14 +76,18 @@ namespace BotMessageRouting.Tests
             TestSettings testSettings = new TestSettings();
             string azureTableStorageConnectionString = testSettings[SettingsKeyAzureTableStorageConnectionString];
 
+            _globalTimeProvider = new TestGlobalTimeProvider();
+
             _routingDataManagers = new List<IRoutingDataManager>()
             {
-                new LocalRoutingDataManager()
+                new LocalRoutingDataManager(_globalTimeProvider)
             };
 
             if (!string.IsNullOrEmpty(azureTableStorageConnectionString))
             {
-                _routingDataManagers.Add(new AzureTableStorageRoutingDataManager(azureTableStorageConnectionString));
+                _routingDataManagers.Add(
+                    new AzureTableStorageRoutingDataManager(
+                        azureTableStorageConnectionString, _globalTimeProvider));
             }
             else if (_firstInitialization)
             {
@@ -133,22 +139,44 @@ namespace BotMessageRouting.Tests
         }
 
         [TestMethod]
+        public void AddAndRemoveAggregationPartiesValidData()
+        {
+            AddAndRemovePartiesValidData(PartyType.Aggregation);
+        }
+
+        [TestMethod]
         public void AddAndRemovePendingRequestValidData()
         {
-            IList<PartyWithTimestamps> userParties =
+            IList<Party> userParties =
                 PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
 
             foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
             {
                 Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
 
-                foreach (PartyWithTimestamps party in userParties)
+                foreach (Party party in userParties)
                 {
+                    DateTime expectedConnectionRequestTime =
+                        (_globalTimeProvider as TestGlobalTimeProvider).NextDateTimeToProvide;
+
                     MessageRouterResult messageRouterResult =
                         routingDataManager.AddPendingRequest(party, false);
 
                     Assert.AreEqual(MessageRouterResultType.ConnectionRequested, messageRouterResult.Type);
                     Assert.AreEqual(party, messageRouterResult.ConversationClientParty);
+
+                    IList<Party> pendingRequests = routingDataManager.GetPendingRequests();
+
+                    if (pendingRequests.Count > 0)
+                    {
+                        Assert.AreEqual(
+                            expectedConnectionRequestTime,
+                            pendingRequests[pendingRequests.Count - 1].ConnectionRequestTime);
+                    }
+                    else
+                    {
+                        Assert.Fail("No pending requests although we just should have successfully added one");
+                    }
                 }
 
                 Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetPendingRequests().Count);
@@ -157,7 +185,7 @@ namespace BotMessageRouting.Tests
                 Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetUserParties().Count);
 
                 // Try to add duplicates
-                foreach (PartyWithTimestamps party in userParties)
+                foreach (Party party in userParties)
                 {
                     MessageRouterResult messageRouterResult =
                         routingDataManager.AddPendingRequest(party, false);
@@ -169,6 +197,7 @@ namespace BotMessageRouting.Tests
                 // We should still have the original number
                 Assert.AreEqual((int)NumberOfPartiesToCreate, routingDataManager.GetPendingRequests().Count);
 
+                IList<Party> userPartiesInStorage = routingDataManager.GetUserParties();
                 int numberOfPartiesRemovedFromUserParties = 0;
 
                 for (int i = 0; i < NumberOfPartiesToCreate; ++i)
@@ -187,6 +216,16 @@ namespace BotMessageRouting.Tests
                         routingDataManager.RemoveParty(userParties[i]);
                         numberOfPartiesRemovedFromUserParties++;
                     }
+
+                    // The connection request time should have reset
+                    foreach (Party party in userPartiesInStorage)
+                    {
+                        if (party == userParties[i])
+                        {
+                            Assert.AreEqual(DateTime.MinValue, party.ConnectionRequestTime);
+                            break;
+                        }
+                    }
                 }
 
                 Assert.AreEqual(0, routingDataManager.GetPendingRequests().Count);
@@ -200,13 +239,147 @@ namespace BotMessageRouting.Tests
         }
 
         [TestMethod]
+        public void ConnectAndDisconnectValidData()
+        {
+            int numberOfEachClientAndOwnerParties = (int)NumberOfPartiesToCreate / 2;
+
+            IList<Party> clientParties =
+                PartyTestData.CreateParties((uint)numberOfEachClientAndOwnerParties, true);
+            IList<Party> ownerParties =
+                PartyTestData.CreateParties((uint)numberOfEachClientAndOwnerParties, true);
+
+            IList<Party> connectedClientParties = new List<Party>();
+            IList<Party> connectedOwnerParties = new List<Party>();
+
+            foreach (IRoutingDataManager routingDataManager in _routingDataManagers)
+            {
+                Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
+
+                // 1. No pending requests (should be successful anyhow)
+
+                for (int i = 0; i < numberOfEachClientAndOwnerParties; ++i)
+                {
+                    DateTime expectedConnectionEstablishedTime =
+                        (_globalTimeProvider as TestGlobalTimeProvider).NextDateTimeToProvide;
+
+                    MessageRouterResult messageRouterResult =
+                        routingDataManager.ConnectAndClearPendingRequest(ownerParties[i], clientParties[i]);
+
+                    Assert.AreEqual(MessageRouterResultType.Connected, messageRouterResult.Type);
+
+                    Assert.AreNotEqual(null, messageRouterResult.ConversationClientParty);
+                    Assert.AreNotEqual(null, messageRouterResult.ConversationOwnerParty);
+
+                    connectedClientParties.Add(messageRouterResult.ConversationClientParty);
+                    connectedOwnerParties.Add(messageRouterResult.ConversationOwnerParty);
+
+                    Dictionary<Party, Party> connectedParties = routingDataManager.GetConnectedParties();
+                    bool conversationClientPartyWasFound = false;
+
+                    foreach (Party conversationClientParty in connectedParties.Values)
+                    {
+                        if (conversationClientParty == messageRouterResult.ConversationClientParty)
+                        {
+                            Assert.AreEqual(
+                                expectedConnectionEstablishedTime,
+                                conversationClientParty.ConnectionEstablishedTime);
+
+                            conversationClientPartyWasFound = true;
+                            break;
+                        }
+                    }
+
+                    Assert.AreEqual(true, conversationClientPartyWasFound);
+                }
+
+                Assert.AreEqual(numberOfEachClientAndOwnerParties, routingDataManager.GetConnectedParties().Count);
+
+                foreach (Party conversationOwnerParty in connectedOwnerParties)
+                {
+                    Assert.AreEqual(true, routingDataManager.IsConnected(conversationOwnerParty, ConnectionProfile.Owner));
+                }
+
+                foreach (Party conversationClientParty in connectedClientParties)
+                {
+                    Assert.AreEqual(true, routingDataManager.IsConnected(conversationClientParty, ConnectionProfile.Client));
+                }
+
+                foreach (Party conversationOwnerParty in connectedOwnerParties)
+                {
+                    IList<MessageRouterResult> messageRouterResults =
+                        routingDataManager.Disconnect(conversationOwnerParty, ConnectionProfile.Owner);
+
+                    foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                    {
+                        Assert.AreEqual(MessageRouterResultType.Disconnected, messageRouterResult.Type);
+                    }
+                }
+
+                Assert.AreEqual(0, routingDataManager.GetConnectedParties().Count);
+
+                foreach (Party conversationOwnerParty in connectedOwnerParties)
+                {
+                    Assert.AreEqual(false, routingDataManager.IsConnected(conversationOwnerParty, ConnectionProfile.Owner));
+                }
+
+                foreach (Party conversationClientParty in connectedClientParties)
+                {
+                    Assert.AreEqual(false, routingDataManager.IsConnected(conversationClientParty, ConnectionProfile.Client));
+                }
+
+                connectedClientParties.Clear();
+                connectedOwnerParties.Clear();
+
+                // 2. With pending requests
+
+                for (int i = 0; i < numberOfEachClientAndOwnerParties; ++i)
+                {
+                    MessageRouterResult messageRouterResult =
+                        routingDataManager.AddPendingRequest(clientParties[i], false);
+
+                    Assert.AreEqual(MessageRouterResultType.ConnectionRequested, messageRouterResult.Type);
+                    Assert.AreEqual(1, routingDataManager.GetPendingRequests().Count);
+
+                    messageRouterResult =
+                        routingDataManager.ConnectAndClearPendingRequest(ownerParties[i], clientParties[i]);
+
+                    Assert.AreNotEqual(null, messageRouterResult.ConversationClientParty);
+                    connectedClientParties.Add(messageRouterResult.ConversationClientParty);
+
+                    Assert.AreEqual(MessageRouterResultType.Connected, messageRouterResult.Type);
+                    Assert.AreEqual(0, routingDataManager.GetPendingRequests().Count);
+                }
+
+                Assert.AreEqual(numberOfEachClientAndOwnerParties, routingDataManager.GetConnectedParties().Count);
+
+                foreach (Party conversationClientParty in connectedClientParties)
+                {
+                    // Disconnect this time by using the client instead of the owner
+                    IList<MessageRouterResult> messageRouterResults =
+                        routingDataManager.Disconnect(conversationClientParty, ConnectionProfile.Client);
+
+                    foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                    {
+                        Assert.AreEqual(MessageRouterResultType.Disconnected, messageRouterResult.Type);
+                    }
+                }
+
+                Assert.AreEqual(0, routingDataManager.GetConnectedParties().Count);
+
+                connectedClientParties.Clear();
+
+                Trace.WriteLine($"--- Test \"{GetCurrentMethodName()}\" done for {routingDataManager.GetType().Name}");
+            }
+        }
+
+        [TestMethod]
         public void DeleteAll()
         {
-            IList<PartyWithTimestamps> userParties =
+            IList<Party> userParties =
                 PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
-            IList<PartyWithTimestamps> botParties =
+            IList<Party> botParties =
                 PartyTestData.CreateParties(NumberOfPartiesToCreate, true);
-            IList<PartyWithTimestamps> aggregationParties =
+            IList<Party> aggregationParties =
                 PartyTestData.CreateParties(NumberOfPartiesToCreate, false);
 
             // TODO: Connections
@@ -215,7 +388,7 @@ namespace BotMessageRouting.Tests
             {
                 Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
 
-                foreach (PartyWithTimestamps party in userParties)
+                foreach (Party party in userParties)
                 {
                     routingDataManager.AddParty(party, true);
                 }
@@ -256,7 +429,7 @@ namespace BotMessageRouting.Tests
 
         private void AddAndRemovePartiesValidData(PartyType partyType)
         {
-            IList<PartyWithTimestamps> parties =
+            IList<Party> parties =
                 PartyTestData.CreateParties(
                     NumberOfPartiesToCreate, (partyType != PartyType.Aggregation));
 
@@ -267,13 +440,15 @@ namespace BotMessageRouting.Tests
                 Trace.WriteLine($"--- Starting test \"{GetCurrentMethodName()}\" for {routingDataManager.GetType().Name}");
                 int currentActualPartyCount = 0;
 
-                foreach (PartyWithTimestamps party in parties)
+                foreach (Party party in parties)
                 {
+                    bool wasAdded = false;
+
                     switch (partyType)
                     {
                         case PartyType.User:
                         case PartyType.Bot:
-                            routingDataManager.AddParty(party, (partyType == PartyType.User));
+                            wasAdded = routingDataManager.AddParty(party, (partyType == PartyType.User));
 
                             currentActualPartyCount = (partyType == PartyType.User)
                                 ? routingDataManager.GetUserParties().Count
@@ -281,29 +456,39 @@ namespace BotMessageRouting.Tests
 
                             break;
                         case PartyType.Aggregation:
-                            routingDataManager.AddAggregationParty(party);
+                            wasAdded = routingDataManager.AddAggregationParty(party);
                             currentActualPartyCount = routingDataManager.GetAggregationParties().Count;
                             break;
                     }
 
                     numberOPartiesExpected++;
 
+                    Assert.AreEqual(true, wasAdded);
                     Assert.AreEqual(numberOPartiesExpected, currentActualPartyCount);
+
+                    if (partyType == PartyType.Aggregation)
+                    {
+                        Assert.AreEqual(true, routingDataManager.IsAssociatedWithAggregation(party));
+                    }
                 }
 
                 // Try adding duplicates
-                foreach (PartyWithTimestamps party in parties)
+                foreach (Party party in parties)
                 {
+                    bool wasAdded = false;
+
                     switch (partyType)
                     {
                         case PartyType.User:
                         case PartyType.Bot:
-                            routingDataManager.AddParty(party, (partyType == PartyType.User));
+                            wasAdded = routingDataManager.AddParty(party, (partyType == PartyType.User));
                             break;
                         case PartyType.Aggregation:
-                            routingDataManager.AddAggregationParty(party);
+                            wasAdded = routingDataManager.AddAggregationParty(party);
                             break;
                     }
+
+                    Assert.AreEqual(false, wasAdded);
                 }
 
                 // Since duplicates should not be added, the number should stay the same
@@ -313,13 +498,20 @@ namespace BotMessageRouting.Tests
 
                 if (numberOPartiesExpected > 0)
                 {
-                    foreach (PartyWithTimestamps party in parties)
+                    foreach (Party party in parties)
                     {
                         switch (partyType)
                         {
                             case PartyType.User:
                             case PartyType.Bot:
-                                routingDataManager.RemoveParty(party);
+                                IList<MessageRouterResult> messageRouterResults =
+                                    messageRouterResults = routingDataManager.RemoveParty(party);
+
+                                // The party had no pending requests and no connections so the only
+                                // outcome should be a result with OK indicating the party was
+                                // removed successfully
+                                Assert.AreEqual(1, messageRouterResults.Count);
+                                Assert.AreEqual(MessageRouterResultType.OK, messageRouterResults[0].Type);
 
                                 currentActualPartyCount = (partyType == PartyType.User)
                                     ? routingDataManager.GetUserParties().Count
@@ -327,7 +519,10 @@ namespace BotMessageRouting.Tests
 
                                 break;
                             case PartyType.Aggregation:
-                                routingDataManager.RemoveAggregationParty(party);
+                                bool wasRemoved = routingDataManager.RemoveAggregationParty(party);
+
+                                Assert.AreEqual(true, wasRemoved);
+
                                 currentActualPartyCount = routingDataManager.GetAggregationParties().Count;
                                 break;
                         }
