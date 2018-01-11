@@ -62,7 +62,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 return new List<Party>();
             }
 
-            return ToPartyList(partyEntities);
+            return ToPartyList(partyEntities).AsReadOnly();
         }
 
         public override IList<Party> GetBotParties()
@@ -81,7 +81,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 return new List<Party>();
             }
 
-            return ToPartyList(partyEntities);
+            return ToPartyList(partyEntities).AsReadOnly();
         }
 
         public override IList<Party> GetAggregationParties()
@@ -100,7 +100,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 return new List<Party>();
             }
 
-            return ToPartyList(partyEntities);
+            return ToPartyList(partyEntities).AsReadOnly();
         }
 
         public override IList<Party> GetPendingRequests()
@@ -119,7 +119,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 return new List<Party>();
             }
 
-            return ToPartyList(partyEntities);
+            return ToPartyList(partyEntities).AsReadOnly();
         }
 
         public override Dictionary<Party, Party> GetConnectedParties()

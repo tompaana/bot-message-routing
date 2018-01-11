@@ -18,12 +18,13 @@ connected with a human customer service agent.
 * Routing messages between users/bots
     * See also: [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
 * Customer service scenarios where (in tricky cases) the customer requires a human customer service agent
+    * See [Intermediator Bot Sample](https://github.com/tompaana/intermediator-bot-sample)
 * Keeping track of users the bot interacts with
 * Sending notifications
     * For more information see [this blog post](http://tomipaananen.azurewebsites.net/?p=2231) and
       [this sample](https://github.com/tompaana/remote-control-bot-sample))
 
-This is a C# solution, but don't worry if you prefer the Node.js SDK; in that case check out
+This is a C# solution, but don't worry if you prefer the **Node.js** SDK; in that case check out
 [this sample](https://github.com/palindromed/Bot-HandOff)!
 
 ## Implementation ##
@@ -34,7 +35,7 @@ This is a C# solution, but don't worry if you prefer the Node.js SDK; in that ca
 | ---- | ----------- |
 | Aggregation (channel) | **Only applies if aggregation approach is used!** A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. |
 | Connection | Is created when a request is accepted - the acceptor and the one accepted form a connection (1:1 chat where the bot relays the messages between the users). |
-| Party | A user/bot in a specific conversation. |
+| Party | A user/bot in a specific conversation or can represent a channel (e.g. specific conversation channel in Slack) itself. |
 | Conversation client | A reqular user e.g. a customer. |
 | Conversation owner | E.g. a customer service **agent**. |
 
@@ -56,27 +57,29 @@ conversation.
 
 ##### Properties #####
 
-* `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
-  in use. In case you want to replace the default implementation with your own,
-  set it in `App_Start\WebApiConfig.cs`.
+* `RoutingDataManager`: The implementation of `IRoutingDataManager` interface in use. This project
+  provides too implementations of this interface: `LocalRoutingDataManager` for testing and
+  `AzureTableStorageRoutingDataManager`. If you want to implement your own routing data management,
+  you can by implementing either the `IRoutingDataManager` interface or deriving from
+  `AbstractRoutingDataManager`. This property is set by providing the implemented class to the
+  constructor of `MessageRouterManager`.
 
 ##### Methods #####
 
-* **`HandleActivityAsync`**: In *very simple* cases this is the only method you need to call in
-  your `MessagesController` class. It will track the users (stores their information), forward
-  messages between users connected in a conversation automatically. The return value
-  (`MessageRouterResult`) will indicate whether the message routing logic consumed the activity or
-  not. If the activity was ignored by the message routing logic, you can e.g. forward it to your
-  dialog.
+* **`HandleActivityAsync`**: In *very simple* cases this is the only method you need to call.
+  It will track the users (stores their information), forward messages between users connected in
+  a conversation automatically. The return value (`MessageRouterResult`) will indicate whether the
+  message routing logic consumed the activity or not. If the activity was ignored by the message
+  routing logic, you can e.g. forward it to your dialog.
 * `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given message to a given user.
 * `BroadcastMessageToAggregationChannelsAsync`: Sends the given message to all the aggregation channels.
-* `MakeSurePartiesAreTracked`: A convenient method for adding parties.  The given parties are added,
+* `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added,
   if they are new. This method is called by `HandleActivityAsync` so you don't need to bother
-  calling this explicitly yourself.
+  calling this explicitly yourself unless your bot code is a bit more complex.
 * `RemoveParty`: Removes all the instances related to the given party from the routing data (since
   there can be multiple - one for each conversation). Will also remove any pending requests of the
   party in question as well as end all conversations of this specific user.
-* `RequestConnection`: Creates a request on behalf of the sender of the activity.
+* `RequestConnection`: Creates a request on behalf of the given party/sender of the activity.
 * `RejectPendingRequest`: Removes the pending request of the given user.
 * `ConnectAsync`: Establishes a connection between the given parties. This method should be called
   when a chat request is accepted (given that requests are necessary).
@@ -86,30 +89,47 @@ conversation.
 
 #### Other classes ####
 
+**[AbstractRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/AbstractRoutingDataManager.cs)**
+implements the `IRoutingDataManager` interface partially and is the base class for both
+`LocalRoutingDataManager` and `AzureTableStorageRoutingDataManager`. It contains the main logic for
+routing data management while leaving the specific storage operation implementations
+(add, remove, etc.) for the subclasses.
+
 **[AzureTableStorageRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/Azure/AzureTableStorageRoutingDataManager.cs)**
-implements the `IRoutingDataManager` interface.
+implements the `IRoutingDataManager` interface. The constructor takes the connection string to your
+Azure Storage.
 
 **[LocalRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/Local/LocalRoutingDataManager.cs)**
 implements the `IRoutingDataManager` interface. Note that this class is meant for testing and
 provides only an in-memory solution. **Do not use this class in production!**
 
 **[Party](/BotMessageRouting/Models/Party.cs)** holds the details of specific user/bot in a specific
-conversation. Note that the bot collects parties from all the conversations it's in and there will
-be a `Party` instance of a user/bot for each conversation (i.e. there can be multiple parties for a
-single user/bot). One can think of `Party` as a full address the bot needs in order to send a
-message to the user in a conversation. The `Party` instances are stored in routing data.
+conversation. One can think of `Party` as a full address the bot needs in order to send a message to
+the user in a conversation. The `Party` instances are stored in the routing data.
 
 **[MessageRouterResult](/BotMessageRouting/MessageRouting/MessageRouterResult.cs)** is the return
-value for more complex operations of the `MessageRouterManager` class not unlike custom `EventArgs`
-implementations, but due to the problems that using actual event handlers can cause, these return
-values are handled by a dedicated `IMessageRouterResultHandler` implementation (not provided in this
-project).
+value for more complex operations of the `MessageRouterManager` class and methods of the
+`IRoutingDataManager` implementation. You are responsible to handle these in your bot code.
+
+For classes not mentioned here, see the documentation in the code files.
 
 ## Contributing ##
 
+This is a community project and all contributions are more than welcome!
+
+If you want to contribute, please consider the following:
+* Use the **development branch** for the base of your changes
+* Remember to update documentation (comments in code)
+* Run the tests to ensure your changes do not break existing functionality
+    * Update/write new tests when needed
+* Pull requests should be first merged into the development branch
+
+Please do not hesitate to report ideas, bugs etc. under
+[issues](https://github.com/tompaana/bot-message-routing/issues)!
+
 ### Acknowledgements ###
 
-Special thanks to the key contributors (in alphabetical order):
+Special thanks to the contributors (in alphabetical order):
 
 * [Syed Hassaan Ahmed](https://github.com/syedhassaanahmed)
 * [Jamie D](https://github.com/daltskin)
