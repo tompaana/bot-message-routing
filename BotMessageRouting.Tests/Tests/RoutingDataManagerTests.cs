@@ -85,9 +85,13 @@ namespace BotMessageRouting.Tests
 
             if (!string.IsNullOrEmpty(azureTableStorageConnectionString))
             {
-                _routingDataManagers.Add(
+                AzureTableStorageRoutingDataManager azureTableStorageRoutingDataManager =
                     new AzureTableStorageRoutingDataManager(
-                        azureTableStorageConnectionString, _globalTimeProvider));
+                        azureTableStorageConnectionString, _globalTimeProvider);
+
+                azureTableStorageRoutingDataManager.DeleteAll();
+
+                _routingDataManagers.Add(azureTableStorageRoutingDataManager);
             }
             else if (_firstInitialization)
             {
@@ -274,6 +278,9 @@ namespace BotMessageRouting.Tests
                     connectedOwnerParties.Add(messageRouterResult.ConversationOwnerParty);
 
                     Dictionary<Party, Party> connectedParties = routingDataManager.GetConnectedParties();
+
+                    Assert.AreEqual((i + 1), connectedParties.Count);
+
                     bool conversationClientPartyWasFound = false;
 
                     foreach (Party conversationClientParty in connectedParties.Values)
@@ -352,15 +359,39 @@ namespace BotMessageRouting.Tests
 
                 Assert.AreEqual(numberOfEachClientAndOwnerParties, routingDataManager.GetConnectedParties().Count);
 
-                foreach (Party conversationClientParty in connectedClientParties)
+                for (int i = 0; i < connectedClientParties.Count; ++i)
                 {
-                    // Disconnect this time by using the client instead of the owner
-                    IList<MessageRouterResult> messageRouterResults =
-                        routingDataManager.Disconnect(conversationClientParty, ConnectionProfile.Client);
+                    Party conversationClientParty = connectedClientParties[i];
 
-                    foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                    if (i % 2 == 0)
                     {
-                        Assert.AreEqual(MessageRouterResultType.Disconnected, messageRouterResult.Type);
+                        // Disconnect this time by using the client instead of the owner
+                        IList<MessageRouterResult> messageRouterResults =
+                            routingDataManager.Disconnect(conversationClientParty, ConnectionProfile.Client);
+
+                        foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                        {
+                            Assert.AreEqual(MessageRouterResultType.Disconnected, messageRouterResult.Type);
+                        }
+                    }
+                    else
+                    {
+                        // Removing the client party should do a disconnect too
+                        IList<MessageRouterResult> messageRouterResults =
+                            routingDataManager.RemoveParty(conversationClientParty);
+
+                        bool wasDisconnected = false;
+
+                        foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                        {
+                            if (messageRouterResult.Type == MessageRouterResultType.Disconnected)
+                            {
+                                wasDisconnected = true;
+                                break;
+                            }
+                        }
+
+                        Assert.AreEqual(true, wasDisconnected);
                     }
                 }
 

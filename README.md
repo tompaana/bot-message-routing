@@ -13,9 +13,6 @@ connected with a human customer service agent.
 **For an example on how to take this code into use, see
 [Intermediator Bot Sample](https://github.com/tompaana/intermediator-bot-sample).**
 
-Don't worry, if you prefer the Node.js SDK; in that case check out
-[this sample](https://github.com/palindromed/Bot-HandOff)!
-
 ### Possible use cases ###
 
 * Routing messages between users/bots
@@ -25,6 +22,9 @@ Don't worry, if you prefer the Node.js SDK; in that case check out
 * Sending notifications
     * For more information see [this blog post](http://tomipaananen.azurewebsites.net/?p=2231) and
       [this sample](https://github.com/tompaana/remote-control-bot-sample))
+
+This is a C# solution, but don't worry if you prefer the Node.js SDK; in that case check out
+[this sample](https://github.com/palindromed/Bot-HandOff)!
 
 ## Implementation ##
 
@@ -54,13 +54,13 @@ class of the project. It manages the routing data (using the provided `IRoutingD
 implementation) and executes the actual message mediation between the parties connected in a
 conversation.
 
-**Properties**
+##### Properties #####
 
 * `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
   in use. In case you want to replace the default implementation with your own,
   set it in `App_Start\WebApiConfig.cs`.
 
-**Methods**
+##### Methods #####
 
 * **`HandleActivityAsync`**: In *very simple* cases this is the only method you need to call in
   your `MessagesController` class. It will track the users (stores their information), forward

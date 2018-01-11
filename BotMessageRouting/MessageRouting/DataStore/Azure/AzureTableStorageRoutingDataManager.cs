@@ -42,6 +42,8 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             _partiesTable = AzureStorageHelper.GetTable(connectionString, TableNameParties);
             _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
+
+            MakeSureTablesExist();
         }
 
         public override IList<Party> GetUserParties()
@@ -173,6 +175,26 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 AzureStorageHelper.DeleteEntry<ConnectionEntity>(
                     _connectionsTable, connectionEntity.PartitionKey, connectionEntity.RowKey);
             }
+
+            /*
+            try
+            {
+                _partiesTable.Delete();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"An error occured while trying to delete the parties table: {e.Message}");
+            }
+
+            try
+            {
+                _connectionsTable.Delete();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"An error occured while trying to delete the connections table: {e.Message}");
+            }
+            */
         }
 
         protected override bool ExecuteAddParty(Party partyToAdd, bool isUser)
@@ -247,6 +269,57 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Makes sure the required tables exist.
+        /// </summary>
+        protected virtual void MakeSureTablesExist()
+        {
+            /*
+            _partiesTable.BeginCreateIfNotExists(OnPartiesTableCreateIfNotExistsFinished, null);
+            _connectionsTable.BeginCreateIfNotExists(OnConnectionsTableCreateIfNotExistsFinished, null);
+            */
+
+            try
+            {
+                _partiesTable.CreateIfNotExists();
+                System.Diagnostics.Debug.WriteLine("Parties table created or did already exist");
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create the parties table (perhaps it already exists): {e.Message}");
+            }
+
+            try
+            {
+                _connectionsTable.CreateIfNotExists();
+                System.Diagnostics.Debug.WriteLine("Connections table created or did already exist");
+            }
+            catch (StorageException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create the connections table (perhaps it already exists): {e.Message}");
+            }
+        }
+
+        protected virtual void OnPartiesTableCreateIfNotExistsFinished(IAsyncResult result)
+        {
+            if (result == null)
+            {
+                System.Diagnostics.Debug.WriteLine((result.IsCompleted)
+                    ? "Create table operation for parties table completed"
+                    : "Create table operation for parties table did not complete");
+            }
+        }
+
+        protected virtual void OnConnectionsTableCreateIfNotExistsFinished(IAsyncResult result)
+        {
+            if (result == null)
+            {
+                System.Diagnostics.Debug.WriteLine((result.IsCompleted)
+                    ? "Create table operation for connections table completed"
+                    : "Create table operation for connections table did not complete");
+            }
         }
 
         /// <summary>

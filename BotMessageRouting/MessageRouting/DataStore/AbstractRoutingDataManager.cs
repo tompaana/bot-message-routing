@@ -66,8 +66,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 throw new NullReferenceException($"Channel account of a bot party ({nameof(partyToAdd.ChannelAccount)}) cannot be null");
             }
 
-            ExecuteAddParty(partyToAdd, isUser);
-            return true;
+            return ExecuteAddParty(partyToAdd, isUser);
         }
 
         public virtual IList<MessageRouterResult> RemoveParty(Party partyToRemove)
@@ -159,8 +158,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 if (!GetAggregationParties().Contains(aggregationPartyToAdd))
                 {
-                    ExecuteAddAggregationParty(aggregationPartyToAdd);
-                    return true;
+                    return ExecuteAddAggregationParty(aggregationPartyToAdd);
                 }
             }
 
@@ -205,8 +203,15 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     {
                         requestorParty.ConnectionRequestTime = GetCurrentGlobalTime();
 
-                        ExecuteAddPendingRequest(requestorParty);
-                        result.Type = MessageRouterResultType.ConnectionRequested;
+                        if (ExecuteAddPendingRequest(requestorParty))
+                        {
+                            result.Type = MessageRouterResultType.ConnectionRequested;
+                        }
+                        else
+                        {
+                            result.Type = MessageRouterResultType.Error;
+                            result.ErrorMessage = "Failed to add the pending request - this is likely an error caused by the storage implementation";
+                        }
                     }
                 }
             }
@@ -311,9 +316,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (conversationOwnerParty != null && conversationClientParty != null)
             {
-                try
-                {
+                bool wasConnectionAdded =
                     ExecuteAddConnection(conversationOwnerParty, conversationClientParty);
+
+                if (wasConnectionAdded)
+                {
                     ExecuteRemovePendingRequest(conversationClientParty);
 
                     DateTime connectionStartedTime = GetCurrentGlobalTime();
@@ -324,12 +331,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     result.Type = MessageRouterResultType.Connected;
                 }
-                catch (ArgumentException e)
+                else
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = e.Message;
-                    System.Diagnostics.Debug.WriteLine(
-                        $"Failed to connect parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
+                    result.ErrorMessage =
+                        $"Failed to add connection between {conversationOwnerParty} and {conversationClientParty}";
                 }
             }
             else

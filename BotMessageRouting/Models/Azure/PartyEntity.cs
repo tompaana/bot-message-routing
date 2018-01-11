@@ -28,8 +28,8 @@ namespace Underscore.Bot.Models.Azure
         public string ConversationAccountID { get; set; }
         public string ConversationAccountName { get; set; }
         public string PartyEntityType { get; set; }
-        public DateTime ConnectionRequestTime { get; set; }
-        public DateTime ConnectionEstablishedTime { get; set; }
+        public string ConnectionRequestTime { get; set; }
+        public string ConnectionEstablishedTime { get; set; }
 
         public PartyEntity()
         {
@@ -63,6 +63,9 @@ namespace Underscore.Bot.Models.Azure
                 ConversationAccountID = party.ConversationAccount.Id;
                 ConversationAccountName = party.ConversationAccount.Name;
             }
+
+            ConnectionRequestTime = party.ConnectionRequestTime.ToLongDateString();
+            ConnectionEstablishedTime = party.ConnectionEstablishedTime.ToLongDateString();
         }
 
         public static string CreatePartitionKey(Party party, PartyEntityType partyEntityType)
@@ -85,16 +88,6 @@ namespace Underscore.Bot.Models.Azure
             return party.ServiceUrl;
         }
 
-        public void ResetConnectionRequestTime()
-        {
-            ConnectionRequestTime = DateTime.MinValue;
-        }
-
-        public void ResetConnectionEstablishedTime()
-        {
-            ConnectionEstablishedTime = DateTime.MinValue;
-        }
-
         public virtual Party ToParty()
         {
             ChannelAccount channelAccount = new ChannelAccount(ChannelAccountID, ChannelAccountName);
@@ -102,8 +95,8 @@ namespace Underscore.Bot.Models.Azure
 
             Party party = new Party(ServiceUrl, ChannelId, channelAccount, conversationAccount)
             {
-                ConnectionRequestTime = ConnectionRequestTime,
-                ConnectionEstablishedTime = ConnectionEstablishedTime
+                ConnectionRequestTime = DateTime.Parse(ConnectionRequestTime),
+                ConnectionEstablishedTime = DateTime.Parse(ConnectionEstablishedTime)
             };
 
             return party;
