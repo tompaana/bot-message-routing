@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Message routing component for chatbots built with Microsoft Bot Framework C# SDK</description>
     <releaseNotes></releaseNotes>
-    <copyright>Copyright 2017 Microsoft</copyright>
+    <copyright>Copyright 2017-2018 Microsoft</copyright>
     <tags>chatbot chatbots bot bots messaging message routing</tags>
   </metadata>
 </package>
