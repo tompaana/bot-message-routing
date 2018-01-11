@@ -11,7 +11,7 @@
     <!-- <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl> -->
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Message routing component for chatbots built with Microsoft Bot Framework C# SDK</description>
-    <releaseNotes>This is the second pre-release.</releaseNotes>
+    <releaseNotes></releaseNotes>
     <copyright>Copyright 2017 Microsoft</copyright>
     <tags>chatbot chatbots bot bots messaging message routing</tags>
   </metadata>
