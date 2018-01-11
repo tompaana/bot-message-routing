@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("BotMessageRouting")]
-[assembly: AssemblyCopyright("Copyright © 2017 Microsoft")]
+[assembly: AssemblyCopyright("Copyright © 2017-2018 Microsoft")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
