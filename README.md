@@ -16,13 +16,13 @@ connected with a human customer service agent.
 ### Possible use cases ###
 
 * Routing messages between users/bots
-    * See also: [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
+    * See [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
 * Customer service scenarios where (in tricky cases) the customer requires a human customer service agent
     * See [Intermediator Bot Sample](https://github.com/tompaana/intermediator-bot-sample)
 * Keeping track of users the bot interacts with
 * Sending notifications
     * For more information see [this blog post](http://tomipaananen.azurewebsites.net/?p=2231) and
-      [this sample](https://github.com/tompaana/remote-control-bot-sample))
+      [this sample](https://github.com/tompaana/remote-control-bot-sample)
 
 This is a C# solution, but don't worry if you prefer the **Node.js** SDK; in that case check out
 [this sample](https://github.com/palindromed/Bot-HandOff)!
@@ -57,20 +57,20 @@ conversation.
 
 ##### Properties #####
 
-* `RoutingDataManager`: The implementation of `IRoutingDataManager` interface in use. This project
-  provides too implementations of this interface: `LocalRoutingDataManager` for testing and
-  `AzureTableStorageRoutingDataManager`. If you want to implement your own routing data management,
-  you can by implementing either the `IRoutingDataManager` interface or deriving from
-  `AbstractRoutingDataManager`. This property is set by providing the implemented class to the
-  constructor of `MessageRouterManager`.
+* `RoutingDataManager`: The implementation of the `IRoutingDataManager` interface in use. This
+  property is set by passing the instance to the constructor of the `MessageRouterManager` class.
+  This project provides two implementations of this interface: `LocalRoutingDataManager` for testing
+  and `AzureTableStorageRoutingDataManager`. You can implement your own routing data management by
+  using the `IRoutingDataManager` interface as the base or deriving from
+  `AbstractRoutingDataManager`.
 
 ##### Methods #####
 
-* **`HandleActivityAsync`**: In *very simple* cases this is the only method you need to call.
-  It will track the users (stores their information), forward messages between users connected in
-  a conversation automatically. The return value (`MessageRouterResult`) will indicate whether the
-  message routing logic consumed the activity or not. If the activity was ignored by the message
-  routing logic, you can e.g. forward it to your dialog.
+* **`HandleActivityAsync`**: In *very simple* cases this is the only method you need to call (in
+  addition to `Diconnect`). It will track the users (stores their information), forward messages
+  between users connected in a conversation automatically. The return value (`MessageRouterResult`)
+  will indicate whether the message routing logic consumed the activity or not. If the activity was
+  ignored by the message routing logic, you can e.g. forward it to your dialog.
 * `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given message to a given user.
 * `BroadcastMessageToAggregationChannelsAsync`: Sends the given message to all the aggregation channels.
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added,
@@ -92,7 +92,7 @@ conversation.
 **[AbstractRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/AbstractRoutingDataManager.cs)**
 implements the `IRoutingDataManager` interface partially and is the base class for both
 `LocalRoutingDataManager` and `AzureTableStorageRoutingDataManager`. It contains the main logic for
-routing data management while leaving the specific storage operation implementations
+routing data management while leaving the storage specific operation implementations
 (add, remove, etc.) for the subclasses.
 
 **[AzureTableStorageRoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/Azure/AzureTableStorageRoutingDataManager.cs)**
@@ -121,6 +121,7 @@ If you want to contribute, please consider the following:
 * Use the **development branch** for the base of your changes
 * Remember to update documentation (comments in code)
 * Run the tests to ensure your changes do not break existing functionality
+    * Having an Azure Storage to test is highly recommended
     * Update/write new tests when needed
 * Pull requests should be first merged into the development branch
 
