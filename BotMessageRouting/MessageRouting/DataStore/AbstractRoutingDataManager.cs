@@ -156,7 +156,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     throw new ArgumentException("Aggregation party cannot contain a channel account");
                 }
 
-                if (!GetAggregationParties().Contains(aggregationPartyToAdd))
+                IList<Party> aggregationParties = GetAggregationParties();
+
+                if (!aggregationParties.Contains(aggregationPartyToAdd))
                 {
                     return ExecuteAddAggregationParty(aggregationPartyToAdd);
                 }
@@ -233,8 +235,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (GetPendingRequests().Contains(requestorParty))
             {
-                requestorParty.ResetConnectionRequestTime();
-
                 if (ExecuteRemovePendingRequest(requestorParty))
                 {
                     result.Type = MessageRouterResultType.ConnectionRejected;
@@ -316,19 +316,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (conversationOwnerParty != null && conversationClientParty != null)
             {
+                DateTime connectionStartedTime = GetCurrentGlobalTime();
+                conversationClientParty.ResetConnectionRequestTime();
+                conversationClientParty.ConnectionEstablishedTime = connectionStartedTime;
+
                 bool wasConnectionAdded =
                     ExecuteAddConnection(conversationOwnerParty, conversationClientParty);
 
                 if (wasConnectionAdded)
                 {
                     ExecuteRemovePendingRequest(conversationClientParty);
-
-                    DateTime connectionStartedTime = GetCurrentGlobalTime();
-
-                    conversationClientParty.ResetConnectionRequestTime();
-                    conversationClientParty.ConnectionEstablishedTime = connectionStartedTime;
-                    conversationOwnerParty.ConnectionEstablishedTime = connectionStartedTime;
-
                     result.Type = MessageRouterResultType.Connected;
                 }
                 else

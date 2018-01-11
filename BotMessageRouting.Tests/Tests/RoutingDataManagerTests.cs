@@ -220,16 +220,6 @@ namespace BotMessageRouting.Tests
                         routingDataManager.RemoveParty(userParties[i]);
                         numberOfPartiesRemovedFromUserParties++;
                     }
-
-                    // The connection request time should have reset
-                    foreach (Party party in userPartiesInStorage)
-                    {
-                        if (party == userParties[i])
-                        {
-                            Assert.AreEqual(DateTime.MinValue, party.ConnectionRequestTime);
-                            break;
-                        }
-                    }
                 }
 
                 Assert.AreEqual(0, routingDataManager.GetPendingRequests().Count);
@@ -285,7 +275,7 @@ namespace BotMessageRouting.Tests
 
                     foreach (Party conversationClientParty in connectedParties.Values)
                     {
-                        if (conversationClientParty == messageRouterResult.ConversationClientParty)
+                        if (conversationClientParty.Equals(messageRouterResult.ConversationClientParty))
                         {
                             Assert.AreEqual(
                                 expectedConnectionEstablishedTime,

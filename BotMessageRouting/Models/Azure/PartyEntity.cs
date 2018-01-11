@@ -1,6 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
+using System.Globalization;
 
 namespace Underscore.Bot.Models.Azure
 {
@@ -21,15 +22,27 @@ namespace Underscore.Bot.Models.Azure
     {
         public string ServiceUrl { get; set; }
         public string ChannelId { get; set; }
-        public ChannelAccount ChannelAccount { get; set; }
-        public string ChannelAccountID { get; set; }
+
+        // Channel account
+        public string ChannelAccountId { get; set; }
         public string ChannelAccountName { get; set; }
-        public ConversationAccount ConversationAccount { get; set; }
-        public string ConversationAccountID { get; set; }
+
+        // Conversation account
+        public string ConversationAccountId { get; set; }
         public string ConversationAccountName { get; set; }
+
         public string PartyEntityType { get; set; }
+
         public string ConnectionRequestTime { get; set; }
         public string ConnectionEstablishedTime { get; set; }
+
+        protected virtual string DateTimeFormatSpecifier
+        {
+            get
+            {
+                return "O";
+            }
+        }
 
         public PartyEntity()
         {
@@ -52,20 +65,18 @@ namespace Underscore.Bot.Models.Azure
 
             if (party.ChannelAccount != null)
             {
-                ChannelAccount = party.ChannelAccount;
-                ChannelAccountID = party.ChannelAccount.Id;
+                ChannelAccountId = party.ChannelAccount.Id;
                 ChannelAccountName = party.ChannelAccount.Name;
             }
 
             if (party.ConversationAccount != null)
             {
-                ConversationAccount = party.ConversationAccount;
-                ConversationAccountID = party.ConversationAccount.Id;
+                ConversationAccountId = party.ConversationAccount.Id;
                 ConversationAccountName = party.ConversationAccount.Name;
             }
 
-            ConnectionRequestTime = party.ConnectionRequestTime.ToLongDateString();
-            ConnectionEstablishedTime = party.ConnectionEstablishedTime.ToLongDateString();
+            ConnectionRequestTime = DateTimeToString(party.ConnectionRequestTime);
+            ConnectionEstablishedTime = DateTimeToString(party.ConnectionEstablishedTime);
         }
 
         public static string CreatePartitionKey(Party party, PartyEntityType partyEntityType)
@@ -90,16 +101,28 @@ namespace Underscore.Bot.Models.Azure
 
         public virtual Party ToParty()
         {
-            ChannelAccount channelAccount = new ChannelAccount(ChannelAccountID, ChannelAccountName);
-            ConversationAccount conversationAccount = new ConversationAccount(null, ConversationAccountID, ConversationAccountName);
+            ChannelAccount channelAccount = string.IsNullOrEmpty(ChannelAccountId)
+                ? null : new ChannelAccount(ChannelAccountId, ChannelAccountName);
+
+            ConversationAccount conversationAccount = new ConversationAccount(null, ConversationAccountId, ConversationAccountName);
 
             Party party = new Party(ServiceUrl, ChannelId, channelAccount, conversationAccount)
             {
-                ConnectionRequestTime = DateTime.Parse(ConnectionRequestTime),
-                ConnectionEstablishedTime = DateTime.Parse(ConnectionEstablishedTime)
+                ConnectionRequestTime = DateTimeFromString(ConnectionRequestTime),
+                ConnectionEstablishedTime = DateTimeFromString(ConnectionEstablishedTime)
             };
 
             return party;
+        }
+
+        protected virtual string DateTimeToString(DateTime dateTime)
+        {
+            return dateTime.ToString(DateTimeFormatSpecifier);
+        }
+
+        protected virtual DateTime DateTimeFromString(string dateTimeAsString)
+        {
+            return DateTime.ParseExact(dateTimeAsString, DateTimeFormatSpecifier, CultureInfo.InvariantCulture);
         }
     }
 }
