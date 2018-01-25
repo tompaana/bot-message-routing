@@ -86,7 +86,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="partyToMessage">The party to send the message to.</param>
         /// <param name="messageActivity">The message activity to send (message content).</param>
-        /// <returns>The ResourceResponse instance or null in case of an error.</returns>
+        /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
         public async Task<ResourceResponse> SendMessageToPartyByBotAsync(
             Party partyToMessage, IMessageActivity messageActivity)
         {
@@ -104,13 +104,13 @@ namespace Underscore.Bot.MessageRouting
             if (botParty != null)
             {
                 messageActivity.From = botParty.ChannelAccount;
+                messageActivity.Recipient = partyToMessage.ChannelAccount;
 
                 MessagingUtils.ConnectorClientAndMessageBundle bundle =
                     MessagingUtils.CreateConnectorClientAndMessageActivity(
                         partyToMessage.ServiceUrl, messageActivity);
 
-                return await bundle.connectorClient.Conversations.SendToConversationAsync(
-                    (Activity)bundle.messageActivity);
+                return await SendAsync(bundle);
             }
 
             return null;
@@ -122,7 +122,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="partyToMessage">The party to send the message to.</param>
         /// <param name="messageText">The message content.</param>
-        /// <returns>The ResourceResponse instance or null in case of an error.</returns>
+        /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
         public async Task<ResourceResponse> SendMessageToPartyByBotAsync(Party partyToMessage, string messageText)
         {
             Party botParty = null;
@@ -139,37 +139,10 @@ namespace Underscore.Bot.MessageRouting
                     MessagingUtils.CreateConnectorClientAndMessageActivity(
                         partyToMessage, messageText, botParty?.ChannelAccount);
 
-                return await bundle.connectorClient.Conversations.SendToConversationAsync(
-                    (Activity)bundle.messageActivity);
+                return await SendAsync(bundle);
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Sends the given message activity to all the aggregation channels, if any exist.
-        /// </summary>
-        /// <param name="messageActivity">The message activity to broadcast.</param>
-        /// <returns></returns>
-        public async Task BroadcastMessageToAggregationChannelsAsync(IMessageActivity messageActivity)
-        {
-            foreach (Party aggregationChannel in RoutingDataManager.GetAggregationParties())
-            {
-                await SendMessageToPartyByBotAsync(aggregationChannel, messageActivity);
-            }
-        }
-
-        /// <summary>
-        /// Sends the given message to all the aggregation channels, if any exist.
-        /// </summary>
-        /// <param name="messageText">The message to broadcast.</param>
-        /// <returns></returns>
-        public async Task BroadcastMessageToAggregationChannelsAsync(string messageText)
-        {
-            foreach (Party aggregationChannel in RoutingDataManager.GetAggregationParties())
-            {
-                await SendMessageToPartyByBotAsync(aggregationChannel, messageText);
-            }
         }
 
         /// <summary>
@@ -478,6 +451,34 @@ namespace Underscore.Bot.MessageRouting
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Sends a message activity to the conversation using the given bundle.
+        /// </summary>
+        /// <param name="bundle">The bundle containing the connector client and the message activity to send.</param>
+        /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
+        protected virtual async Task<ResourceResponse> SendAsync(
+            MessagingUtils.ConnectorClientAndMessageBundle bundle)
+        {
+            ResourceResponse resourceResponse = null;
+
+            try
+            {
+                resourceResponse =
+                    await bundle.connectorClient.Conversations.SendToConversationAsync(
+                        (Activity)bundle.messageActivity);
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+            }
+
+            return resourceResponse;
         }
 
         /// <summary>

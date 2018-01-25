@@ -72,7 +72,6 @@ conversation.
   will indicate whether the message routing logic consumed the activity or not. If the activity was
   ignored by the message routing logic, you can e.g. forward it to your dialog.
 * `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given message to a given user.
-* `BroadcastMessageToAggregationChannelsAsync`: Sends the given message to all the aggregation channels.
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added,
   if they are new. This method is called by `HandleActivityAsync` so you don't need to bother
   calling this explicitly yourself unless your bot code is a bit more complex.
