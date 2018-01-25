@@ -104,6 +104,7 @@ namespace Underscore.Bot.MessageRouting
             if (botParty != null)
             {
                 messageActivity.From = botParty.ChannelAccount;
+                messageActivity.Recipient = partyToMessage.ChannelAccount;
 
                 MessagingUtils.ConnectorClientAndMessageBundle bundle =
                     MessagingUtils.CreateConnectorClientAndMessageActivity(
