@@ -1,4 +1,4 @@
-﻿using Microsoft.Bot.Connector;
+﻿using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Globalization;

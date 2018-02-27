@@ -1,13 +1,16 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
     /// <summary>
     /// Contains Azure table storage utility methods.
     /// </summary>
-    public class AzureStorageHelper
+    public static class AzureStorageHelper
     {
         /// <summary>
         /// Tries to resolve a table in the storage defined by the given connection string and table name.
@@ -42,14 +45,14 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="cloudTable">The destination table.</param>
         /// <param name="entryToInsert">The entry to insert into the table.</param>
         /// <returns>True, if the given entry was inserted successfully. False otherwise.</returns>
-        public static bool Insert<T>(CloudTable cloudTable, T entryToInsert) where T : TableEntity
+        public static async Task<bool> InsertAsync<T>(CloudTable cloudTable, T entryToInsert) where T : ITableEntity
         {
             TableOperation insertOperation = TableOperation.Insert(entryToInsert);
             TableResult insertResult = null;
 
             try
             {
-                insertResult = cloudTable.Execute(insertOperation);
+                insertResult = await cloudTable.ExecuteAsync(insertOperation);
             }
             catch (Exception e)
             {
@@ -67,19 +70,61 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="partitionKey">The partition key.</param>
         /// <param name="rowKey">The row key.</param>
         /// <returns>True, if an entry (entity) was deleted. False otherwise.</returns>
-        public static bool DeleteEntry<T>(CloudTable cloudTable, string partitionKey, string rowKey) where T : TableEntity
+        public static async Task<bool> DeleteEntryAsync<T>(
+            CloudTable cloudTable, string partitionKey, string rowKey) where T : ITableEntity
         {
             TableOperation retrieveOperation = TableOperation.Retrieve<T>(partitionKey, rowKey);
-            TableResult retrieveResult = cloudTable.Execute(retrieveOperation);
+            TableResult retrieveResult = await cloudTable.ExecuteAsync(retrieveOperation);
 
             if (retrieveResult.Result is T entityToDelete)
             {
                 TableOperation deleteOperation = TableOperation.Delete(entityToDelete);
-                cloudTable.Execute(deleteOperation);
+                await cloudTable.ExecuteAsync(deleteOperation);
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="cloudTable"></param>
+        /// <param name="tableQuery"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="onProgress"></param>
+        /// <returns></returns>
+        public static async Task<IList<T>> ExecuteTableQueryAsync<T>(
+            this CloudTable cloudTable, TableQuery<T> tableQuery,
+            CancellationToken cancellationToken = default(CancellationToken),
+            Action<IList<T>> onProgress = null) where T : ITableEntity, new()
+        {
+            var items = new List<T>();
+            TableContinuationToken tableContinuationToken = null;
+
+            do
+            {
+
+                TableQuerySegment<T> tableQuerySegment = null;
+
+                try
+                {
+                    tableQuerySegment = await cloudTable.ExecuteQuerySegmentedAsync<T>(tableQuery, tableContinuationToken);
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to execute a table query: {e.Message}");
+                    return items;
+                }
+
+                tableContinuationToken = tableQuerySegment.ContinuationToken;
+                items.AddRange(tableQuerySegment);
+                onProgress?.Invoke(items);
+            }
+            while (tableContinuationToken != null && !cancellationToken.IsCancellationRequested);
+
+            return items;
         }
     }
 }
