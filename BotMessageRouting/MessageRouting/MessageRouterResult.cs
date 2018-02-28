@@ -37,7 +37,7 @@ namespace Underscore.Bot.MessageRouting
         /// <summary>
         /// Activity instance associated with the result.
         /// </summary>        
-        public Activity Activity
+        public IActivity Activity
         {
             get;
             set;
