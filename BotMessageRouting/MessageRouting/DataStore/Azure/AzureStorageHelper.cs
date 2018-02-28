@@ -56,7 +56,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to insert the given entity into the table: {e.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to insert the given entity into table '{cloudTable.Name}': {e.Message}");
                 return false;
             }
 
@@ -105,7 +105,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             do
             {
-
                 TableQuerySegment<T> tableQuerySegment = null;
 
                 try
