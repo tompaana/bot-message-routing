@@ -24,8 +24,7 @@ connected with a human customer service agent.
     * For more information see [this blog post](http://tomipaananen.azurewebsites.net/?p=2231) and
       [this sample](https://github.com/tompaana/remote-control-bot-sample)
 
-This is a C# solution, but don't worry if you prefer the **Node.js** SDK; in that case check out
-[this sample](https://github.com/palindromed/Bot-HandOff)!
+This is a C# solution. There is a version available for [Node.js SDK](https://github.com/palindromed/Bot-HandOff) as well.
 
 ## Implementation ##
 
