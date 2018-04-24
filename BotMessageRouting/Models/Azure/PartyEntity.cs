@@ -5,17 +5,6 @@ using System.Globalization;
 
 namespace Underscore.Bot.Models.Azure
 {
-    public enum PartyEntityType
-    {
-        Unknown = 0,
-        Bot,
-        User,
-        Aggregation,
-        PendingRequest,
-        Owner,
-        Client
-    }
-
     /// <summary>
     /// Table storage entity that represents a party.
     /// </summary>
