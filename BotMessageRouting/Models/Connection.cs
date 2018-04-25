@@ -1,6 +1,7 @@
 ﻿using Underscore.Bot.Utils;
 using Microsoft.Bot.Schema;
 using System;
+using Newtonsoft.Json;
 
 namespace Underscore.Bot.Models
 {
@@ -48,6 +49,26 @@ namespace Underscore.Bot.Models
                      && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
                      || (MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
                          && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
+        }
+
+        public static Connection FromJson(string connectionAsJsonString)
+        {
+            Connection connection = null;
+
+            try
+            {
+                connection = JsonConvert.DeserializeObject<Connection>(connectionAsJsonString);
+            }
+            catch (Exception)
+            {
+            }
+
+            return connection;
+        }
+
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(this);
         }
     }
 }
