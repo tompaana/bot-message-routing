@@ -25,6 +25,7 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -33,6 +34,7 @@ namespace Underscore.Bot.MessageRouting
         {
             RoutingDataManager = routingDataManager;
         }
+
 
         /// <summary>
         /// Handles the new activity:
@@ -81,6 +83,7 @@ namespace Underscore.Bot.MessageRouting
             return messageRouterResult;
         }
 
+
         /// <summary>
         /// Tries to send the given message activity to the given ConversationReference using this bot on the same
         /// channel as the ConversationReference who the message is sent to.
@@ -118,6 +121,7 @@ namespace Underscore.Bot.MessageRouting
             return null;
         }
 
+
         /// <summary>
         /// Tries to send the given message to the given ConversationReference using this bot on the same channel
         /// as the ConversationReference who the message is sent to.
@@ -147,6 +151,7 @@ namespace Underscore.Bot.MessageRouting
             return null;
         }
 
+
         /// <summary>
         /// Checks the given parties and adds them to the collection, if not already there.
         /// 
@@ -168,6 +173,7 @@ namespace Underscore.Bot.MessageRouting
             }
         }
 
+
         /// <summary>
         /// Checks the given activity for new parties and adds them to the collection,
         /// if not already there.
@@ -179,6 +185,7 @@ namespace Underscore.Bot.MessageRouting
                 MessagingUtils.CreateSenderConversationReference(activity),
                 MessagingUtils.CreateRecipientConversationReference(activity));
         }
+
 
         /// <summary>
         /// Removes the given ConversationReference from the routing data.
@@ -194,6 +201,7 @@ namespace Underscore.Bot.MessageRouting
         {
             return RoutingDataManager.RemoveConversationReference(ConversationReferenceToRemove);
         }
+
 
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
@@ -213,6 +221,7 @@ namespace Underscore.Bot.MessageRouting
             return RoutingDataManager.AddPendingRequest(requestorConversationReference, rejectConnectionRequestIfNoAggregationChannel);
         }
 
+
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
         /// the SENDER in the given activity. This method does nothing, if a request for the same
@@ -229,6 +238,7 @@ namespace Underscore.Bot.MessageRouting
             messageRouterResult.Activity = activity;
             return messageRouterResult;
         }
+
 
         /// <summary>
         /// Tries to reject the pending connection request of the given ConversationReference.
@@ -258,6 +268,7 @@ namespace Underscore.Bot.MessageRouting
 
             return messageRouteResult;
         }
+
 
         /// <summary>
         /// Tries to establish 1:1 chat between the two given parties.
@@ -355,6 +366,7 @@ namespace Underscore.Bot.MessageRouting
             return result;
         }
 
+
         /// <summary>
         /// Ends all 1:1 conversations of the given ConversationReference.
         /// </summary>
@@ -364,6 +376,7 @@ namespace Underscore.Bot.MessageRouting
         {
             return Disconnect(connectedConversationReference, ConnectionProfile.Any);
         }
+
 
         /// <summary>
         /// Ends the 1:1 conversation where the given ConversationReference is the conversation client (e.g. a customer).
@@ -376,6 +389,7 @@ namespace Underscore.Bot.MessageRouting
             return Disconnect(conversationClientConversationReference, ConnectionProfile.Client)[0];
         }
 
+
         /// <summary>
         /// Ends all 1:1 conversations of the given conversation owner ConversationReference (e.g. a customer service agent).
         /// </summary>
@@ -385,6 +399,7 @@ namespace Underscore.Bot.MessageRouting
         {
             return Disconnect(conversationOwnerConversationReference, ConnectionProfile.Owner);
         }
+
 
         /// <summary>
         /// Routes the message in the given activity, if the sender is connected in a conversation.
@@ -464,6 +479,7 @@ namespace Underscore.Bot.MessageRouting
             return result;
         }
 
+
         /// <summary>
         /// Sends a message activity to the conversation using the given bundle.
         /// </summary>
@@ -491,6 +507,7 @@ namespace Underscore.Bot.MessageRouting
 
             return resourceResponse;
         }
+
 
         /// <summary>
         /// Ends the conversation(s) of the given ConversationReference.

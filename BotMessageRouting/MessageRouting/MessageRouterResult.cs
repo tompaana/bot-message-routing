@@ -34,6 +34,7 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
+
         /// <summary>
         /// Activity instance associated with the result.
         /// </summary>        
@@ -42,6 +43,7 @@ namespace Underscore.Bot.MessageRouting
             get;
             set;
         }
+
 
         /// <summary>
         /// A valid ConversationResourceResponse of the newly created direct conversation
@@ -55,11 +57,13 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
+
         public ConversationReference ConversationOwnerConversationReference
         {
             get;
             set;
         }
+
 
         public ConversationReference ConversationClientConversationReference
         {
@@ -67,11 +71,13 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
+
         public string ErrorMessage
         {
             get;
             set;
         }
+
 
         /// <summary>
         /// Constructor.
@@ -81,6 +87,7 @@ namespace Underscore.Bot.MessageRouting
             Type = MessageRouterResultType.NoActionTaken;
             ErrorMessage = string.Empty;
         }
+
 
         public override string ToString()
         {

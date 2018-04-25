@@ -21,19 +21,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// For instance, the time when a connection request is made may be useful for customer
         /// agent front-ends to see who has waited the longest and/or to collect response times.
         /// </summary>
-        public virtual GlobalTimeProvider GlobalTimeProvider
-        {
-            get;
-            protected set;
-        }
+        public virtual GlobalTimeProvider GlobalTimeProvider{ get; protected set; }
 
-#if DEBUG
-        protected IList<MessageRouterResult> LastMessageRouterResults
-        {
-            get;
-            set;
-        }
-#endif
 
         /// <summary>
         /// Constructor.
@@ -48,8 +37,27 @@ namespace Underscore.Bot.MessageRouting.DataStore
 #endif
         }
 
+
+        #region Abstract Methods
+
         public abstract IList<ConversationReference> GetUserParties();
+
+
         public abstract IList<ConversationReference> GetBotParties();
+
+
+        public abstract IList<ConversationReference> GetPendingRequests();
+
+
+        public abstract IList<ConversationReference> GetAggregationParties();
+
+
+        public abstract Dictionary<ConversationReference, ConversationReference> GetConnectedParties();
+
+        #endregion
+
+
+        #region Virtual Methods
 
         public virtual bool AddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser = true)
         {
@@ -68,6 +76,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return ExecuteAddConversationReference(ConversationReferenceToAdd, isUser);
         }
+
 
         public virtual IList<MessageRouterResult> RemoveConversationReference(ConversationReference ConversationReferenceToRemove)
         {
@@ -145,7 +154,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return messageRouterResults;
         }
 
-        public abstract IList<ConversationReference> GetAggregationParties();
 
         public virtual bool AddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
         {
@@ -167,12 +175,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return false;
         }
 
+
         public virtual bool RemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
         {
             return ExecuteRemoveAggregationConversationReference(aggregationConversationReferenceToRemove);
         }
 
-        public abstract IList<ConversationReference> GetPendingRequests();
 
         public virtual MessageRouterResult AddPendingRequest(
             ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false)
@@ -226,6 +234,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return result;
         }
 
+
         public virtual MessageRouterResult RemovePendingRequest(ConversationReference requestorConversationReference)
         {
             MessageRouterResult result = new MessageRouterResult()
@@ -254,6 +263,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return result;
         }
 
+
         public virtual bool IsConnected(ConversationReference ConversationReference, ConnectionProfile connectionProfile)
         {
             bool isConnected = false;
@@ -279,7 +289,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return isConnected;
         }
 
-        public abstract Dictionary<ConversationReference, ConversationReference> GetConnectedParties();
 
         public virtual ConversationReference GetConnectedCounterpart(ConversationReference ConversationReferenceWhoseCounterpartToFind)
         {
@@ -304,6 +313,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return counterConversationReference;
         }
+
 
         public virtual MessageRouterResult ConnectAndClearPendingRequest(
             ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
@@ -343,6 +353,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return result;
         }
+
 
         public virtual IList<MessageRouterResult> Disconnect(ConversationReference ConversationReference, ConnectionProfile connectionProfile)
         {
@@ -389,12 +400,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return messageRouterResults;
         }
 
+
         public virtual void DeleteAll()
         {
 #if DEBUG
             LastMessageRouterResults.Clear();
 #endif
         }
+
 
         public virtual bool IsAssociatedWithAggregation(ConversationReference ConversationReference)
         {
@@ -406,6 +419,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                         && aggregationConversationReference.ServiceUrl == ConversationReference.ServiceUrl
                         && aggregationConversationReference.ChannelId == ConversationReference.ChannelId).Count() > 0);
         }
+
 
         public virtual string ResolveBotNameInConversation(ConversationReference ConversationReference)
         {
@@ -423,6 +437,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return botName;
         }
+
 
         public virtual ConversationReference FindExistingUserConversationReference(ConversationReference ConversationReferenceToFind)
         {
@@ -442,6 +457,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return foundConversationReference;
         }
 
+
         public virtual ConversationReference FindConversationReferenceByChannelAccountIdAndConversationId(
             string channelAccountId, string conversationId)
         {
@@ -460,6 +476,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return userConversationReference;
         }
 
+
         public virtual ConversationReference FindBotConversationReferenceByChannelAndConversation(
             string channelId, ConversationAccount conversationAccount)
         {
@@ -477,6 +494,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return botConversationReference;
         }
+
 
         public virtual ConversationReference FindConnectedConversationReferenceByChannel(string channelId, ChannelAccount channelAccount)
         {
@@ -511,6 +529,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return foundConversationReference;
         }
 
+
         public virtual IList<ConversationReference> FindPartiesWithMatchingChannelAccount(ConversationReference ConversationReferenceToFind, IList<ConversationReference> ConversationReferenceCandidates)
         {
             IList<ConversationReference> matchingParties = null;
@@ -537,117 +556,17 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return matchingParties;
         }
 
-#if DEBUG
-        public virtual string ConnectionsToString()
-        {
-            string parties = string.Empty;
 
-            foreach (KeyValuePair<ConversationReference, ConversationReference> keyValuePair in GetConnectedParties())
-            {
-                parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
-            }
+        #endregion
 
-            return parties;
-        }
 
-        public virtual string GetLastMessageRouterResults()
-        {
-            string lastResultsAsString = string.Empty;
+        #region Protected Virtual Methods
 
-            foreach (MessageRouterResult result in LastMessageRouterResults)
-            {
-                lastResultsAsString += $"{result.ToString()}\n";
-            }
-
-            return lastResultsAsString;
-        }
-
-        public virtual void AddMessageRouterResult(MessageRouterResult result)
-        {
-            if (result != null)
-            {
-                if (LastMessageRouterResults.Count > 9)
-                {
-                    LastMessageRouterResults.Remove(LastMessageRouterResults.ElementAt(0));
-                }
-
-                LastMessageRouterResults.Add(result);
-            }
-        }
-
-        public virtual void ClearMessageRouterResults()
-        {
-            LastMessageRouterResults.Clear();
-        }
-#endif
-
-        /// <summary>
-        /// Adds the given ConversationReference to the collection. No sanity checks.
-        /// </summary>
-        /// <param name="ConversationReferenceToAdd">The new ConversationReference to add.</param>
-        /// <param name="isUser">If true, the ConversationReference is considered a user.
-        /// If false, the ConversationReference is considered to be a bot.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser);
-
-        /// <summary>
-        /// Removes the given ConversationReference from the collection. No sanity checks.
-        /// </summary>
-        /// <param name="ConversationReferenceToRemove">The ConversationReference to remove.</param>
-        /// <param name="isUser">If true, the ConversationReference is considered a user.
-        /// If false, the ConversationReference is considered to be a bot.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser);
-
-        /// <summary>
-        /// Adds the given aggregation ConversationReference to the collection. No sanity checks.
-        /// </summary>
-        /// <param name="aggregationConversationReferenceToAdd">The ConversationReference to be added as an aggregation ConversationReference (channel).</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd);
-
-        /// <summary>
-        /// Removes the given aggregation ConversationReference from the collection. No sanity checks.
-        /// </summary>
-        /// <param name="aggregationConversationReferenceToRemove">The aggregation ConversationReference to remove.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove);
-
-        /// <summary>
-        /// Adds the pending request for the given ConversationReference. No sanity checks.
-        /// </summary>
-        /// <param name="requestorConversationReference">The ConversationReference whose pending request to add.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference);
-
-        /// <summary>
-        /// Removes the pending request of the given ConversationReference. No sanity checks.
-        /// </summary>
-        /// <param name="requestorConversationReference">The ConversationReference whose request to remove.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference);
-
-        /// <summary>
-        /// Adds a connection between the given parties. No sanity checks.
-        /// </summary>
-        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
-        /// <param name="conversationClientConversationReference">The conversation client (customer) ConversationReference
-        /// (i.e. one who requested the connection).</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference);
-
-        /// <summary>
-        /// Removes the connection of the given conversation owner ConversationReference.
-        /// </summary>
-        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference);
-
-        /// <returns>The current global "now" time.</returns>
         protected virtual DateTime GetCurrentGlobalTime()
         {
             return (GlobalTimeProvider == null) ? DateTime.UtcNow : GlobalTimeProvider.GetCurrentTime();
         }
+
 
         /// <summary>
         /// Removes the connections of the given conversation owners.
@@ -687,5 +606,131 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return messageRouterResults;
         }
+
+
+        /// <summary>
+        /// Adds the given ConversationReference to the collection. No sanity checks.
+        /// </summary>
+        /// <param name="ConversationReferenceToAdd">The new ConversationReference to add.</param>
+        /// <param name="isUser">If true, the ConversationReference is considered a user.
+        /// If false, the ConversationReference is considered to be a bot.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser);
+
+
+        /// <summary>
+        /// Removes the given ConversationReference from the collection. No sanity checks.
+        /// </summary>
+        /// <param name="ConversationReferenceToRemove">The ConversationReference to remove.</param>
+        /// <param name="isUser">If true, the ConversationReference is considered a user.
+        /// If false, the ConversationReference is considered to be a bot.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser);
+
+
+        /// <summary>
+        /// Adds the given aggregation ConversationReference to the collection. No sanity checks.
+        /// </summary>
+        /// <param name="aggregationConversationReferenceToAdd">The ConversationReference to be added as an aggregation ConversationReference (channel).</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd);
+
+
+        /// <summary>
+        /// Removes the given aggregation ConversationReference from the collection. No sanity checks.
+        /// </summary>
+        /// <param name="aggregationConversationReferenceToRemove">The aggregation ConversationReference to remove.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove);
+
+
+        /// <summary>
+        /// Adds the pending request for the given ConversationReference. No sanity checks.
+        /// </summary>
+        /// <param name="requestorConversationReference">The ConversationReference whose pending request to add.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference);
+
+
+        /// <summary>
+        /// Removes the pending request of the given ConversationReference. No sanity checks.
+        /// </summary>
+        /// <param name="requestorConversationReference">The ConversationReference whose request to remove.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference);
+
+
+        /// <summary>
+        /// Adds a connection between the given parties. No sanity checks.
+        /// </summary>
+        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
+        /// <param name="conversationClientConversationReference">The conversation client (customer) ConversationReference
+        /// (i.e. one who requested the connection).</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference);
+
+
+        /// <summary>
+        /// Removes the connection of the given conversation owner ConversationReference.
+        /// </summary>
+        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        protected abstract bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference);
+
+        #endregion
+
+#if DEBUG
+        protected IList<MessageRouterResult> LastMessageRouterResults
+        {
+            get;
+            set;
+        }
+
+
+        public virtual string ConnectionsToString()
+        {
+            string parties = string.Empty;
+
+            foreach (KeyValuePair<ConversationReference, ConversationReference> keyValuePair in GetConnectedParties())
+            {
+                parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
+            }
+
+            return parties;
+        }
+
+
+        public virtual string GetLastMessageRouterResults()
+        {
+            string lastResultsAsString = string.Empty;
+
+            foreach (MessageRouterResult result in LastMessageRouterResults)
+            {
+                lastResultsAsString += $"{result.ToString()}\n";
+            }
+
+            return lastResultsAsString;
+        }
+
+
+        public virtual void AddMessageRouterResult(MessageRouterResult result)
+        {
+            if (result != null)
+            {
+                if (LastMessageRouterResults.Count > 9)
+                {
+                    LastMessageRouterResults.Remove(LastMessageRouterResults.ElementAt(0));
+                }
+
+                LastMessageRouterResults.Add(result);
+            }
+        }
+
+
+        public virtual void ClearMessageRouterResults()
+        {
+            LastMessageRouterResults.Clear();
+        }
+#endif
     }
 }
