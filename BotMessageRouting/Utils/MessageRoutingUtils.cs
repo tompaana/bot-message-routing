@@ -214,7 +214,7 @@ namespace Underscore.Bot.Utils
         /// <param name="conversationReference1"></param>
         /// <param name="conversationReference2"></param>
         /// <returns>True, if the ChannelAccount instances (IDs) match. False otherwise.</returns>
-        public static bool HasMatchingChannelAccountInformation(
+        public static bool HasMatchingChannelAccounts(
             ConversationReference conversationReference1, ConversationReference conversationReference2)
         {
             if (conversationReference1.Bot != null && conversationReference2.Bot != null)
@@ -238,7 +238,7 @@ namespace Underscore.Bot.Utils
             try
             {
                 foundConversationReferences = conversationReferenceCandidates.Where(conversationReference =>
-                        HasMatchingChannelAccountInformation(conversationReferenceToFind, conversationReference));
+                        HasMatchingChannelAccounts(conversationReferenceToFind, conversationReference));
             }
             catch (ArgumentNullException e)
             {

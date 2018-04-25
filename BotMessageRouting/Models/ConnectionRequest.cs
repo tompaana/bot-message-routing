@@ -1,10 +1,11 @@
 ﻿using Microsoft.Bot.Schema;
 using System;
+using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.Models
 {
     [Serializable]
-    public class ConnectionRequest
+    public class ConnectionRequest : IEquatable<ConnectionRequest>
     {
         public ConversationReference Requestor
         {
@@ -31,6 +32,12 @@ namespace Underscore.Bot.Models
         public void ResetConnectionRequestTime()
         {
             ConnectionRequestTime = DateTime.MinValue;
+        }
+
+        public bool Equals(ConnectionRequest other)
+        {
+            return (other != null
+                && MessageRoutingUtils.HasMatchingChannelAccounts(Requestor, other.Requestor));
         }
     }
 }

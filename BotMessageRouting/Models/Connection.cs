@@ -44,10 +44,10 @@ namespace Underscore.Bot.Models
         public bool Equals(Connection other)
         {
             return (other != null
-                && ((MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference1)
-                     && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference2))
-                     || (MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference2)
-                         && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference1)));
+                && ((MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
+                     && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
+                     || (MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
+                         && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
         }
     }
 }
