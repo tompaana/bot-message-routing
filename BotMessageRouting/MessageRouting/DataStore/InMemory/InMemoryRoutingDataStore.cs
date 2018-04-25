@@ -19,55 +19,35 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
     [Serializable]
     public class LocalRoutingDataManager : IRoutingDataStore
     {
+        #region Classes
         /// <summary>
         /// Parties that are users (not this bot).
         /// </summary>
-        protected IList<ConversationReference> UserParties
-        {
-            get;
-            set;
-        }
+        protected IList<ConversationReference> UserParties { get; set; }
 
         /// <summary>
         /// If the bot is addressed from different channels, its identity in terms of ID and name
         /// can vary. Those different identities are stored in this list.
         /// </summary>
-        protected IList<ConversationReference> BotParties
-        {
-            get;
-            set;
-        }
+        protected IList<ConversationReference> BotParties { get; set; }
 
         /// <summary>
         /// Represents the channels (and the specific conversations e.g. specific channel in Slack),
         /// where the chat requests are directed. For instance, a channel could be where the
         /// customer service agents accept customer chat requests. 
         /// </summary>
-        protected IList<ConversationReference> AggregationParties
-        {
-            get;
-            set;
-        }
+        protected IList<ConversationReference> AggregationChannels{ get; set; }
+
+        /// <summary>
+        /// Represents the connections
+        /// </summary>
+        protected IList<Connection> Connections { get; set; }
 
         /// <summary>
         /// The list of parties waiting for their (conversation) requests to be accepted.
         /// </summary>
-        protected List<ConversationReference> ConnectionRequests
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Contains 1:1 associations between parties i.e. parties connected in a conversation.
-        /// Furthermore, the key ConversationReference is considered to be the conversation owner e.g. in
-        /// a customer service situation the customer service agent.
-        /// </summary>
-        protected Dictionary<ConversationReference, ConversationReference> ConnectedParties
-        {
-            get;
-            set;
-        }
+        protected List<ConnectionRequest> ConnectionRequests { get; set; }
+        #endregion
 
         /// <summary>
         /// Constructor.
@@ -75,110 +55,107 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
         public LocalRoutingDataManager(GlobalTimeProvider globalTimeProvider = null)
-            : base(globalTimeProvider)
+            : base()
         {
-            AggregationParties = new List<ConversationReference>();
+            AggregationChannels = new List<ConversationReference>();
             UserParties = new List<ConversationReference>();
             BotParties = new List<ConversationReference>();
-            ConnectionRequests = new List<ConversationReference>();
-            ConnectedParties = new Dictionary<ConversationReference, ConversationReference>();
+            ConnectionRequests = new List<ConnectionRequest>();
         }
 
-        public override IList<ConversationReference> GetUserParties()
+        public IList<ConversationReference> GetUsers()
         {
             List<ConversationReference> userPartiesAsList = UserParties as List<ConversationReference>;
             return userPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<ConversationReference> GetBotParties()
+        public IList<ConversationReference> GetBotInstances()
         {
             List<ConversationReference> botPartiesAsList = BotParties as List<ConversationReference>;
             return botPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<ConversationReference> GetAggregationChannels()
+        public bool AddConversationReference(ConversationReference conversationReferenceToAdd)
         {
-            List<ConversationReference> aggregationPartiesAsList = AggregationParties as List<ConversationReference>;
+            if (conversationReferenceToAdd.User != null)
+            {
+                UserParties.Add(conversationReferenceToAdd);
+                return true;
+            }
+            
+            if (conversationReferenceToAdd.Bot != null)
+            {
+                BotParties.Add(conversationReferenceToAdd);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool RemoveConversationReference(ConversationReference conversationReferenceToRemove)
+        {
+            if (conversationReferenceToRemove.User !=null)
+            {
+                return UserParties.Remove(conversationReferenceToRemove);
+            }
+
+            if(conversationReferenceToRemove.Bot != null)
+            {
+                return BotParties.Remove(conversationReferenceToRemove);
+            }
+
+            return false;
+        }
+
+        public IList<ConversationReference> GetAggregationChannels()
+        {
+            List<ConversationReference> aggregationPartiesAsList = AggregationChannels as List<ConversationReference>;
             return aggregationPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<ConversationReference> GetConnectionRequests()
+        public bool AddAggregationChannel(ConversationReference aggregationChannelToAdd)
         {
-            List<ConversationReference> connectionRequestsAsList = ConnectionRequests as List<ConversationReference>;
+            AggregationChannels.Add(aggregationChannelToAdd);
+            return true;
+        }
+
+        public bool RemoveAggregationChannel(ConversationReference aggregationConversationReferenceToRemove)
+        {
+            return AggregationChannels.Remove(aggregationConversationReferenceToRemove);
+        }
+
+        public IList<ConnectionRequest> GetConnectionRequests()
+        {
+            List<ConnectionRequest> connectionRequestsAsList = ConnectionRequests as List<ConnectionRequest>;
             return connectionRequestsAsList?.AsReadOnly();
         }
-
-        public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
-        {
-            return ConnectedParties;
-        }
-
-        public override void DeleteAll()
-        {
-            base.DeleteAll();
-
-            AggregationParties.Clear();
-            UserParties.Clear();
-            BotParties.Clear();
-            ConnectionRequests.Clear();
-            ConnectedParties.Clear();
-        }
-
-        protected override bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser)
-        {
-            if (isUser)
-            {
-                UserParties.Add(ConversationReferenceToAdd);
-            }
-            else
-            {
-                BotParties.Add(ConversationReferenceToAdd);
-            }
-
-            return true;
-        }
-
-        protected override bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser)
-        {
-            if (isUser)
-            {
-                return UserParties.Remove(ConversationReferenceToRemove);
-            }
-
-            return BotParties.Remove(ConversationReferenceToRemove);
-        }
-
-        protected override bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
-        {
-            AggregationParties.Add(aggregationConversationReferenceToAdd);
-            return true;
-        }
-
-        protected override bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
-        {
-            return AggregationParties.Remove(aggregationConversationReferenceToRemove);
-        }
-
-        protected override bool ExecuteAddConnectionRequest(ConversationReference requestorConversationReference)
+   
+        public bool AddConnectionRequest(ConnectionRequest requestorConversationReference)
         {
             ConnectionRequests.Add(requestorConversationReference);
             return true;
         }
 
-        protected override bool ExecuteRemoveConnectionRequest(ConversationReference requestorConversationReference)
+        public bool RemoveConnectionRequest(ConnectionRequest requestorConversationReference)
         {
             return ConnectionRequests.Remove(requestorConversationReference);
         }
 
-        protected override bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
+        public IList<Connection> GetConnections()
         {
-            ConnectedParties.Add(conversationOwnerConversationReference, conversationClientConversationReference);
+            List<Connection> connectionsAsList = Connections as List<Connection>;
+            return connectionsAsList?.AsReadOnly();
+        }
+
+        public bool AddConnection(Connection connectionToAdd)
+        {
+            Connections.Add(connectionToAdd);
             return true;
         }
 
-        protected override bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference)
+        public bool RemoveConnection(Connection connectionToRemove)
         {
-            return ConnectedParties.Remove(conversationOwnerConversationReference);
+            return Connections.Remove(connectionToRemove);
         }
     }
 }
