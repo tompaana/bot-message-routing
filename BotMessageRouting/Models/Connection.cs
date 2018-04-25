@@ -47,7 +47,7 @@ namespace Underscore.Bot.Models
                 && ((MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference1)
                      && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference2))
                      || (MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference2)
-                         && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference1)));
+                         && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference1))));
         }
     }
 }
