@@ -195,7 +195,7 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>A list of operation result(s):
         /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
         /// - MessageRouterResultType.OK, if the ConversationReference was removed from the collection AND
-        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a pending request AND
+        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a connection request AND
         /// - Disconnect() results, if the ConversationReference was connected in a conversation.</returns>
         public IList<MessageRouterResult> RemoveConversationReference(ConversationReference ConversationReferenceToRemove)
         {
@@ -218,7 +218,7 @@ namespace Underscore.Bot.MessageRouting
         public MessageRouterResult RequestConnection(
             ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
-            return RoutingDataManager.AddPendingRequest(requestorConversationReference, rejectConnectionRequestIfNoAggregationChannel);
+            return RoutingDataManager.AddConnectionRequest(requestorConversationReference, rejectConnectionRequestIfNoAggregationChannel);
         }
 
 
@@ -246,24 +246,24 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="ConversationReferenceToReject">The ConversationReference whose request to reject.</param>
         /// <param name="rejecterConversationReference">The ConversationReference rejecting the request (optional).</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.ConnectionRejected, if the pending request was removed OR
+        /// - MessageRouterResultType.ConnectionRejected, if the connection request was removed OR
         /// - MessageRouterResultType.Error in case of an error (see the error message).
         /// </returns>
-        public virtual MessageRouterResult RejectPendingRequest(ConversationReference ConversationReferenceToReject, ConversationReference rejecterConversationReference = null)
+        public virtual MessageRouterResult RejectConnectionRequest(ConversationReference ConversationReferenceToReject, ConversationReference rejecterConversationReference = null)
         {
             if (ConversationReferenceToReject == null)
             {
                 throw new ArgumentNullException($"The ConversationReference to reject ({nameof(ConversationReferenceToReject)} cannot be null");
             }
 
-            MessageRouterResult messageRouteResult = RoutingDataManager.RemovePendingRequest(ConversationReferenceToReject);
+            MessageRouterResult messageRouteResult = RoutingDataManager.RemoveConnectionRequest(ConversationReferenceToReject);
             messageRouteResult.ConversationClientConversationReference = ConversationReferenceToReject;
             messageRouteResult.ConversationOwnerConversationReference = rejecterConversationReference;
 
             if (messageRouteResult.Type == MessageRouterResultType.Error)
             {
                 messageRouteResult.ErrorMessage =
-                    $"Failed to remove the pending request of user \"{ConversationReferenceToReject.User?.Name}\": {messageRouteResult.ErrorMessage}";
+                    $"Failed to remove the connection request of user \"{ConversationReferenceToReject.User?.Name}\": {messageRouteResult.ErrorMessage}";
             }
 
             return messageRouteResult;
@@ -355,7 +355,7 @@ namespace Underscore.Bot.MessageRouting
                     }
                 }
 
-                result = RoutingDataManager.ConnectAndClearPendingRequest(conversationOwnerConversationReference, conversationClientConversationReference);
+                result = RoutingDataManager.ConnectAndClearConnectionRequest(conversationOwnerConversationReference, conversationClientConversationReference);
             }
             else
             {

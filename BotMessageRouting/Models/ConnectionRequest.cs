@@ -1,10 +1,7 @@
 ﻿using Microsoft.Bot.Schema;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace BotMessageRouting.Models
+namespace Underscore.Bot.Models
 {
     [Serializable]
     public class ConnectionRequest

@@ -51,7 +51,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// The list of parties waiting for their (conversation) requests to be accepted.
         /// </summary>
-        protected List<ConversationReference> PendingRequests
+        protected List<ConversationReference> ConnectionRequests
         {
             get;
             set;
@@ -79,7 +79,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             AggregationParties = new List<ConversationReference>();
             UserParties = new List<ConversationReference>();
             BotParties = new List<ConversationReference>();
-            PendingRequests = new List<ConversationReference>();
+            ConnectionRequests = new List<ConversationReference>();
             ConnectedParties = new Dictionary<ConversationReference, ConversationReference>();
         }
 
@@ -101,10 +101,10 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             return aggregationPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<ConversationReference> GetPendingRequests()
+        public override IList<ConversationReference> GetConnectionRequests()
         {
-            List<ConversationReference> pendingRequestsAsList = PendingRequests as List<ConversationReference>;
-            return pendingRequestsAsList?.AsReadOnly();
+            List<ConversationReference> connectionRequestsAsList = ConnectionRequests as List<ConversationReference>;
+            return connectionRequestsAsList?.AsReadOnly();
         }
 
         public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
@@ -119,7 +119,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             AggregationParties.Clear();
             UserParties.Clear();
             BotParties.Clear();
-            PendingRequests.Clear();
+            ConnectionRequests.Clear();
             ConnectedParties.Clear();
         }
 
@@ -158,15 +158,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             return AggregationParties.Remove(aggregationConversationReferenceToRemove);
         }
 
-        protected override bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference)
+        protected override bool ExecuteAddConnectionRequest(ConversationReference requestorConversationReference)
         {
-            PendingRequests.Add(requestorConversationReference);
+            ConnectionRequests.Add(requestorConversationReference);
             return true;
         }
 
-        protected override bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference)
+        protected override bool ExecuteRemoveConnectionRequest(ConversationReference requestorConversationReference)
         {
-            return PendingRequests.Remove(requestorConversationReference);
+            return ConnectionRequests.Remove(requestorConversationReference);
         }
 
         protected override bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)

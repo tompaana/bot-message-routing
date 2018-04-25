@@ -24,14 +24,14 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         protected const string TableNameBotParties = "BotParties";
         protected const string TableNameUserParties = "UserParties";
         protected const string TableNameAggregationParties = "AggregationParties";
-        protected const string TableNamePendingRequests = "PendingRequests";
+        protected const string TableNameConnectionRequests = "ConnectionRequests";
         protected const string TableNameConnections = "Connections";
         protected const string PartitionKey = "PartitionKey";
 
         protected CloudTable _botPartiesTable;
         protected CloudTable _userPartiesTable;
         protected CloudTable _aggregationPartiesTable;
-        protected CloudTable _pendingRequestsTable;
+        protected CloudTable _connectionRequestsTable;
         protected CloudTable _connectionsTable;
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             _botPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotParties);
             _userPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameUserParties);
             _aggregationPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationParties);
-            _pendingRequestsTable = AzureStorageHelper.GetTable(connectionString, TableNamePendingRequests);
+            _connectionRequestsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
             _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
 
             MakeSureTablesExistAsync();
@@ -72,9 +72,9 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Aggregation).Result);
         }
 
-        public override IList<ConversationReference> GetPendingRequests()
+        public override IList<ConversationReference> GetConnectionRequests()
         {
-            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.PendingRequest).Result);
+            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.ConnectionRequest).Result);
         }
 
         public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
@@ -151,17 +151,17 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 ConversationReferenceEntity.CreateRowKey(aggregationConversationReferenceToRemove)).Result;
         }
 
-        protected override bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference)
+        protected override bool ExecuteAddConnectionRequest(ConversationReference requestorConversationReference)
         {
             return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
-                _pendingRequestsTable, new ConversationReferenceEntity(requestorConversationReference, ConversationReferenceEntityType.PendingRequest)).Result;
+                _connectionRequestsTable, new ConversationReferenceEntity(requestorConversationReference, ConversationReferenceEntityType.ConnectionRequest)).Result;
         }
 
-        protected override bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference)
+        protected override bool ExecuteRemoveConnectionRequest(ConversationReference requestorConversationReference)
         {
             return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
-                _pendingRequestsTable,
-                ConversationReferenceEntity.CreatePartitionKey(requestorConversationReference, ConversationReferenceEntityType.PendingRequest),
+                _connectionRequestsTable,
+                ConversationReferenceEntity.CreatePartitionKey(requestorConversationReference, ConversationReferenceEntityType.ConnectionRequest),
                 ConversationReferenceEntity.CreateRowKey(requestorConversationReference)).Result;
         }
 
@@ -221,7 +221,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 _botPartiesTable,
                 _userPartiesTable,
                 _aggregationPartiesTable,
-                _pendingRequestsTable,
+                _connectionRequestsTable,
                 _connectionsTable
             };
 
@@ -274,8 +274,8 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                     return _userPartiesTable;
                 case ConversationReferenceEntityType.Aggregation:
                     return _aggregationPartiesTable;
-                case ConversationReferenceEntityType.PendingRequest:
-                    return _pendingRequestsTable;
+                case ConversationReferenceEntityType.ConnectionRequest:
+                    return _connectionRequestsTable;
                 default:
                     throw new ArgumentException($"No cloud table associated with ConversationReference entity type {ConversationReferenceEntityType}");
             }

@@ -5,21 +5,6 @@ using Underscore.Bot.Models;
 namespace Underscore.Bot.MessageRouting.DataStore
 {
     /// <summary>
-    /// Defines the type of the connection:
-    /// - None: No connection
-    /// - Client: E.g. a customer
-    /// - Owner: E.g. a customer service agent
-    /// - Any: Either a client or an owner
-    /// </summary>
-    public enum ConnectionProfile
-    {
-        None,
-        Client,
-        Owner,
-        Any
-    };
-
-    /// <summary>
     /// Interface for routing data managers.
     /// </summary>
     public interface IRoutingDataManager
@@ -34,22 +19,20 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Adds the given ConversationReference to the data.
         /// </summary>
-        /// <param name="ConversationReferenceToAdd">The new ConversationReference to add.</param>
-        /// <param name="isUser">If true, will try to add the ConversationReference to the list of users.
-        /// If false, will try to add it to the list of bot identities. True by default.</param>
+        /// <param name="conversationReferenceToAdd">The new ConversationReference to add.</param>
         /// <returns>True, if the given ConversationReference was added. False otherwise (was null or already stored).</returns>
-        bool AddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser = true);
+        bool AddConversationReference(ConversationReference conversationReferenceToAdd);
 
         /// <summary>
-        /// Removes the ConversationReference from all possible containers.
-        /// Note that this method removes the ConversationReference's all instances (user from all conversations
-        /// in addition to pending requests).
+        /// Removes the specified ConversationReference from all possible containers.
+        /// Note that this method removes the ConversationReference's every instance (user from all conversations
+        /// in addition to connection requests).
         /// </summary>
         /// <param name="ConversationReferenceToRemove">The ConversationReference to remove.</param>
         /// <returns>A list of operation result(s):
         /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
         /// - MessageRouterResultType.OK, if the ConversationReference was removed from the collection AND
-        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a pending request AND
+        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a connection request AND
         /// - Disconnect() results, if the ConversationReference was connected in a conversation.
         /// </returns>
         IList<MessageRouterResult> RemoveConversationReference(ConversationReference ConversationReferenceToRemove);
@@ -71,14 +54,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <returns>True, if removed successfully. False otherwise.</returns>
         bool RemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove);
 
-        /// <returns>The (parties with) pending requests as a readonly list.</returns>
-        IList<ConversationReference> GetPendingRequests();
+        /// <returns>The (parties with) connection requests as a readonly list.</returns>
+        IList<ConversationReference> GetConnectionRequests();
 
         /// <summary>
-        /// Adds the pending request for the given ConversationReference.
+        /// Adds the connection request for the given ConversationReference.
         /// If the requestor ConversationReference does not exist in the user ConversationReference container, it will be added there.
         /// </summary>
-        /// <param name="requestorConversationReference">The ConversationReference whose pending request to add.</param>
+        /// <param name="requestorConversationReference">The ConversationReference whose connection request to add.</param>
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation:
         /// - MessageRouterResultType.ConnectionRequested, if a request was successfully made OR
@@ -86,63 +69,58 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation while one is required OR
         /// - MessageRouterResultType.Error in case of an error (see the error message).
         /// </returns>
-        MessageRouterResult AddPendingRequest(
+        MessageRouterResult AddConnectionRequest(
             ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false);
 
         /// <summary>
-        /// Removes the pending request of the given ConversationReference.
+        /// Removes the connection request of the user with the given ConversationReference.
         /// </summary>
         /// <param name="requestorConversationReference">The ConversationReference whose request to remove.</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.ConnectionRejected, if the pending request was removed OR
+        /// - MessageRouterResultType.ConnectionRejected, if the connection request was removed OR
         /// - MessageRouterResultType.Error in case of an error (see the error message).
         /// </returns>
-        MessageRouterResult RemovePendingRequest(ConversationReference requestorConversationReference);
+        MessageRouterResult RemoveConnectionRequest(ConversationReference requestorConversationReference);
 
         /// <summary>
-        /// Checks if the given ConversationReference is connected in a 1:1 conversation as defined by
-        /// the connection profile (e.g. as a customer, as an agent or either one).
+        /// Checks if the given ConversationReference is connected.
         /// </summary>
         /// <param name="ConversationReference">The ConversationReference to check.</param>
-        /// <param name="connectionProfile">Defines whether to look for clients, owners or both.</param>
-        /// <returns>True, if the ConversationReference is connected as defined by the given connection profile.
-        /// False otherwise.</returns>
-        bool IsConnected(ConversationReference ConversationReference, ConnectionProfile connectionProfile);
+        /// <returns>True, if the ConversationReference is connected. False otherwise.</returns>
+        bool IsConnected(ConversationReference ConversationReference);
 
-        /// <returns>The connected parties, if any, where the key of the returned dictionary is the
-        /// conversation owner and the value is the conversation client.</returns>
-        Dictionary<ConversationReference, ConversationReference> GetConnectedParties();
+        /// <returns>The connections.</returns>
+        IList<Connection> GetConnections();
 
         /// <summary>
         /// Resolves the given ConversationReference's counterpart in a 1:1 conversation.
         /// </summary>
-        /// <param name="ConversationReferenceWhoseCounterpartToFind">The ConversationReference whose counterpart to resolve.</param>
+        /// <param name="conversationReferenceWhoseCounterpartToFind">The ConversationReference whose counterpart to resolve.</param>
         /// <returns>The counterpart or null, if not found.</returns>
-        ConversationReference GetConnectedCounterpart(ConversationReference ConversationReferenceWhoseCounterpartToFind);
+        ConversationReference GetConnectedCounterpart(ConversationReference conversationReferenceWhoseCounterpartToFind);
 
         /// <summary>
         /// Creates a new connection between the given parties. The method also clears the pending
         /// request of the client ConversationReference, if one exists.
         /// </summary>
-        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
-        /// <param name="conversationClientConversationReference">The conversation client (customer) ConversationReference
-        /// (i.e. one who requested the connection).</param>
+        /// <param name="conversationReference1"></param>
+        /// <param name="conversationReference2"></param>
         /// <returns>The result of the operation:
         /// - MessageRouterResultType.Connected, if successfully connected OR
         /// - MessageRouterResultType.Error in case of an error (see the error message).
         /// </returns>
-        MessageRouterResult ConnectAndClearPendingRequest(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference);
+        MessageRouterResult ConnectAndClearConnectionRequest(
+            ConversationReference conversationReference1, ConversationReference conversationReference2);
 
         /// <summary>
         /// Removes connection(s) of the given ConversationReference i.e. ends the 1:1 conversations.
         /// </summary>
-        /// <param name="ConversationReference">The ConversationReference whose connections to remove.</param>
-        /// <param name="connectionProfile">The connection profile of the ConversationReference (owner/client/either).</param>
+        /// <param name="conversationReference">The ConversationReference whose connections to remove.</param>
         /// <returns>A list of operation results:
         /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
         /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
         /// </returns>
-        IList<MessageRouterResult> Disconnect(ConversationReference ConversationReference, ConnectionProfile connectionProfile);
+        IList<MessageRouterResult> Disconnect(ConversationReference conversationReference);
 
         /// <summary>
         /// Deletes all existing routing data permanently.
@@ -156,23 +134,23 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// that the given ConversationReference is, for instance, a customer service agent who deals with the
         /// requests coming from customers.
         /// </summary>
-        /// <param name="ConversationReference">The ConversationReference to check.</param>
+        /// <param name="conversationReference">The ConversationReference to check.</param>
         /// <returns>True, if is associated. False otherwise.</returns>
-        bool IsAssociatedWithAggregation(ConversationReference ConversationReference);
+        bool IsAssociatedWithAggregation(ConversationReference conversationReference);
 
         /// <summary>
         /// Tries to resolve the name of the bot in the same conversation with the given ConversationReference.
         /// </summary>
-        /// <param name="ConversationReference">The ConversationReference from whose perspective to resolve the name.</param>
+        /// <param name="conversationReference">The ConversationReference from whose perspective to resolve the name.</param>
         /// <returns>The name of the bot or null, if unable to resolve.</returns>
-        string ResolveBotNameInConversation(ConversationReference ConversationReference);
+        string ResolveBotNameInConversation(ConversationReference conversationReference);
 
         /// <summary>
         /// Tries to find the existing user ConversationReference (stored earlier) matching the given one.
         /// </summary>
-        /// <param name="ConversationReferenceToFind">The ConversationReference to find.</param>
+        /// <param name="conversationReferenceToFind">The ConversationReference to find.</param>
         /// <returns>The existing ConversationReference matching the given one.</returns>
-        ConversationReference FindExistingUserConversationReference(ConversationReference ConversationReferenceToFind);
+        ConversationReference FindExistingUserConversationReference(ConversationReference conversationReferenceToFind);
 
         /// <summary>
         /// Tries to find a stored ConversationReference instance matching the given channel account ID and
@@ -203,10 +181,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Finds the parties from the given list that match the channel account (and ID) of the given ConversationReference.
         /// </summary>
-        /// <param name="ConversationReferenceToFind">The ConversationReference containing the channel details to match.</param>
-        /// <param name="ConversationReferenceCandidates">The list of ConversationReference candidates.</param>
+        /// <param name="conversationReferenceToFind">The ConversationReference containing the channel details to match.</param>
+        /// <param name="conversationReferenceCandidates">The list of ConversationReference candidates.</param>
         /// <returns>A newly created list of matching parties or null if none found.</returns>
-        IList<ConversationReference> FindPartiesWithMatchingChannelAccount(ConversationReference ConversationReferenceToFind, IList<ConversationReference> ConversationReferenceCandidates);
+        IList<ConversationReference> FindPartiesWithMatchingChannelAccount(ConversationReference conversationReferenceToFind, IList<ConversationReference> conversationReferenceCandidates);
         #endregion
 
         #region Methods for debugging

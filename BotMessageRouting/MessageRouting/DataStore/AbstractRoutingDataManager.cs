@@ -46,7 +46,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         public abstract IList<ConversationReference> GetBotParties();
 
 
-        public abstract IList<ConversationReference> GetPendingRequests();
+        public abstract IList<ConversationReference> GetConnectionRequests();
 
 
         public abstract IList<ConversationReference> GetAggregationParties();
@@ -107,19 +107,19 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 }
             }
 
-            // Check pending requests
-            IList<ConversationReference> pendingRequestsToRemove = FindPartiesWithMatchingChannelAccount(ConversationReferenceToRemove, GetPendingRequests());
+            // Check connection requests
+            IList<ConversationReference> connectionRequestsToRemove = FindPartiesWithMatchingChannelAccount(ConversationReferenceToRemove, GetConnectionRequests());
 
-            foreach (ConversationReference pendingRequestToRemove in pendingRequestsToRemove)
+            foreach (ConversationReference connectionRequestToRemove in connectionRequestsToRemove)
             {
-                MessageRouterResult removePendingRequestResult = RemovePendingRequest(pendingRequestToRemove);
+                MessageRouterResult removeConnectionRequestResult = RemoveConnectionRequest(connectionRequestToRemove);
 
-                if (removePendingRequestResult.Type == MessageRouterResultType.ConnectionRejected)
+                if (removeConnectionRequestResult.Type == MessageRouterResultType.ConnectionRejected)
                 {
-                    // Pending request was removed
+                    // Connection request was removed
                     wasRemoved = true;
 
-                    messageRouterResults.Add(removePendingRequestResult);
+                    messageRouterResults.Add(removeConnectionRequestResult);
                 }
             }
 
@@ -182,7 +182,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
 
-        public virtual MessageRouterResult AddPendingRequest(
+        public virtual MessageRouterResult AddConnectionRequest(
             ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
             AddConversationReference(requestorConversationReference, true); // Make sure the requestor ConversationReference is in the list of user parties
@@ -199,7 +199,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     result.Type = MessageRouterResultType.Error;
                     result.ErrorMessage = $"The given ConversationReference ({requestorConversationReference.ChannelAccount?.Name}) is associated with aggregation and hence invalid to request a connection";
                 }
-                else if (GetPendingRequests().Contains(requestorConversationReference))
+                else if (GetConnectionRequests().Contains(requestorConversationReference))
                 {
                     result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
                 }
@@ -213,14 +213,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     {
                         requestorConversationReference.ConnectionRequestTime = GetCurrentGlobalTime();
 
-                        if (ExecuteAddPendingRequest(requestorConversationReference))
+                        if (ExecuteAddConnectionRequest(requestorConversationReference))
                         {
                             result.Type = MessageRouterResultType.ConnectionRequested;
                         }
                         else
                         {
                             result.Type = MessageRouterResultType.Error;
-                            result.ErrorMessage = "Failed to add the pending request - this is likely an error caused by the storage implementation";
+                            result.ErrorMessage = "Failed to add the connection request - this is likely an error caused by the storage implementation";
                         }
                     }
                 }
@@ -235,29 +235,29 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
 
-        public virtual MessageRouterResult RemovePendingRequest(ConversationReference requestorConversationReference)
+        public virtual MessageRouterResult RemoveConnectionRequest(ConversationReference requestorConversationReference)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
                 ConversationClientConversationReference = requestorConversationReference
             };
 
-            if (GetPendingRequests().Contains(requestorConversationReference))
+            if (GetConnectionRequests().Contains(requestorConversationReference))
             {
-                if (ExecuteRemovePendingRequest(requestorConversationReference))
+                if (ExecuteRemoveConnectionRequest(requestorConversationReference))
                 {
                     result.Type = MessageRouterResultType.ConnectionRejected;
                 }
                 else
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = "Failed to remove the pending request of the given ConversationReference";
+                    result.ErrorMessage = "Failed to remove the connection request of the given ConversationReference";
                 }
             }
             else
             {
                 result.Type = MessageRouterResultType.Error;
-                result.ErrorMessage = "Could not find a pending request for the given ConversationReference";
+                result.ErrorMessage = "Could not find a connection request for the given ConversationReference";
             }
 
             return result;
@@ -315,7 +315,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
 
-        public virtual MessageRouterResult ConnectAndClearPendingRequest(
+        public virtual MessageRouterResult ConnectAndClearConnectionRequest(
             ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
         {
             MessageRouterResult result = new MessageRouterResult()
@@ -335,7 +335,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 if (wasConnectionAdded)
                 {
-                    ExecuteRemovePendingRequest(conversationClientConversationReference);
+                    ExecuteRemoveConnectionRequest(conversationClientConversationReference);
                     result.Type = MessageRouterResultType.Connected;
                 }
                 else
@@ -645,19 +645,19 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
 
         /// <summary>
-        /// Adds the pending request for the given ConversationReference. No sanity checks.
+        /// Adds the connection request for the given ConversationReference. No sanity checks.
         /// </summary>
-        /// <param name="requestorConversationReference">The ConversationReference whose pending request to add.</param>
+        /// <param name="requestorConversationReference">The ConversationReference whose connection request to add.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference);
+        protected abstract bool ExecuteAddConnectionRequest(ConversationReference requestorConversationReference);
 
 
         /// <summary>
-        /// Removes the pending request of the given ConversationReference. No sanity checks.
+        /// Removes the connection request of the given ConversationReference. No sanity checks.
         /// </summary>
         /// <param name="requestorConversationReference">The ConversationReference whose request to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference);
+        protected abstract bool ExecuteRemoveConnectionRequest(ConversationReference requestorConversationReference);
 
 
         /// <summary>
