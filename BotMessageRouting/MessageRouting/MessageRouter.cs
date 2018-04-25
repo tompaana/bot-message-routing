@@ -89,7 +89,7 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="conversationReferenceToMessage">The ConversationReference to send the message to.</param>
         /// <param name="messageActivity">The message activity to send (message content).</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
-        public async Task<ResourceResponse> SendMessageAsync(
+        public virtual async Task<ResourceResponse> SendMessageAsync(
             ConversationReference conversationReferenceToMessage, IMessageActivity messageActivity)
         {
             ConversationReference botConversationReference = null;
@@ -126,7 +126,8 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="ConversationReferenceToMessage">The ConversationReference to send the message to.</param>
         /// <param name="messageText">The message content.</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
-        public async Task<ResourceResponse> SendMessageAsync(ConversationReference ConversationReferenceToMessage, string messageText)
+        public virtual async Task<ResourceResponse> SendMessageAsync(
+            ConversationReference ConversationReferenceToMessage, string messageText)
         {
             ConversationReference botConversationReference = null;
 
@@ -338,7 +339,7 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="connectedConversationReference">The ConversationReference connected in a conversation.</param>
         /// <returns>Same as Disconnect(ConversationReference, ConnectionProfile)</returns>
-        public IList<MessageRouterResult> Disconnect(ConversationReference connectedConversationReference)
+        public virtual IList<MessageRouterResult> Disconnect(ConversationReference connectedConversationReference)
         {
             IList<MessageRouterResult> disconnectResults = new List<MessageRouterResult>();
             bool wasDisconnected = true;
