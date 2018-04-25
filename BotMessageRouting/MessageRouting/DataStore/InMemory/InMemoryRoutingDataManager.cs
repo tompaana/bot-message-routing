@@ -21,7 +21,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// Parties that are users (not this bot).
         /// </summary>
-        protected IList<Party> UserParties
+        protected IList<ConversationReference> UserParties
         {
             get;
             set;
@@ -31,7 +31,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// If the bot is addressed from different channels, its identity in terms of ID and name
         /// can vary. Those different identities are stored in this list.
         /// </summary>
-        protected IList<Party> BotParties
+        protected IList<ConversationReference> BotParties
         {
             get;
             set;
@@ -42,7 +42,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// where the chat requests are directed. For instance, a channel could be where the
         /// customer service agents accept customer chat requests. 
         /// </summary>
-        protected IList<Party> AggregationParties
+        protected IList<ConversationReference> AggregationParties
         {
             get;
             set;
@@ -51,7 +51,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// The list of parties waiting for their (conversation) requests to be accepted.
         /// </summary>
-        protected List<Party> PendingRequests
+        protected List<ConversationReference> PendingRequests
         {
             get;
             set;
@@ -59,10 +59,10 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
 
         /// <summary>
         /// Contains 1:1 associations between parties i.e. parties connected in a conversation.
-        /// Furthermore, the key party is considered to be the conversation owner e.g. in
+        /// Furthermore, the key ConversationReference is considered to be the conversation owner e.g. in
         /// a customer service situation the customer service agent.
         /// </summary>
-        protected Dictionary<Party, Party> ConnectedParties
+        protected Dictionary<ConversationReference, ConversationReference> ConnectedParties
         {
             get;
             set;
@@ -76,38 +76,38 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         public LocalRoutingDataManager(GlobalTimeProvider globalTimeProvider = null)
             : base(globalTimeProvider)
         {
-            AggregationParties = new List<Party>();
-            UserParties = new List<Party>();
-            BotParties = new List<Party>();
-            PendingRequests = new List<Party>();
-            ConnectedParties = new Dictionary<Party, Party>();
+            AggregationParties = new List<ConversationReference>();
+            UserParties = new List<ConversationReference>();
+            BotParties = new List<ConversationReference>();
+            PendingRequests = new List<ConversationReference>();
+            ConnectedParties = new Dictionary<ConversationReference, ConversationReference>();
         }
 
-        public override IList<Party> GetUserParties()
+        public override IList<ConversationReference> GetUserParties()
         {
-            List<Party> userPartiesAsList = UserParties as List<Party>;
+            List<ConversationReference> userPartiesAsList = UserParties as List<ConversationReference>;
             return userPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<Party> GetBotParties()
+        public override IList<ConversationReference> GetBotParties()
         {
-            List<Party> botPartiesAsList = BotParties as List<Party>;
+            List<ConversationReference> botPartiesAsList = BotParties as List<ConversationReference>;
             return botPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<Party> GetAggregationParties()
+        public override IList<ConversationReference> GetAggregationParties()
         {
-            List<Party> aggregationPartiesAsList = AggregationParties as List<Party>;
+            List<ConversationReference> aggregationPartiesAsList = AggregationParties as List<ConversationReference>;
             return aggregationPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<Party> GetPendingRequests()
+        public override IList<ConversationReference> GetPendingRequests()
         {
-            List<Party> pendingRequestsAsList = PendingRequests as List<Party>;
+            List<ConversationReference> pendingRequestsAsList = PendingRequests as List<ConversationReference>;
             return pendingRequestsAsList?.AsReadOnly();
         }
 
-        public override Dictionary<Party, Party> GetConnectedParties()
+        public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
         {
             return ConnectedParties;
         }
@@ -123,61 +123,61 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             ConnectedParties.Clear();
         }
 
-        protected override bool ExecuteAddParty(Party partyToAdd, bool isUser)
+        protected override bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser)
         {
             if (isUser)
             {
-                UserParties.Add(partyToAdd);
+                UserParties.Add(ConversationReferenceToAdd);
             }
             else
             {
-                BotParties.Add(partyToAdd);
+                BotParties.Add(ConversationReferenceToAdd);
             }
 
             return true;
         }
 
-        protected override bool ExecuteRemoveParty(Party partyToRemove, bool isUser)
+        protected override bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser)
         {
             if (isUser)
             {
-                return UserParties.Remove(partyToRemove);
+                return UserParties.Remove(ConversationReferenceToRemove);
             }
 
-            return BotParties.Remove(partyToRemove);
+            return BotParties.Remove(ConversationReferenceToRemove);
         }
 
-        protected override bool ExecuteAddAggregationParty(Party aggregationPartyToAdd)
+        protected override bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
         {
-            AggregationParties.Add(aggregationPartyToAdd);
+            AggregationParties.Add(aggregationConversationReferenceToAdd);
             return true;
         }
 
-        protected override bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove)
+        protected override bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
         {
-            return AggregationParties.Remove(aggregationPartyToRemove);
+            return AggregationParties.Remove(aggregationConversationReferenceToRemove);
         }
 
-        protected override bool ExecuteAddPendingRequest(Party requestorParty)
+        protected override bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference)
         {
-            PendingRequests.Add(requestorParty);
+            PendingRequests.Add(requestorConversationReference);
             return true;
         }
 
-        protected override bool ExecuteRemovePendingRequest(Party requestorParty)
+        protected override bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference)
         {
-            return PendingRequests.Remove(requestorParty);
+            return PendingRequests.Remove(requestorConversationReference);
         }
 
-        protected override bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty)
+        protected override bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
         {
-            ConnectedParties.Add(conversationOwnerParty, conversationClientParty);
+            ConnectedParties.Add(conversationOwnerConversationReference, conversationClientConversationReference);
             return true;
         }
 
-        protected override bool ExecuteRemoveConnection(Party conversationOwnerParty)
+        protected override bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference)
         {
-            return ConnectedParties.Remove(conversationOwnerParty);
+            return ConnectedParties.Remove(conversationOwnerConversationReference);
         }
     }
 }

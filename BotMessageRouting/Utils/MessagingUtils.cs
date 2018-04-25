@@ -18,36 +18,59 @@ namespace Underscore.Bot.Utils
         }
 
         /// <summary>
-        /// Constructs a party instance using the sender (from) of the given activity.
+        /// Constructs a ConversationReference instance using the sender (from) of the given activity.
         /// </summary>
         /// <param name="activity"></param>
-        /// <param name="withTimestamps">If true, will construct a Party instance with timestamps
-        /// instead of the regular Party. True by default.</param>
-        /// <returns>A newly created Party instance.</returns>
-        public static Party CreateSenderParty(IActivity activity, bool withTimestamps = true)
+        /// <param name="withTimestamps">If true, will construct a ConversationReference instance with timestamps
+        /// instead of the regular ConversationReference. True by default.</param>
+        /// <returns>A newly created ConversationReference instance.</returns>
+        public static ConversationReference CreateSenderConversationReference(IActivity activity, bool withTimestamps = true)
         {
             if (withTimestamps)
             {
-                return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
+                return new ConversationReference(
+                    null,
+                    activity.From,
+                    null,
+                    activity.Conversation,
+                    activity.ChannelId,
+                    activity.ServiceUrl);
             }
 
-            return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
+            return new ConversationReference(
+                null,
+                activity.From,
+                null,
+                activity.Conversation,
+                activity.ChannelId,
+                activity.ServiceUrl);
         }
 
         /// <summary>
-        /// Constructs a party instance using the recipient of the given activity.
+        /// Constructs a ConversationReference instance using the recipient of the given activity.
         /// </summary>
         /// <param name="activity"></param>
-        /// <param name="withTimestamps">If true, will construct a Party instance with timestamps
-        /// instead of the regular Party. True by default.</param>
-        public static Party CreateRecipientParty(IActivity activity, bool withTimestamps = true)
+        /// <param name="withTimestamps">If true, will construct a ConversationReference instance with timestamps
+        /// instead of the regular ConversationReference. True by default.</param>
+        public static ConversationReference CreateRecipientConversationReference(IActivity activity, bool withTimestamps = true)
         {
             if (withTimestamps)
             {
-                return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+                return new ConversationReference(
+                    null,
+                    null,
+                    activity.Recipient,
+                    activity.Conversation,activity.ChannelId,
+                    activity.ServiceUrl);
             }
 
-            return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+            return new ConversationReference(
+                null,
+                null,
+                activity.Recipient,
+                activity.Conversation,
+                activity.ChannelId,
+                activity.ServiceUrl);
         }
 
         /// <summary>
@@ -70,11 +93,11 @@ namespace Underscore.Bot.Utils
         }
 
         /// <summary>
-        /// Creates a connector client with the given message activity for the given party as the
-        /// recipient. If this party has an ID of a specific user (ChannelAccount is valid), then
+        /// Creates a connector client with the given message activity for the given ConversationReference as the
+        /// recipient. If this ConversationReference has an ID of a specific user (ChannelAccount is valid), then
         /// the that user is set as the recipient. Otherwise, the whole channel is addressed.
         /// </summary>
-        /// <param name="serviceUrl">The service URL of the channel of the party to send the message to.</param>
+        /// <param name="serviceUrl">The service URL of the channel of the ConversationReference to send the message to.</param>
         /// <param name="newMessageActivity">The message activity to send.</param>
         /// <returns>A bundle containing a newly created connector client (that is used to send
         /// the message and the message activity (the content of the message).</returns>
@@ -95,16 +118,16 @@ namespace Underscore.Bot.Utils
         /// <summary>
         /// For convenience.
         /// </summary>
-        /// <param name="partyToMessage">The party to send the message to.</param>
+        /// <param name="ConversationReferenceToMessage">The ConversationReference to send the message to.</param>
         /// <param name="messageText">The message text content.</param>
         /// <param name="senderAccount">The channel account of the sender.</param>
         /// <returns>A bundle containing a newly created connector client (that is used to send
         /// the message and the message activity (the content of the message).</returns>
         public static ConnectorClientAndMessageBundle CreateConnectorClientAndMessageActivity(
-            Party partyToMessage, string messageText, ChannelAccount senderAccount)
+            ConversationReference ConversationReferenceToMessage, string messageText, ChannelAccount senderAccount)
         {
             IMessageActivity newMessageActivity = Activity.CreateMessageActivity();
-            newMessageActivity.Conversation = partyToMessage.ConversationAccount;
+            newMessageActivity.Conversation = ConversationReferenceToMessage.Conversation;
             newMessageActivity.Text = messageText;
 
             if (senderAccount != null)
@@ -112,12 +135,12 @@ namespace Underscore.Bot.Utils
                 newMessageActivity.From = senderAccount;
             }
 
-            if (partyToMessage.ChannelAccount != null)
+            if (ConversationReferenceToMessage.User!= null)
             {
-                newMessageActivity.Recipient = partyToMessage.ChannelAccount;
+                newMessageActivity.Recipient = ConversationReferenceToMessage.User;
             }
 
-            return CreateConnectorClientAndMessageActivity(partyToMessage.ServiceUrl, newMessageActivity);
+            return CreateConnectorClientAndMessageActivity(ConversationReferenceToMessage.ServiceUrl, newMessageActivity);
         }
 
         /// <summary>

@@ -55,13 +55,13 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-        public Party ConversationOwnerParty
+        public ConversationReference ConversationOwnerConversationReference
         {
             get;
             set;
         }
 
-        public Party ConversationClientParty
+        public ConversationReference ConversationClientConversationReference
         {
             get;
             set;
@@ -84,7 +84,7 @@ namespace Underscore.Bot.MessageRouting
 
         public override string ToString()
         {
-            return $"[{Type}; {ConversationResourceResponse}; {ConversationOwnerParty}; {ConversationClientParty}; {ErrorMessage}]";
+            return $"[{Type}; {ConversationResourceResponse}; {ConversationOwnerConversationReference}; {ConversationClientConversationReference}; {ErrorMessage}]";
         }
     }
 }

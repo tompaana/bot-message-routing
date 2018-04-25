@@ -6,9 +6,9 @@ using System.Globalization;
 namespace Underscore.Bot.Models.Azure
 {
     /// <summary>
-    /// Table storage entity that represents a party.
+    /// Table storage entity that represents a ConversationReference.
     /// </summary>
-    public class PartyEntity : TableEntity
+    public class ConversationReferenceEntity : TableEntity
     {
         public string ServiceUrl { get; set; }
         public string ChannelId { get; set; }
@@ -21,7 +21,7 @@ namespace Underscore.Bot.Models.Azure
         public string ConversationAccountId { get; set; }
         public string ConversationAccountName { get; set; }
 
-        public string PartyEntityType { get; set; }
+        public string ConversationReferenceEntityType { get; set; }
 
         public string ConnectionRequestTime { get; set; }
         public string ConnectionEstablishedTime { get; set; }
@@ -34,75 +34,75 @@ namespace Underscore.Bot.Models.Azure
             }
         }
 
-        public PartyEntity()
+        public ConversationReferenceEntity()
         {
         }
 
-        public PartyEntity(string partitionKey, string rowKey)
+        public ConversationReferenceEntity(string partitionKey, string rowKey)
         {
             PartitionKey = partitionKey;
             RowKey = rowKey;
         }
 
-        public PartyEntity(Party party, PartyEntityType partyEntityType)
+        public ConversationReferenceEntity(ConversationReference ConversationReference, ConversationReferenceEntityType ConversationReferenceEntityType)
         {
-            PartitionKey = CreatePartitionKey(party, partyEntityType);
-            RowKey = CreateRowKey(party);
+            PartitionKey = CreatePartitionKey(ConversationReference, ConversationReferenceEntityType);
+            RowKey = CreateRowKey(ConversationReference);
 
-            ChannelId = party.ChannelId;
-            ServiceUrl = party.ServiceUrl;
-            PartyEntityType = partyEntityType.ToString();
+            ChannelId = ConversationReference.ChannelId;
+            ServiceUrl = ConversationReference.ServiceUrl;
+            ConversationReferenceEntityType = ConversationReferenceEntityType.ToString();
 
-            if (party.ChannelAccount != null)
+            if (ConversationReference.ChannelAccount != null)
             {
-                ChannelAccountId = party.ChannelAccount.Id;
-                ChannelAccountName = party.ChannelAccount.Name;
+                ChannelAccountId = ConversationReference.ChannelAccount.Id;
+                ChannelAccountName = ConversationReference.ChannelAccount.Name;
             }
 
-            if (party.ConversationAccount != null)
+            if (ConversationReference.ConversationAccount != null)
             {
-                ConversationAccountId = party.ConversationAccount.Id;
-                ConversationAccountName = party.ConversationAccount.Name;
+                ConversationAccountId = ConversationReference.ConversationAccount.Id;
+                ConversationAccountName = ConversationReference.ConversationAccount.Name;
             }
 
-            ConnectionRequestTime = DateTimeToString(party.ConnectionRequestTime);
-            ConnectionEstablishedTime = DateTimeToString(party.ConnectionEstablishedTime);
+            ConnectionRequestTime = DateTimeToString(ConversationReference.ConnectionRequestTime);
+            ConnectionEstablishedTime = DateTimeToString(ConversationReference.ConnectionEstablishedTime);
         }
 
-        public static string CreatePartitionKey(Party party, PartyEntityType partyEntityType)
+        public static string CreatePartitionKey(ConversationReference ConversationReference, ConversationReferenceEntityType ConversationReferenceEntityType)
         {
-            if (party.ChannelAccount != null)
+            if (ConversationReference.ChannelAccount != null)
             {
-                return $"{party.ChannelAccount.Id}|{partyEntityType.ToString()}";
+                return $"{ConversationReference.ChannelAccount.Id}|{ConversationReferenceEntityType.ToString()}";
             }
 
-            return $"{party.ChannelId}|{partyEntityType.ToString()}";
+            return $"{ConversationReference.ChannelId}|{ConversationReferenceEntityType.ToString()}";
         }
 
-        public static string CreateRowKey(Party party)
+        public static string CreateRowKey(ConversationReference ConversationReference)
         {
-            if (party.ConversationAccount != null)
+            if (ConversationReference.ConversationAccount != null)
             {
-                return party.ConversationAccount.Id;
+                return ConversationReference.ConversationAccount.Id;
             }
 
-            return party.ServiceUrl;
+            return ConversationReference.ServiceUrl;
         }
 
-        public virtual Party ToParty()
+        public virtual ConversationReference ToConversationReference()
         {
             ChannelAccount channelAccount = string.IsNullOrEmpty(ChannelAccountId)
                 ? null : new ChannelAccount(ChannelAccountId, ChannelAccountName);
 
             ConversationAccount conversationAccount = new ConversationAccount(null, ConversationAccountId, ConversationAccountName);
 
-            Party party = new Party(ServiceUrl, ChannelId, channelAccount, conversationAccount)
+            ConversationReference ConversationReference = new ConversationReference(ServiceUrl, ChannelId, channelAccount, conversationAccount)
             {
                 ConnectionRequestTime = DateTimeFromString(ConnectionRequestTime),
                 ConnectionEstablishedTime = DateTimeFromString(ConnectionEstablishedTime)
             };
 
-            return party;
+            return ConversationReference;
         }
 
         protected virtual string DateTimeToString(DateTime dateTime)

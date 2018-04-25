@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.Bot.Schema;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using System;
@@ -56,27 +57,27 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             MakeSureTablesExistAsync();
         }
 
-        public override IList<Party> GetUserParties()
+        public override IList<ConversationReference> GetUserParties()
         {
-            return ToPartyList(GetPartyEntitiesAsync(PartyEntityType.User).Result);
+            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.User).Result);
         }
 
-        public override IList<Party> GetBotParties()
+        public override IList<ConversationReference> GetBotParties()
         {
-            return ToPartyList(GetPartyEntitiesAsync(PartyEntityType.Bot).Result);
+            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Bot).Result);
         }
 
-        public override IList<Party> GetAggregationParties()
+        public override IList<ConversationReference> GetAggregationParties()
         {
-            return ToPartyList(GetPartyEntitiesAsync(PartyEntityType.Aggregation).Result);
+            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Aggregation).Result);
         }
 
-        public override IList<Party> GetPendingRequests()
+        public override IList<ConversationReference> GetPendingRequests()
         {
-            return ToPartyList(GetPartyEntitiesAsync(PartyEntityType.PendingRequest).Result);
+            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.PendingRequest).Result);
         }
 
-        public override Dictionary<Party, Party> GetConnectedParties()
+        public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
         {
             return ToConnectedPartiesDictionary(GetConnectionEntitiesAsync().Result);
         }
@@ -97,12 +98,12 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             {
                 try
                 {
-                    var partyEntities = await GetPartyEntitiesAsync(cloudTable);
+                    var ConversationReferenceEntities = await GetConversationReferenceEntitiesAsync(cloudTable);
 
-                    foreach (var partyEntity in partyEntities)
+                    foreach (var ConversationReferenceEntity in ConversationReferenceEntities)
                     {
-                        await AzureStorageHelper.DeleteEntryAsync<PartyEntity>(
-                            cloudTable, partyEntity.PartitionKey, partyEntity.RowKey);
+                        await AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
+                            cloudTable, ConversationReferenceEntity.PartitionKey, ConversationReferenceEntity.RowKey);
                     }
                 }
                 catch (StorageException e)
@@ -121,72 +122,90 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
         }
 
-        protected override bool ExecuteAddParty(Party partyToAdd, bool isUser)
+        protected override bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser)
         {
-            return AzureStorageHelper.InsertAsync<PartyEntity>(
+            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
                 isUser ? _userPartiesTable : _botPartiesTable,
-                new PartyEntity(partyToAdd, isUser ? PartyEntityType.User : PartyEntityType.Bot)).Result;
+                new ConversationReferenceEntity(ConversationReferenceToAdd, isUser ? ConversationReferenceEntityType.User : ConversationReferenceEntityType.Bot)).Result;
         }
 
-        protected override bool ExecuteRemoveParty(Party partyToRemove, bool isUser)
+        protected override bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser)
         {
-            return AzureStorageHelper.DeleteEntryAsync<PartyEntity>(
+            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
                 isUser ? _userPartiesTable : _botPartiesTable,
-                PartyEntity.CreatePartitionKey(partyToRemove, isUser ? PartyEntityType.User : PartyEntityType.Bot),
-                PartyEntity.CreateRowKey(partyToRemove)).Result;
+                ConversationReferenceEntity.CreatePartitionKey(ConversationReferenceToRemove, isUser ? ConversationReferenceEntityType.User : ConversationReferenceEntityType.Bot),
+                ConversationReferenceEntity.CreateRowKey(ConversationReferenceToRemove)).Result;
         }
 
-        protected override bool ExecuteAddAggregationParty(Party aggregationPartyToAdd)
+        protected override bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
         {
-            return AzureStorageHelper.InsertAsync<PartyEntity>(
-                _aggregationPartiesTable, new PartyEntity(aggregationPartyToAdd, PartyEntityType.Aggregation)).Result;
+            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
+                _aggregationPartiesTable, new ConversationReferenceEntity(aggregationConversationReferenceToAdd, ConversationReferenceEntityType.Aggregation)).Result;
         }
 
-        protected override bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove)
+        protected override bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
         {
-            return AzureStorageHelper.DeleteEntryAsync<PartyEntity>(
+            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
                 _aggregationPartiesTable,
-                PartyEntity.CreatePartitionKey(aggregationPartyToRemove, PartyEntityType.Aggregation),
-                PartyEntity.CreateRowKey(aggregationPartyToRemove)).Result;
+                ConversationReferenceEntity.CreatePartitionKey(aggregationConversationReferenceToRemove, ConversationReferenceEntityType.Aggregation),
+                ConversationReferenceEntity.CreateRowKey(aggregationConversationReferenceToRemove)).Result;
         }
 
-        protected override bool ExecuteAddPendingRequest(Party requestorParty)
+        protected override bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference)
         {
-            return AzureStorageHelper.InsertAsync<PartyEntity>(
-                _pendingRequestsTable, new PartyEntity(requestorParty, PartyEntityType.PendingRequest)).Result;
+            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
+                _pendingRequestsTable, new ConversationReferenceEntity(requestorConversationReference, ConversationReferenceEntityType.PendingRequest)).Result;
         }
 
-        protected override bool ExecuteRemovePendingRequest(Party requestorParty)
+        protected override bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference)
         {
-            return AzureStorageHelper.DeleteEntryAsync<PartyEntity>(
+            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
                 _pendingRequestsTable,
-                PartyEntity.CreatePartitionKey(requestorParty, PartyEntityType.PendingRequest),
-                PartyEntity.CreateRowKey(requestorParty)).Result;
+                ConversationReferenceEntity.CreatePartitionKey(requestorConversationReference, ConversationReferenceEntityType.PendingRequest),
+                ConversationReferenceEntity.CreateRowKey(requestorConversationReference)).Result;
         }
 
-        protected override bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty)
+        protected override bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
         {
+            string conversationOwnerAccountID, conversationClientAccountID;
+            CheckWichConversationReferenceIsNull(conversationOwnerConversationReference, conversationClientConversationReference, out conversationOwnerAccountID, out conversationClientAccountID);
+
             return AzureStorageHelper.InsertAsync<ConnectionEntity>(_connectionsTable, new ConnectionEntity()
             {
-                PartitionKey = conversationClientParty.ConversationAccount.Id,
-                RowKey = conversationOwnerParty.ConversationAccount.Id,
-                Client = JsonConvert.SerializeObject(new PartyEntity(conversationClientParty, PartyEntityType.Client)),
-                Owner = JsonConvert.SerializeObject(new PartyEntity(conversationOwnerParty, PartyEntityType.Owner))
+                PartitionKey = conversationClientAccountID,
+                RowKey = conversationOwnerAccountID,
+                Client = JsonConvert.SerializeObject(new ConversationReferenceEntity(conversationClientConversationReference, ConversationReferenceEntityType.Client)),
+                Owner = JsonConvert.SerializeObject(new ConversationReferenceEntity(conversationOwnerConversationReference, ConversationReferenceEntityType.Owner))
             }).Result;
         }
 
-        protected override bool ExecuteRemoveConnection(Party conversationOwnerParty)
+        // PARTIAL METHOD
+        private static void CheckWichConversationReferenceIsNull(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference, out string conversationOwnerAccountID, out string conversationClientAccountID)
         {
-            Dictionary<Party, Party> connectedParties = GetConnectedParties();
+            if (conversationClientConversationReference.Bot != null)
+                conversationClientAccountID = conversationClientConversationReference.Bot.Id;
+            else conversationClientAccountID = conversationClientConversationReference.User.Id;
 
-            if (connectedParties != null && connectedParties.Remove(conversationOwnerParty))
+            if (conversationOwnerConversationReference.Bot != null)
+                conversationOwnerAccountID = conversationOwnerConversationReference.Bot.Id;
+            else conversationOwnerAccountID = conversationOwnerConversationReference.User.Id;
+        }
+
+        protected override bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference)
+        {
+            Dictionary<ConversationReference, ConversationReference> connectedParties = GetConnectedParties();
+
+            if (connectedParties != null && connectedParties.Remove(conversationOwnerConversationReference))
             {
-                Party conversationClientParty = GetConnectedCounterpart(conversationOwnerParty);
+                ConversationReference conversationClientConversationReference = GetConnectedCounterpart(conversationOwnerConversationReference);
+
+                string conversationOwnerAccountID, conversationClientAccountID;
+                CheckWichConversationReferenceIsNull(conversationOwnerConversationReference, conversationClientConversationReference, out conversationOwnerAccountID, out conversationClientAccountID);
 
                 return AzureStorageHelper.DeleteEntryAsync<ConnectionEntity>(
                     _connectionsTable,
-                    conversationClientParty.ConversationAccount.Id,
-                    conversationOwnerParty.ConversationAccount.Id).Result;
+                    conversationClientAccountID,
+                    conversationOwnerAccountID).Result;
             }
 
             return false;
@@ -241,24 +260,24 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         }
 
         /// <summary>
-        /// Resolves the cloud table associated with the given party entity type.
+        /// Resolves the cloud table associated with the given ConversationReference entity type.
         /// </summary>
-        /// <param name="partyEntityType">The party entity type.</param>
-        /// <returns>The cloud table associated with the party entity type.</returns>
-        protected virtual CloudTable CloudTableByPartyEntityType(PartyEntityType partyEntityType)
+        /// <param name="ConversationReferenceEntityType">The ConversationReference entity type.</param>
+        /// <returns>The cloud table associated with the ConversationReference entity type.</returns>
+        protected virtual CloudTable CloudTableByConversationReferenceEntityType(ConversationReferenceEntityType ConversationReferenceEntityType)
         {
-            switch (partyEntityType)
+            switch (ConversationReferenceEntityType)
             {
-                case PartyEntityType.Bot:
+                case ConversationReferenceEntityType.Bot:
                     return _botPartiesTable;
-                case PartyEntityType.User:
+                case ConversationReferenceEntityType.User:
                     return _userPartiesTable;
-                case PartyEntityType.Aggregation:
+                case ConversationReferenceEntityType.Aggregation:
                     return _aggregationPartiesTable;
-                case PartyEntityType.PendingRequest:
+                case ConversationReferenceEntityType.PendingRequest:
                     return _pendingRequestsTable;
                 default:
-                    throw new ArgumentException($"No cloud table associated with party entity type {partyEntityType}");
+                    throw new ArgumentException($"No cloud table associated with ConversationReference entity type {ConversationReferenceEntityType}");
             }
         }
 
@@ -268,22 +287,22 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="cloudTable"></param>
         /// <param name="tableQuery"></param>
         /// <returns></returns>
-        protected virtual async Task<IEnumerable<PartyEntity>> GetPartyEntitiesAsync(
-            CloudTable cloudTable, TableQuery<PartyEntity> tableQuery = null)
+        protected virtual async Task<IEnumerable<ConversationReferenceEntity>> GetConversationReferenceEntitiesAsync(
+            CloudTable cloudTable, TableQuery<ConversationReferenceEntity> tableQuery = null)
         {
-            tableQuery = tableQuery ?? new TableQuery<PartyEntity>();
-            return await AzureStorageHelper.ExecuteTableQueryAsync<PartyEntity>(cloudTable, tableQuery);
+            tableQuery = tableQuery ?? new TableQuery<ConversationReferenceEntity>();
+            return await AzureStorageHelper.ExecuteTableQueryAsync<ConversationReferenceEntity>(cloudTable, tableQuery);
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="partyEntityType"></param>
+        /// <param name="ConversationReferenceEntityType"></param>
         /// <returns></returns>
-        protected virtual async Task<IEnumerable<PartyEntity>> GetPartyEntitiesAsync(PartyEntityType partyEntityType)
+        protected virtual async Task<IEnumerable<ConversationReferenceEntity>> GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType ConversationReferenceEntityType)
         {
-            TableQuery<PartyEntity> tableQuery = new TableQuery<PartyEntity>();
-            return await GetPartyEntitiesAsync(CloudTableByPartyEntityType(partyEntityType), tableQuery);
+            TableQuery<ConversationReferenceEntity> tableQuery = new TableQuery<ConversationReferenceEntity>();
+            return await GetConversationReferenceEntitiesAsync(CloudTableByConversationReferenceEntityType(ConversationReferenceEntityType), tableQuery);
         }
 
         /// <summary>
@@ -293,26 +312,26 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <returns></returns>
         protected virtual async Task<IEnumerable<ConnectionEntity>> GetConnectionEntitiesAsync(TableQuery<ConnectionEntity> tableQuery = null)
         {
-            Dictionary<Party, Party> connectedParties = new Dictionary<Party, Party>();
+            Dictionary<ConversationReference, ConversationReference> connectedParties = new Dictionary<ConversationReference, ConversationReference>();
             tableQuery = tableQuery ?? new TableQuery<ConnectionEntity>();
             return await AzureStorageHelper.ExecuteTableQueryAsync(_connectionsTable, tableQuery);
         }
 
         /// <summary>
-        /// Converts the given entities into a party list.
+        /// Converts the given entities into a ConversationReference list.
         /// </summary>
-        /// <param name="partyEntities">The entities to convert.</param>
+        /// <param name="ConversationReferenceEntities">The entities to convert.</param>
         /// <returns>A newly created list of parties based on the given entities.</returns>
-        protected virtual List<Party> ToPartyList(IEnumerable<PartyEntity> partyEntities)
+        protected virtual List<ConversationReference> ToConversationReferenceList(IEnumerable<ConversationReferenceEntity> ConversationReferenceEntities)
         {
-            List<Party> partyList = new List<Party>();
+            List<ConversationReference> ConversationReferenceList = new List<ConversationReference>();
 
-            foreach (var partyEntity in partyEntities)
+            foreach (var ConversationReferenceEntity in ConversationReferenceEntities)
             {
-                partyList.Add(partyEntity.ToParty());
+                ConversationReferenceList.Add(ConversationReferenceEntity.ToConversationReference());
             }
 
-            return partyList.ToList();
+            return ConversationReferenceList.ToList();
         }
 
         /// <summary>
@@ -320,15 +339,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// </summary>
         /// <param name="connectionEntities"></param>
         /// <returns></returns>
-        protected virtual Dictionary<Party, Party> ToConnectedPartiesDictionary(IEnumerable<ConnectionEntity> connectionEntities)
+        protected virtual Dictionary<ConversationReference, ConversationReference> ToConnectedPartiesDictionary(IEnumerable<ConnectionEntity> connectionEntities)
         {
-            Dictionary<Party, Party> connectedParties = new Dictionary<Party, Party>();
+            Dictionary<ConversationReference, ConversationReference> connectedParties = new Dictionary<ConversationReference, ConversationReference>();
 
             foreach (var connectionEntity in connectionEntities)
             {
                 connectedParties.Add(
-                    JsonConvert.DeserializeObject<PartyEntity>(connectionEntity.Owner).ToParty(),
-                    JsonConvert.DeserializeObject<PartyEntity>(connectionEntity.Client).ToParty());
+                    JsonConvert.DeserializeObject<ConversationReferenceEntity>(connectionEntity.Owner).ToConversationReference(),
+                    JsonConvert.DeserializeObject<ConversationReferenceEntity>(connectionEntity.Client).ToConversationReference());
             }
 
             return connectedParties;

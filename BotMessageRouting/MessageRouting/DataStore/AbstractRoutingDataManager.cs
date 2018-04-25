@@ -48,28 +48,28 @@ namespace Underscore.Bot.MessageRouting.DataStore
 #endif
         }
 
-        public abstract IList<Party> GetUserParties();
-        public abstract IList<Party> GetBotParties();
+        public abstract IList<ConversationReference> GetUserParties();
+        public abstract IList<ConversationReference> GetBotParties();
 
-        public virtual bool AddParty(Party partyToAdd, bool isUser = true)
+        public virtual bool AddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser = true)
         {
-            if (partyToAdd == null
+            if (ConversationReferenceToAdd == null
                 || (isUser ?
-                    GetUserParties().Contains(partyToAdd)
-                    : GetBotParties().Contains(partyToAdd)))
+                    GetUserParties().Contains(ConversationReferenceToAdd)
+                    : GetBotParties().Contains(ConversationReferenceToAdd)))
             {
                 return false;
             }
 
-            if (!isUser && partyToAdd.ChannelAccount == null)
+            if (!isUser && ConversationReferenceToAdd.ChannelAccount == null)
             {
-                throw new NullReferenceException($"Channel account of a bot party ({nameof(partyToAdd.ChannelAccount)}) cannot be null");
+                throw new NullReferenceException($"Channel account of a bot ConversationReference ({nameof(ConversationReferenceToAdd.ChannelAccount)}) cannot be null");
             }
 
-            return ExecuteAddParty(partyToAdd, isUser);
+            return ExecuteAddConversationReference(ConversationReferenceToAdd, isUser);
         }
 
-        public virtual IList<MessageRouterResult> RemoveParty(Party partyToRemove)
+        public virtual IList<MessageRouterResult> RemoveConversationReference(ConversationReference ConversationReferenceToRemove)
         {
             List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
             bool wasRemoved = false;
@@ -78,14 +78,14 @@ namespace Underscore.Bot.MessageRouting.DataStore
             for (int i = 0; i < 2; ++i)
             {
                 bool isUser = (i == 0);
-                IList<Party> partyList = isUser ? GetUserParties() : GetBotParties();
-                IList<Party> partiesToRemove = FindPartiesWithMatchingChannelAccount(partyToRemove, partyList);
+                IList<ConversationReference> ConversationReferenceList = isUser ? GetUserParties() : GetBotParties();
+                IList<ConversationReference> partiesToRemove = FindPartiesWithMatchingChannelAccount(ConversationReferenceToRemove, ConversationReferenceList);
 
                 if (partiesToRemove != null)
                 {
-                    foreach (Party party in partiesToRemove)
+                    foreach (ConversationReference ConversationReference in partiesToRemove)
                     {
-                        wasRemoved = ExecuteRemoveParty(party, isUser);
+                        wasRemoved = ExecuteRemoveConversationReference(ConversationReference, isUser);
 
                         if (wasRemoved)
                         {
@@ -99,9 +99,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
             }
 
             // Check pending requests
-            IList<Party> pendingRequestsToRemove = FindPartiesWithMatchingChannelAccount(partyToRemove, GetPendingRequests());
+            IList<ConversationReference> pendingRequestsToRemove = FindPartiesWithMatchingChannelAccount(ConversationReferenceToRemove, GetPendingRequests());
 
-            foreach (Party pendingRequestToRemove in pendingRequestsToRemove)
+            foreach (ConversationReference pendingRequestToRemove in pendingRequestsToRemove)
             {
                 MessageRouterResult removePendingRequestResult = RemovePendingRequest(pendingRequestToRemove);
 
@@ -116,19 +116,19 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (wasRemoved)
             {
-                // Check if the party exists in ConnectedParties
-                List<Party> keys = new List<Party>();
+                // Check if the ConversationReference exists in ConnectedParties
+                List<ConversationReference> keys = new List<ConversationReference>();
 
-                foreach (var partyPair in GetConnectedParties())
+                foreach (var ConversationReferencePair in GetConnectedParties())
                 {
-                    if (partyPair.Key.HasMatchingChannelInformation(partyToRemove)
-                        || partyPair.Value.HasMatchingChannelInformation(partyToRemove))
+                    if (ConversationReferencePair.Key.HasMatchingChannelInformation(ConversationReferenceToRemove)
+                        || ConversationReferencePair.Value.HasMatchingChannelInformation(ConversationReferenceToRemove))
                     {
-                        keys.Add(partyPair.Key);
+                        keys.Add(ConversationReferencePair.Key);
                     }
                 }
 
-                foreach (Party key in keys)
+                foreach (ConversationReference key in keys)
                 {
                     messageRouterResults.AddRange(Disconnect(key, ConnectionProfile.Owner));
                 }
@@ -145,53 +145,53 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return messageRouterResults;
         }
 
-        public abstract IList<Party> GetAggregationParties();
+        public abstract IList<ConversationReference> GetAggregationParties();
 
-        public virtual bool AddAggregationParty(Party aggregationPartyToAdd)
+        public virtual bool AddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
         {
-            if (aggregationPartyToAdd != null)
+            if (aggregationConversationReferenceToAdd != null)
             {
-                if (aggregationPartyToAdd.ChannelAccount != null)
+                if (aggregationConversationReferenceToAdd.ChannelAccount != null)
                 {
-                    throw new ArgumentException("Aggregation party cannot contain a channel account");
+                    throw new ArgumentException("Aggregation ConversationReference cannot contain a channel account");
                 }
 
-                IList<Party> aggregationParties = GetAggregationParties();
+                IList<ConversationReference> aggregationParties = GetAggregationParties();
 
-                if (!aggregationParties.Contains(aggregationPartyToAdd))
+                if (!aggregationParties.Contains(aggregationConversationReferenceToAdd))
                 {
-                    return ExecuteAddAggregationParty(aggregationPartyToAdd);
+                    return ExecuteAddAggregationConversationReference(aggregationConversationReferenceToAdd);
                 }
             }
 
             return false;
         }
 
-        public virtual bool RemoveAggregationParty(Party aggregationPartyToRemove)
+        public virtual bool RemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
         {
-            return ExecuteRemoveAggregationParty(aggregationPartyToRemove);
+            return ExecuteRemoveAggregationConversationReference(aggregationConversationReferenceToRemove);
         }
 
-        public abstract IList<Party> GetPendingRequests();
+        public abstract IList<ConversationReference> GetPendingRequests();
 
         public virtual MessageRouterResult AddPendingRequest(
-            Party requestorParty, bool rejectConnectionRequestIfNoAggregationChannel = false)
+            ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
-            AddParty(requestorParty, true); // Make sure the requestor party is in the list of user parties
+            AddConversationReference(requestorConversationReference, true); // Make sure the requestor ConversationReference is in the list of user parties
 
             MessageRouterResult result = new MessageRouterResult()
             {
-                ConversationClientParty = requestorParty
+                ConversationClientConversationReference = requestorConversationReference
             };
 
-            if (requestorParty != null)
+            if (requestorConversationReference != null)
             {
-                if (IsAssociatedWithAggregation(requestorParty))
+                if (IsAssociatedWithAggregation(requestorConversationReference))
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = $"The given party ({requestorParty.ChannelAccount?.Name}) is associated with aggregation and hence invalid to request a connection";
+                    result.ErrorMessage = $"The given ConversationReference ({requestorConversationReference.ChannelAccount?.Name}) is associated with aggregation and hence invalid to request a connection";
                 }
-                else if (GetPendingRequests().Contains(requestorParty))
+                else if (GetPendingRequests().Contains(requestorConversationReference))
                 {
                     result.Type = MessageRouterResultType.ConnectionAlreadyRequested;
                 }
@@ -203,9 +203,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     }
                     else
                     {
-                        requestorParty.ConnectionRequestTime = GetCurrentGlobalTime();
+                        requestorConversationReference.ConnectionRequestTime = GetCurrentGlobalTime();
 
-                        if (ExecuteAddPendingRequest(requestorParty))
+                        if (ExecuteAddPendingRequest(requestorConversationReference))
                         {
                             result.Type = MessageRouterResultType.ConnectionRequested;
                         }
@@ -220,56 +220,56 @@ namespace Underscore.Bot.MessageRouting.DataStore
             else
             {
                 result.Type = MessageRouterResultType.Error;
-                result.ErrorMessage = "The given party instance is null";
+                result.ErrorMessage = "The given ConversationReference instance is null";
             }
 
             return result;
         }
 
-        public virtual MessageRouterResult RemovePendingRequest(Party requestorParty)
+        public virtual MessageRouterResult RemovePendingRequest(ConversationReference requestorConversationReference)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
-                ConversationClientParty = requestorParty
+                ConversationClientConversationReference = requestorConversationReference
             };
 
-            if (GetPendingRequests().Contains(requestorParty))
+            if (GetPendingRequests().Contains(requestorConversationReference))
             {
-                if (ExecuteRemovePendingRequest(requestorParty))
+                if (ExecuteRemovePendingRequest(requestorConversationReference))
                 {
                     result.Type = MessageRouterResultType.ConnectionRejected;
                 }
                 else
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = "Failed to remove the pending request of the given party";
+                    result.ErrorMessage = "Failed to remove the pending request of the given ConversationReference";
                 }
             }
             else
             {
                 result.Type = MessageRouterResultType.Error;
-                result.ErrorMessage = "Could not find a pending request for the given party";
+                result.ErrorMessage = "Could not find a pending request for the given ConversationReference";
             }
 
             return result;
         }
 
-        public virtual bool IsConnected(Party party, ConnectionProfile connectionProfile)
+        public virtual bool IsConnected(ConversationReference ConversationReference, ConnectionProfile connectionProfile)
         {
             bool isConnected = false;
 
-            if (party != null)
+            if (ConversationReference != null)
             {
                 switch (connectionProfile)
                 {
                     case ConnectionProfile.Client:
-                        isConnected = GetConnectedParties().Values.Contains(party);
+                        isConnected = GetConnectedParties().Values.Contains(ConversationReference);
                         break;
                     case ConnectionProfile.Owner:
-                        isConnected = GetConnectedParties().Keys.Contains(party);
+                        isConnected = GetConnectedParties().Keys.Contains(ConversationReference);
                         break;
                     case ConnectionProfile.Any:
-                        isConnected = (GetConnectedParties().Values.Contains(party) || GetConnectedParties().Keys.Contains(party));
+                        isConnected = (GetConnectedParties().Values.Contains(ConversationReference) || GetConnectedParties().Keys.Contains(ConversationReference));
                         break;
                     default:
                         break;
@@ -279,60 +279,60 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return isConnected;
         }
 
-        public abstract Dictionary<Party, Party> GetConnectedParties();
+        public abstract Dictionary<ConversationReference, ConversationReference> GetConnectedParties();
 
-        public virtual Party GetConnectedCounterpart(Party partyWhoseCounterpartToFind)
+        public virtual ConversationReference GetConnectedCounterpart(ConversationReference ConversationReferenceWhoseCounterpartToFind)
         {
-            Party counterparty = null;
-            Dictionary<Party, Party> connectedParties = GetConnectedParties();
+            ConversationReference counterConversationReference = null;
+            Dictionary<ConversationReference, ConversationReference> connectedParties = GetConnectedParties();
 
-            if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Client))
+            if (IsConnected(ConversationReferenceWhoseCounterpartToFind, ConnectionProfile.Client))
             {
                 for (int i = 0; i < connectedParties.Count; ++i)
                 {
-                    if (connectedParties.Values.ElementAt(i).Equals(partyWhoseCounterpartToFind))
+                    if (connectedParties.Values.ElementAt(i).Equals(ConversationReferenceWhoseCounterpartToFind))
                     {
-                        counterparty = connectedParties.Keys.ElementAt(i);
+                        counterConversationReference = connectedParties.Keys.ElementAt(i);
                         break;
                     }
                 }
             }
-            else if (IsConnected(partyWhoseCounterpartToFind, ConnectionProfile.Owner))
+            else if (IsConnected(ConversationReferenceWhoseCounterpartToFind, ConnectionProfile.Owner))
             {
-                connectedParties.TryGetValue(partyWhoseCounterpartToFind, out counterparty);
+                connectedParties.TryGetValue(ConversationReferenceWhoseCounterpartToFind, out counterConversationReference);
             }
 
-            return counterparty;
+            return counterConversationReference;
         }
 
         public virtual MessageRouterResult ConnectAndClearPendingRequest(
-            Party conversationOwnerParty, Party conversationClientParty)
+            ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
-                ConversationOwnerParty = conversationOwnerParty,
-                ConversationClientParty = conversationClientParty
+                ConversationOwnerConversationReference = conversationOwnerConversationReference,
+                ConversationClientConversationReference = conversationClientConversationReference
             };
 
-            if (conversationOwnerParty != null && conversationClientParty != null)
+            if (conversationOwnerConversationReference != null && conversationClientConversationReference != null)
             {
                 DateTime connectionStartedTime = GetCurrentGlobalTime();
-                conversationClientParty.ResetConnectionRequestTime();
-                conversationClientParty.ConnectionEstablishedTime = connectionStartedTime;
+                conversationClientConversationReference.ResetConnectionRequestTime();
+                conversationClientConversationReference.ConnectionEstablishedTime = connectionStartedTime;
 
                 bool wasConnectionAdded =
-                    ExecuteAddConnection(conversationOwnerParty, conversationClientParty);
+                    ExecuteAddConnection(conversationOwnerConversationReference, conversationClientConversationReference);
 
                 if (wasConnectionAdded)
                 {
-                    ExecuteRemovePendingRequest(conversationClientParty);
+                    ExecuteRemovePendingRequest(conversationClientConversationReference);
                     result.Type = MessageRouterResultType.Connected;
                 }
                 else
                 {
                     result.Type = MessageRouterResultType.Error;
                     result.ErrorMessage =
-                        $"Failed to add connection between {conversationOwnerParty} and {conversationClientParty}";
+                        $"Failed to add connection between {conversationOwnerConversationReference} and {conversationClientConversationReference}";
                 }
             }
             else
@@ -344,28 +344,28 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return result;
         }
 
-        public virtual IList<MessageRouterResult> Disconnect(Party party, ConnectionProfile connectionProfile)
+        public virtual IList<MessageRouterResult> Disconnect(ConversationReference ConversationReference, ConnectionProfile connectionProfile)
         {
             IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
-            if (party != null)
+            if (ConversationReference != null)
             {
-                List<Party> keysToRemove = new List<Party>();
+                List<ConversationReference> keysToRemove = new List<ConversationReference>();
 
-                foreach (var partyPair in GetConnectedParties())
+                foreach (var ConversationReferencePair in GetConnectedParties())
                 {
                     bool removeThisPair = false;
 
                     switch (connectionProfile)
                     {
                         case ConnectionProfile.Client:
-                            removeThisPair = partyPair.Value.Equals(party);
+                            removeThisPair = ConversationReferencePair.Value.Equals(ConversationReference);
                             break;
                         case ConnectionProfile.Owner:
-                            removeThisPair = partyPair.Key.Equals(party);
+                            removeThisPair = ConversationReferencePair.Key.Equals(ConversationReference);
                             break;
                         case ConnectionProfile.Any:
-                            removeThisPair = (partyPair.Value.Equals(party) || partyPair.Key.Equals(party));
+                            removeThisPair = (ConversationReferencePair.Value.Equals(ConversationReference) || ConversationReferencePair.Key.Equals(ConversationReference));
                             break;
                         default:
                             break;
@@ -373,7 +373,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     if (removeThisPair)
                     {
-                        keysToRemove.Add(partyPair.Key);
+                        keysToRemove.Add(ConversationReferencePair.Key);
 
                         if (connectionProfile == ConnectionProfile.Owner)
                         {
@@ -396,41 +396,41 @@ namespace Underscore.Bot.MessageRouting.DataStore
 #endif
         }
 
-        public virtual bool IsAssociatedWithAggregation(Party party)
+        public virtual bool IsAssociatedWithAggregation(ConversationReference ConversationReference)
         {
-            IList<Party> aggregationParties = GetAggregationParties();
+            IList<ConversationReference> aggregationParties = GetAggregationParties();
 
-            return (party != null && aggregationParties != null && aggregationParties.Count() > 0
-                    && aggregationParties.Where(aggregationParty =>
-                        aggregationParty.ConversationAccount.Id == party.ConversationAccount.Id
-                        && aggregationParty.ServiceUrl == party.ServiceUrl
-                        && aggregationParty.ChannelId == party.ChannelId).Count() > 0);
+            return (ConversationReference != null && aggregationParties != null && aggregationParties.Count() > 0
+                    && aggregationParties.Where(aggregationConversationReference =>
+                        aggregationConversationReference.ConversationAccount.Id == ConversationReference.ConversationAccount.Id
+                        && aggregationConversationReference.ServiceUrl == ConversationReference.ServiceUrl
+                        && aggregationConversationReference.ChannelId == ConversationReference.ChannelId).Count() > 0);
         }
 
-        public virtual string ResolveBotNameInConversation(Party party)
+        public virtual string ResolveBotNameInConversation(ConversationReference ConversationReference)
         {
             string botName = null;
 
-            if (party != null)
+            if (ConversationReference != null)
             {
-                Party botParty = FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
+                ConversationReference botConversationReference = FindBotConversationReferenceByChannelAndConversation(ConversationReference.ChannelId, ConversationReference.ConversationAccount);
 
-                if (botParty != null && botParty.ChannelAccount != null)
+                if (botConversationReference != null && botConversationReference.ChannelAccount != null)
                 {
-                    botName = botParty.ChannelAccount.Name;
+                    botName = botConversationReference.ChannelAccount.Name;
                 }
             }
 
             return botName;
         }
 
-        public virtual Party FindExistingUserParty(Party partyToFind)
+        public virtual ConversationReference FindExistingUserConversationReference(ConversationReference ConversationReferenceToFind)
         {
-            Party foundParty = null;
+            ConversationReference foundConversationReference = null;
 
             try
             {
-                foundParty = GetUserParties().First(party => partyToFind.Equals(party));
+                foundConversationReference = GetUserParties().First(ConversationReference => ConversationReferenceToFind.Equals(ConversationReference));
             }
             catch (ArgumentNullException)
             {
@@ -439,86 +439,86 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
             }
 
-            return foundParty;
+            return foundConversationReference;
         }
 
-        public virtual Party FindPartyByChannelAccountIdAndConversationId(
+        public virtual ConversationReference FindConversationReferenceByChannelAccountIdAndConversationId(
             string channelAccountId, string conversationId)
         {
-            Party userParty = null;
+            ConversationReference userConversationReference = null;
 
             try
             {
-                userParty = GetUserParties().Single(party =>
-                        (party.ChannelAccount.Id.Equals(channelAccountId)
-                         && party.ConversationAccount.Id.Equals(conversationId)));
+                userConversationReference = GetUserParties().Single(ConversationReference =>
+                        (ConversationReference.ChannelAccount.Id.Equals(channelAccountId)
+                         && ConversationReference.ConversationAccount.Id.Equals(conversationId)));
             }
             catch (InvalidOperationException)
             {
             }
 
-            return userParty;
+            return userConversationReference;
         }
 
-        public virtual Party FindBotPartyByChannelAndConversation(
+        public virtual ConversationReference FindBotConversationReferenceByChannelAndConversation(
             string channelId, ConversationAccount conversationAccount)
         {
-            Party botParty = null;
+            ConversationReference botConversationReference = null;
 
             try
             {
-                botParty = GetBotParties().Single(party =>
-                        (party.ChannelId.Equals(channelId)
-                         && party.ConversationAccount.Id.Equals(conversationAccount.Id)));
+                botConversationReference = GetBotParties().Single(ConversationReference =>
+                        (ConversationReference.ChannelId.Equals(channelId)
+                         && ConversationReference.ConversationAccount.Id.Equals(conversationAccount.Id)));
             }
             catch (InvalidOperationException)
             {
             }
 
-            return botParty;
+            return botConversationReference;
         }
 
-        public virtual Party FindConnectedPartyByChannel(string channelId, ChannelAccount channelAccount)
+        public virtual ConversationReference FindConnectedConversationReferenceByChannel(string channelId, ChannelAccount channelAccount)
         {
-            Party foundParty = null;
+            ConversationReference foundConversationReference = null;
 
             try
             {
-                foundParty = GetConnectedParties().Keys.Single(party =>
-                        (party.ChannelId.Equals(channelId)
-                         && party.ChannelAccount != null
-                         && party.ChannelAccount.Id.Equals(channelAccount.Id)));
+                foundConversationReference = GetConnectedParties().Keys.Single(ConversationReference =>
+                        (ConversationReference.ChannelId.Equals(channelId)
+                         && ConversationReference.ChannelAccount != null
+                         && ConversationReference.ChannelAccount.Id.Equals(channelAccount.Id)));
             }
             catch (InvalidOperationException)
             {
             }
 
-            if (foundParty == null)
+            if (foundConversationReference == null)
             {
                 try
                 {
                     // Not found in keys, try the values
-                    foundParty = GetConnectedParties().Values.First(party =>
-                            (party.ChannelId.Equals(channelId)
-                             && party.ChannelAccount != null
-                             && party.ChannelAccount.Id.Equals(channelAccount.Id)));
+                    foundConversationReference = GetConnectedParties().Values.First(ConversationReference =>
+                            (ConversationReference.ChannelId.Equals(channelId)
+                             && ConversationReference.ChannelAccount != null
+                             && ConversationReference.ChannelAccount.Id.Equals(channelAccount.Id)));
                 }
                 catch (InvalidOperationException)
                 {
                 }
             }
 
-            return foundParty;
+            return foundConversationReference;
         }
 
-        public virtual IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> partyCandidates)
+        public virtual IList<ConversationReference> FindPartiesWithMatchingChannelAccount(ConversationReference ConversationReferenceToFind, IList<ConversationReference> ConversationReferenceCandidates)
         {
-            IList<Party> matchingParties = null;
-            IEnumerable<Party> foundParties = null;
+            IList<ConversationReference> matchingParties = null;
+            IEnumerable<ConversationReference> foundParties = null;
 
             try
             {
-                foundParties = partyCandidates.Where(party => party.HasMatchingChannelInformation(partyToFind));
+                foundParties = ConversationReferenceCandidates.Where(ConversationReference => ConversationReference.HasMatchingChannelInformation(ConversationReferenceToFind));
             }
             catch (ArgumentNullException e)
             {
@@ -542,7 +542,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             string parties = string.Empty;
 
-            foreach (KeyValuePair<Party, Party> keyValuePair in GetConnectedParties())
+            foreach (KeyValuePair<ConversationReference, ConversationReference> keyValuePair in GetConnectedParties())
             {
                 parties += $"{keyValuePair.Key} -> {keyValuePair.Value}\n\r";
             }
@@ -582,66 +582,66 @@ namespace Underscore.Bot.MessageRouting.DataStore
 #endif
 
         /// <summary>
-        /// Adds the given party to the collection. No sanity checks.
+        /// Adds the given ConversationReference to the collection. No sanity checks.
         /// </summary>
-        /// <param name="partyToAdd">The new party to add.</param>
-        /// <param name="isUser">If true, the party is considered a user.
-        /// If false, the party is considered to be a bot.</param>
+        /// <param name="ConversationReferenceToAdd">The new ConversationReference to add.</param>
+        /// <param name="isUser">If true, the ConversationReference is considered a user.
+        /// If false, the ConversationReference is considered to be a bot.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddParty(Party partyToAdd, bool isUser);
+        protected abstract bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser);
 
         /// <summary>
-        /// Removes the given party from the collection. No sanity checks.
+        /// Removes the given ConversationReference from the collection. No sanity checks.
         /// </summary>
-        /// <param name="partyToRemove">The party to remove.</param>
-        /// <param name="isUser">If true, the party is considered a user.
-        /// If false, the party is considered to be a bot.</param>
+        /// <param name="ConversationReferenceToRemove">The ConversationReference to remove.</param>
+        /// <param name="isUser">If true, the ConversationReference is considered a user.
+        /// If false, the ConversationReference is considered to be a bot.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveParty(Party partyToRemove, bool isUser);
+        protected abstract bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser);
 
         /// <summary>
-        /// Adds the given aggregation party to the collection. No sanity checks.
+        /// Adds the given aggregation ConversationReference to the collection. No sanity checks.
         /// </summary>
-        /// <param name="aggregationPartyToAdd">The party to be added as an aggregation party (channel).</param>
+        /// <param name="aggregationConversationReferenceToAdd">The ConversationReference to be added as an aggregation ConversationReference (channel).</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddAggregationParty(Party aggregationPartyToAdd);
+        protected abstract bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd);
 
         /// <summary>
-        /// Removes the given aggregation party from the collection. No sanity checks.
+        /// Removes the given aggregation ConversationReference from the collection. No sanity checks.
         /// </summary>
-        /// <param name="aggregationPartyToRemove">The aggregation party to remove.</param>
+        /// <param name="aggregationConversationReferenceToRemove">The aggregation ConversationReference to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveAggregationParty(Party aggregationPartyToRemove);
+        protected abstract bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove);
 
         /// <summary>
-        /// Adds the pending request for the given party. No sanity checks.
+        /// Adds the pending request for the given ConversationReference. No sanity checks.
         /// </summary>
-        /// <param name="requestorParty">The party whose pending request to add.</param>
+        /// <param name="requestorConversationReference">The ConversationReference whose pending request to add.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddPendingRequest(Party requestorParty);
+        protected abstract bool ExecuteAddPendingRequest(ConversationReference requestorConversationReference);
 
         /// <summary>
-        /// Removes the pending request of the given party. No sanity checks.
+        /// Removes the pending request of the given ConversationReference. No sanity checks.
         /// </summary>
-        /// <param name="requestorParty">The party whose request to remove.</param>
+        /// <param name="requestorConversationReference">The ConversationReference whose request to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemovePendingRequest(Party requestorParty);
+        protected abstract bool ExecuteRemovePendingRequest(ConversationReference requestorConversationReference);
 
         /// <summary>
         /// Adds a connection between the given parties. No sanity checks.
         /// </summary>
-        /// <param name="conversationOwnerParty">The conversation owner party.</param>
-        /// <param name="conversationClientParty">The conversation client (customer) party
+        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
+        /// <param name="conversationClientConversationReference">The conversation client (customer) ConversationReference
         /// (i.e. one who requested the connection).</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteAddConnection(Party conversationOwnerParty, Party conversationClientParty);
+        protected abstract bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference);
 
         /// <summary>
-        /// Removes the connection of the given conversation owner party.
+        /// Removes the connection of the given conversation owner ConversationReference.
         /// </summary>
-        /// <param name="conversationOwnerParty">The conversation owner party.</param>
+        /// <param name="conversationOwnerConversationReference">The conversation owner ConversationReference.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        protected abstract bool ExecuteRemoveConnection(Party conversationOwnerParty);
+        protected abstract bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference);
 
         /// <returns>The current global "now" time.</returns>
         protected virtual DateTime GetCurrentGlobalTime()
@@ -654,25 +654,25 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="conversationOwnerParties">The conversation owners whose connections to remove.</param>
         /// <returns>The operation result(s).</returns>
-        protected virtual IList<MessageRouterResult> RemoveConnections(IList<Party> conversationOwnerParties)
+        protected virtual IList<MessageRouterResult> RemoveConnections(IList<ConversationReference> conversationOwnerParties)
         {
             IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
-            foreach (Party conversationOwnerParty in conversationOwnerParties)
+            foreach (ConversationReference conversationOwnerConversationReference in conversationOwnerParties)
             {
-                Dictionary<Party, Party> connectedParties = GetConnectedParties();
-                connectedParties.TryGetValue(conversationOwnerParty, out Party conversationClientParty);
+                Dictionary<ConversationReference, ConversationReference> connectedParties = GetConnectedParties();
+                connectedParties.TryGetValue(conversationOwnerConversationReference, out ConversationReference conversationClientConversationReference);
 
-                if (ExecuteRemoveConnection(conversationOwnerParty))
+                if (ExecuteRemoveConnection(conversationOwnerConversationReference))
                 {
-                    conversationOwnerParty.ResetConnectionEstablishedTime();
-                    conversationClientParty.ResetConnectionEstablishedTime();
+                    conversationOwnerConversationReference.ResetConnectionEstablishedTime();
+                    conversationClientConversationReference.ResetConnectionEstablishedTime();
 
                     messageRouterResults.Add(new MessageRouterResult()
                     {
                         Type = MessageRouterResultType.Disconnected,
-                        ConversationOwnerParty = conversationOwnerParty,
-                        ConversationClientParty = conversationClientParty
+                        ConversationOwnerConversationReference = conversationOwnerConversationReference,
+                        ConversationClientConversationReference = conversationClientConversationReference
                     });
                 }
             }
