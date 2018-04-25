@@ -25,7 +25,6 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -34,7 +33,6 @@ namespace Underscore.Bot.MessageRouting
         {
             RoutingDataManager = routingDataManager;
         }
-
 
         /// <summary>
         /// Handles the new activity:
@@ -69,7 +67,7 @@ namespace Underscore.Bot.MessageRouting
             bool addClientNameToMessage = true,
             bool addOwnerNameToMessage = false)
         {
-            MakeSurePartiesAreTracked(activity);
+            StoreConversationReferences(activity);
 
             MessageRouterResult messageRouterResult =
                 await RouteMessageIfSenderIsConnectedAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
@@ -77,50 +75,50 @@ namespace Underscore.Bot.MessageRouting
             if (tryToRequestConnectionIfNotConnected
                 && messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
             {
-                messageRouterResult = RequestConnection(activity, rejectConnectionRequestIfNoAggregationChannel);
+                messageRouterResult = CreateConnectionRequest(
+                    MessageRoutingUtils.CreateSenderConversationReference(activity),
+                    rejectConnectionRequestIfNoAggregationChannel);
             }
 
             return messageRouterResult;
         }
 
-
         /// <summary>
         /// Tries to send the given message activity to the given ConversationReference using this bot on the same
         /// channel as the ConversationReference who the message is sent to.
         /// </summary>
-        /// <param name="ConversationReferenceToMessage">The ConversationReference to send the message to.</param>
+        /// <param name="conversationReferenceToMessage">The ConversationReference to send the message to.</param>
         /// <param name="messageActivity">The message activity to send (message content).</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
-        public async Task<ResourceResponse> SendMessageToConversationReferenceByBotAsync(
-            ConversationReference ConversationReferenceToMessage, IMessageActivity messageActivity)
+        public async Task<ResourceResponse> SendMessageAsync(
+            ConversationReference conversationReferenceToMessage, IMessageActivity messageActivity)
         {
             ConversationReference botConversationReference = null;
 
-            if (ConversationReferenceToMessage != null)
+            if (conversationReferenceToMessage != null)
             {
                 // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
                 // The identity of the bot in the channel of the sender is most likely a different one and
                 // thus unusable since it will not be recognized on the recipient's channel.
                 botConversationReference = RoutingDataManager.FindBotConversationReferenceByChannelAndConversation(
-                    ConversationReferenceToMessage.ChannelId, ConversationReferenceToMessage.Conversation);
+                    conversationReferenceToMessage.ChannelId, conversationReferenceToMessage.Conversation);
             }
 
             if (botConversationReference != null
                 && botConversationReference.Bot != null)
             {
                 messageActivity.From = botConversationReference.Bot;
-                messageActivity.Recipient = ConversationReferenceToMessage.User;
+                messageActivity.Recipient = conversationReferenceToMessage.User;
 
-                MessagingUtils.ConnectorClientAndMessageBundle bundle =
-                    MessagingUtils.CreateConnectorClientAndMessageActivity(
-                        ConversationReferenceToMessage.ServiceUrl, messageActivity);
+                MessageRoutingUtils.ConnectorClientAndMessageBundle bundle =
+                    MessageRoutingUtils.CreateConnectorClientAndMessageActivity(
+                        conversationReferenceToMessage.ServiceUrl, messageActivity);
 
                 return await SendAsync(bundle);
             }
 
             return null;
         }
-
 
         /// <summary>
         /// Tries to send the given message to the given ConversationReference using this bot on the same channel
@@ -129,7 +127,7 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="ConversationReferenceToMessage">The ConversationReference to send the message to.</param>
         /// <param name="messageText">The message content.</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
-        public async Task<ResourceResponse> SendMessageToConversationReferenceByBotAsync(ConversationReference ConversationReferenceToMessage, string messageText)
+        public async Task<ResourceResponse> SendMessageAsync(ConversationReference ConversationReferenceToMessage, string messageText)
         {
             ConversationReference botConversationReference = null;
 
@@ -141,8 +139,8 @@ namespace Underscore.Bot.MessageRouting
 
             if (botConversationReference != null)
             {
-                MessagingUtils.ConnectorClientAndMessageBundle bundle =
-                    MessagingUtils.CreateConnectorClientAndMessageActivity(
+                MessageRoutingUtils.ConnectorClientAndMessageBundle bundle =
+                    MessageRoutingUtils.CreateConnectorClientAndMessageActivity(
                         ConversationReferenceToMessage, messageText, botConversationReference?.Bot);
 
                 return await SendAsync(bundle);
@@ -151,57 +149,15 @@ namespace Underscore.Bot.MessageRouting
             return null;
         }
 
-
         /// <summary>
-        /// Checks the given parties and adds them to the collection, if not already there.
-        /// 
-        /// Note that this method expects that the recipient is the bot. The sender could also be
-        /// the bot, but that case is checked before adding the sender to the container.
-        /// </summary>
-        /// <param name="senderConversationReference">The sender ConversationReference (from).</param>
-        /// <param name="recipientConversationReference">The recipient ConversationReference.</param>
-        public void MakeSurePartiesAreTracked(ConversationReference senderConversationReference, ConversationReference recipientConversationReference)
-        {
-            // Store the bot identity, if not already stored
-            RoutingDataManager.AddConversationReference(recipientConversationReference, false);
-
-            // Check that the ConversationReference who sent the message is not the bot
-            if (!RoutingDataManager.GetBotParties().Contains(senderConversationReference))
-            {
-                // Store the user ConversationReference, if not already stored
-                RoutingDataManager.AddConversationReference(senderConversationReference);
-            }
-        }
-
-
-        /// <summary>
-        /// Checks the given activity for new parties and adds them to the collection,
-        /// if not already there.
+        /// Stores the ConversationReference instances (sender and recipient) in the given activity.
         /// </summary>
         /// <param name="activity">The activity.</param>
-        public void MakeSurePartiesAreTracked(IActivity activity)
+        public void StoreConversationReferences(IActivity activity)
         {
-            MakeSurePartiesAreTracked(
-                MessagingUtils.CreateSenderConversationReference(activity),
-                MessagingUtils.CreateRecipientConversationReference(activity));
+            RoutingDataManager.AddConversationReference(MessageRoutingUtils.CreateSenderConversationReference(activity));
+            RoutingDataManager.AddConversationReference(MessageRoutingUtils.CreateRecipientConversationReference(activity));
         }
-
-
-        /// <summary>
-        /// Removes the given ConversationReference from the routing data.
-        /// For convenience.
-        /// </summary>
-        /// <param name="ConversationReferenceToRemove">The ConversationReference to remove.</param>
-        /// <returns>A list of operation result(s):
-        /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
-        /// - MessageRouterResultType.OK, if the ConversationReference was removed from the collection AND
-        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a connection request AND
-        /// - Disconnect() results, if the ConversationReference was connected in a conversation.</returns>
-        public IList<MessageRouterResult> RemoveConversationReference(ConversationReference ConversationReferenceToRemove)
-        {
-            return RoutingDataManager.RemoveConversationReference(ConversationReferenceToRemove);
-        }
-
 
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
@@ -215,30 +171,11 @@ namespace Underscore.Bot.MessageRouting
         /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation channel exists while one is required OR
         /// - MessageRouterResultType.Error in case of an error (see the error message).
         /// </returns>
-        public MessageRouterResult RequestConnection(
+        public MessageRouterResult CreateConnectionRequest(
             ConversationReference requestorConversationReference, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
             return RoutingDataManager.AddConnectionRequest(requestorConversationReference, rejectConnectionRequestIfNoAggregationChannel);
         }
-
-
-        /// <summary>
-        /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
-        /// the SENDER in the given activity. This method does nothing, if a request for the same
-        /// user already exists.
-        /// </summary>
-        /// <param name="activity">The activity. The SENDER in this activity (From property) is considered the requestor.</param>
-        /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
-        /// <returns>Same as RequestConnection(ConversationReference, bool)</returns>
-        public virtual MessageRouterResult RequestConnection(
-            IActivity activity, bool rejectConnectionRequestIfNoAggregationChannel = false)
-        {
-            MessageRouterResult messageRouterResult =
-                RequestConnection(MessagingUtils.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);
-            messageRouterResult.Activity = activity;
-            return messageRouterResult;
-        }
-
 
         /// <summary>
         /// Tries to reject the pending connection request of the given ConversationReference.
@@ -257,8 +194,8 @@ namespace Underscore.Bot.MessageRouting
             }
 
             MessageRouterResult messageRouteResult = RoutingDataManager.RemoveConnectionRequest(ConversationReferenceToReject);
-            messageRouteResult.ConversationClientConversationReference = ConversationReferenceToReject;
-            messageRouteResult.ConversationOwnerConversationReference = rejecterConversationReference;
+            messageRouteResult.ConversationReference2 = ConversationReferenceToReject;
+            messageRouteResult.ConversationReference1 = rejecterConversationReference;
 
             if (messageRouteResult.Type == MessageRouterResultType.Error)
             {
@@ -268,7 +205,6 @@ namespace Underscore.Bot.MessageRouting
 
             return messageRouteResult;
         }
-
 
         /// <summary>
         /// Tries to establish 1:1 chat between the two given parties.
@@ -301,8 +237,8 @@ namespace Underscore.Bot.MessageRouting
 
             MessageRouterResult result = new MessageRouterResult()
             {
-                ConversationOwnerConversationReference = conversationOwnerConversationReference,
-                ConversationClientConversationReference = conversationClientConversationReference
+                ConversationReference1 = conversationOwnerConversationReference,
+                ConversationReference2 = conversationClientConversationReference
             };
 
             ConversationReference botConversationReference = RoutingDataManager.FindBotConversationReferenceByChannelAndConversation(
@@ -355,7 +291,7 @@ namespace Underscore.Bot.MessageRouting
                     }
                 }
 
-                result = RoutingDataManager.ConnectAndClearConnectionRequest(conversationOwnerConversationReference, conversationClientConversationReference);
+                result = RoutingDataManager.ConnectAndRemoveConnectionRequest(conversationOwnerConversationReference, conversationClientConversationReference);
             }
             else
             {
@@ -366,7 +302,6 @@ namespace Underscore.Bot.MessageRouting
             return result;
         }
 
-
         /// <summary>
         /// Ends all 1:1 conversations of the given ConversationReference.
         /// </summary>
@@ -376,7 +311,6 @@ namespace Underscore.Bot.MessageRouting
         {
             return Disconnect(connectedConversationReference, ConnectionProfile.Any);
         }
-
 
         /// <summary>
         /// Ends the 1:1 conversation where the given ConversationReference is the conversation client (e.g. a customer).
@@ -389,7 +323,6 @@ namespace Underscore.Bot.MessageRouting
             return Disconnect(conversationClientConversationReference, ConnectionProfile.Client)[0];
         }
 
-
         /// <summary>
         /// Ends all 1:1 conversations of the given conversation owner ConversationReference (e.g. a customer service agent).
         /// </summary>
@@ -399,7 +332,6 @@ namespace Underscore.Bot.MessageRouting
         {
             return Disconnect(conversationOwnerConversationReference, ConnectionProfile.Owner);
         }
-
 
         /// <summary>
         /// Routes the message in the given activity, if the sender is connected in a conversation.
@@ -423,21 +355,21 @@ namespace Underscore.Bot.MessageRouting
                 Activity = activity
             };
 
-            ConversationReference senderConversationReference = MessagingUtils.CreateSenderConversationReference(activity);
+            ConversationReference senderConversationReference = MessageRoutingUtils.CreateSenderConversationReference(activity);
 
             if (RoutingDataManager.IsConnected(senderConversationReference, ConnectionProfile.Owner))
             {
                 // Sender is an owner of an ongoing conversation - forward the message
-                result.ConversationOwnerConversationReference = senderConversationReference;
+                result.ConversationReference1 = senderConversationReference;
                 ConversationReference ConversationReferenceToForwardMessageTo = RoutingDataManager.GetConnectedCounterpart(senderConversationReference);
 
                 if (ConversationReferenceToForwardMessageTo != null)
                 {
-                    result.ConversationClientConversationReference = ConversationReferenceToForwardMessageTo;
+                    result.ConversationReference2 = ConversationReferenceToForwardMessageTo;
                     string message = addOwnerNameToMessage
                         ? $"{senderConversationReference.User.Name}: {activity.Text}" : activity.Text;
                     ResourceResponse resourceResponse =
-                        await SendMessageToConversationReferenceByBotAsync(ConversationReferenceToForwardMessageTo, activity.Text);
+                        await SendMessageAsync(ConversationReferenceToForwardMessageTo, activity.Text);
 
                     if (resourceResponse != null)
                     {
@@ -458,15 +390,15 @@ namespace Underscore.Bot.MessageRouting
             else if (RoutingDataManager.IsConnected(senderConversationReference, ConnectionProfile.Client))
             {
                 // Sender is a participant of an ongoing conversation - forward the message
-                result.ConversationClientConversationReference = senderConversationReference;
+                result.ConversationReference2 = senderConversationReference;
                 ConversationReference ConversationReferenceToForwardMessageTo = RoutingDataManager.GetConnectedCounterpart(senderConversationReference);
 
                 if (ConversationReferenceToForwardMessageTo != null)
                 {
-                    result.ConversationOwnerConversationReference = ConversationReferenceToForwardMessageTo;
+                    result.ConversationReference1 = ConversationReferenceToForwardMessageTo;
                     string message = addClientNameToMessage
                         ? $"{senderConversationReference.User.Name}: {activity.Text}" : activity.Text;
-                    await SendMessageToConversationReferenceByBotAsync(ConversationReferenceToForwardMessageTo, message);
+                    await SendMessageAsync(ConversationReferenceToForwardMessageTo, message);
                     result.Type = MessageRouterResultType.OK;
                 }
                 else
@@ -479,14 +411,13 @@ namespace Underscore.Bot.MessageRouting
             return result;
         }
 
-
         /// <summary>
         /// Sends a message activity to the conversation using the given bundle.
         /// </summary>
         /// <param name="bundle">The bundle containing the connector client and the message activity to send.</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
         protected virtual async Task<ResourceResponse> SendAsync(
-            MessagingUtils.ConnectorClientAndMessageBundle bundle)
+            MessageRoutingUtils.ConnectorClientAndMessageBundle bundle)
         {
             ResourceResponse resourceResponse = null;
 
@@ -507,7 +438,6 @@ namespace Underscore.Bot.MessageRouting
 
             return resourceResponse;
         }
-
 
         /// <summary>
         /// Ends the conversation(s) of the given ConversationReference.
@@ -541,11 +471,11 @@ namespace Underscore.Bot.MessageRouting
 
                 if (connectionProfile == ConnectionProfile.Client)
                 {
-                    messageRouterResult.ConversationClientConversationReference = connectedConversationReference;
+                    messageRouterResult.ConversationReference2 = connectedConversationReference;
                 }
                 else if (connectionProfile == ConnectionProfile.Owner)
                 {
-                    messageRouterResult.ConversationOwnerConversationReference = connectedConversationReference;
+                    messageRouterResult.ConversationReference1 = connectedConversationReference;
                 }
 
                 messageRouterResults.Add(messageRouterResult);

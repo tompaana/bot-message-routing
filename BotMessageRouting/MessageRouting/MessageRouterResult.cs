@@ -1,5 +1,5 @@
 ﻿using Microsoft.Bot.Schema;
-using Underscore.Bot.Models;
+using System.Collections.Generic;
 
 namespace Underscore.Bot.MessageRouting
 {
@@ -34,7 +34,6 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-
         /// <summary>
         /// Activity instance associated with the result.
         /// </summary>        
@@ -43,7 +42,6 @@ namespace Underscore.Bot.MessageRouting
             get;
             set;
         }
-
 
         /// <summary>
         /// A valid ConversationResourceResponse of the newly created direct conversation
@@ -57,20 +55,11 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-
-        public ConversationReference ConversationOwnerConversationReference
+        public IList<ConversationReference> ConversationReferences
         {
             get;
             set;
         }
-
-
-        public ConversationReference ConversationClientConversationReference
-        {
-            get;
-            set;
-        }
-
 
         public string ErrorMessage
         {
@@ -78,20 +67,19 @@ namespace Underscore.Bot.MessageRouting
             set;
         }
 
-
         /// <summary>
         /// Constructor.
         /// </summary>
         public MessageRouterResult()
         {
             Type = MessageRouterResultType.NoActionTaken;
+            ConversationReferences = new List<ConversationReference>();
             ErrorMessage = string.Empty;
         }
 
-
         public override string ToString()
         {
-            return $"[{Type}; {ConversationResourceResponse}; {ConversationOwnerConversationReference}; {ConversationClientConversationReference}; {ErrorMessage}]";
+            return $"[{Type}; {ConversationResourceResponse}; {ErrorMessage}]";
         }
     }
 }

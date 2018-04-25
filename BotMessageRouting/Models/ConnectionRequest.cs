@@ -25,7 +25,6 @@ namespace Underscore.Bot.Models
         public ConnectionRequest(ConversationReference requestor)
         {
             Requestor = requestor;
-
             ResetConnectionRequestTime(); 
         }
 

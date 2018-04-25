@@ -1,10 +1,11 @@
-﻿using Microsoft.Bot.Schema;
+﻿using Underscore.Bot.Utils;
+using Microsoft.Bot.Schema;
 using System;
 
 namespace Underscore.Bot.Models
 {
     [Serializable]
-    public class Connection
+    public class Connection : IEquatable<Connection>
     {
         /// <summary>
         /// Represents the last time in which user and agent interact in the connection.
@@ -16,23 +17,37 @@ namespace Underscore.Bot.Models
             set;
         }
 
-        public ConversationReference Requestor
+        public ConversationReference ConversationReference1
         {
             get;
             set;
         }
 
-        public ConversationReference Approver
+        public ConversationReference ConversationReference2
         {
             get;
             set;
         }
 
-        public Connection(ConversationReference requestor, ConversationReference approver)
+        public Connection(ConversationReference conversationReference1, ConversationReference conversationReference2)
         {
-            Requestor = requestor;
-            Approver = approver;
+            ConversationReference1 = conversationReference1;
+            ConversationReference2 = conversationReference2;
             LastInteractionTime = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Checks if the given connection matches this one.
+        /// </summary>
+        /// <param name="other">The other connection.</param>
+        /// <returns>True, if the connections are match. False otherwise.</returns>
+        public bool Equals(Connection other)
+        {
+            return (other != null
+                && ((MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference1)
+                     && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference2))
+                     || (MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference1, other.ConversationReference2)
+                         && MessageRoutingUtils.HasMatchingChannelAccountInformation(ConversationReference2, other.ConversationReference1)));
         }
     }
 }

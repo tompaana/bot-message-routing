@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Bot.Schema;
+using System;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
@@ -16,7 +17,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
     /// properties and methods.
     /// </summary>
     [Serializable]
-    public class LocalRoutingDataManager : AbstractRoutingDataManager
+    public class LocalRoutingDataManager : IRoutingDataStore
     {
         /// <summary>
         /// Parties that are users (not this bot).
@@ -95,7 +96,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             return botPartiesAsList?.AsReadOnly();
         }
 
-        public override IList<ConversationReference> GetAggregationParties()
+        public override IList<ConversationReference> GetAggregationChannels()
         {
             List<ConversationReference> aggregationPartiesAsList = AggregationParties as List<ConversationReference>;
             return aggregationPartiesAsList?.AsReadOnly();

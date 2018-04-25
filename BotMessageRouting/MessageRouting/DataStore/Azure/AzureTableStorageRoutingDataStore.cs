@@ -19,7 +19,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     /// properties and methods.
     /// </summary>
     [Serializable]
-    public class AzureTableStorageRoutingDataManager : AbstractRoutingDataManager
+    public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
         protected const string TableNameBotParties = "BotParties";
         protected const string TableNameUserParties = "UserParties";
@@ -40,7 +40,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
-        public AzureTableStorageRoutingDataManager(string connectionString, GlobalTimeProvider globalTimeProvider = null)
+        public AzureTableStorageRoutingDataStore(string connectionString, GlobalTimeProvider globalTimeProvider = null)
             : base(globalTimeProvider)
         {
             if (string.IsNullOrEmpty(connectionString))
@@ -67,7 +67,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Bot).Result);
         }
 
-        public override IList<ConversationReference> GetAggregationParties()
+        public override IList<ConversationReference> GetAggregationChannels()
         {
             return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Aggregation).Result);
         }

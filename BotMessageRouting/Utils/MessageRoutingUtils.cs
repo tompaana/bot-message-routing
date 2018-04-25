@@ -1,15 +1,16 @@
 ﻿using Microsoft.Bot.Connector;
 using Microsoft.Bot.Schema;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Underscore.Bot.Models;
 
 namespace Underscore.Bot.Utils
 {
     /// <summary>
     /// Utility methods.
     /// </summary>
-    public class MessagingUtils
+    public class MessageRoutingUtils
     {
         public struct ConnectorClientAndMessageBundle
         {
@@ -175,6 +176,85 @@ namespace Underscore.Bot.Utils
             }
 
             return strippedMessage;
+        }
+
+        /// <summary>
+        /// Checks if the given ConversationReference contains the ChannelAccount instance for a bot.
+        /// </summary>
+        /// <param name="conversationReference">The ConversationReference instance to check.</param>
+        /// <returns>True, if the ChannelAccount instance for the bot is not null. False otherwise.</returns>
+        public static bool IsBot(ConversationReference conversationReference)
+        {
+            return (conversationReference.Bot != null);
+        }
+
+        /// <summary>
+        /// Resolves the non-null ChannelAccount instance from the given ConversationReference.
+        /// </summary>
+        /// <param name="conversationReference"></param>
+        /// <returns>The non-null ChannelAccount (user or bot) or null, if both are null.</returns>
+        public static ChannelAccount GetChannelAccount(ConversationReference conversationReference)
+        {
+            if (conversationReference.User != null)
+            {
+                return conversationReference.User;
+            }
+
+            if (conversationReference.Bot != null)
+            {
+                return conversationReference.Bot;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Compares the ChannelAccount instances of the given ConversationReferences.
+        /// </summary>
+        /// <param name="conversationReference1"></param>
+        /// <param name="conversationReference2"></param>
+        /// <returns>True, if the ChannelAccount instances (IDs) match. False otherwise.</returns>
+        public static bool HasMatchingChannelAccountInformation(
+            ConversationReference conversationReference1, ConversationReference conversationReference2)
+        {
+            if (conversationReference1.Bot != null && conversationReference2.Bot != null)
+            {
+                return conversationReference1.Bot.Id.Equals(conversationReference2.Bot.Id);
+            }
+            else if (conversationReference1.User != null && conversationReference2.User != null)
+            {
+                return conversationReference1.User.Id.Equals(conversationReference2.User.Id);
+            }
+
+            return false;
+        }
+
+        public static IList<ConversationReference> ResolveConversationReferencesWithMatchingChannelAccount(
+            ConversationReference conversationReferenceToFind, IList<ConversationReference> conversationReferenceCandidates)
+        {
+            IList<ConversationReference> matchingParties = null;
+            IEnumerable<ConversationReference> foundConversationReferences = null;
+
+            try
+            {
+                foundConversationReferences = conversationReferenceCandidates.Where(conversationReference =>
+                        HasMatchingChannelAccountInformation(conversationReferenceToFind, conversationReference));
+            }
+            catch (ArgumentNullException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find a conversation reference: {e.Message}");
+            }
+            catch (InvalidOperationException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find a conversation reference: {e.Message}");
+            }
+
+            if (foundConversationReferences != null)
+            {
+                matchingParties = foundConversationReferences.ToArray();
+            }
+
+            return matchingParties;
         }
     }
 }
