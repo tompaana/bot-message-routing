@@ -19,7 +19,7 @@ namespace Underscore.Bot.MessageRouting
     }
 
     /// <summary>
-    /// Represents a result of more complex operations executed by MessageRouterManager (when
+    /// Represents a result of more complex operations executed by MessageRouter (when
     /// boolean just isn't enough).
     /// 
     /// Note that - as this class serves different kind of operations with different kind of

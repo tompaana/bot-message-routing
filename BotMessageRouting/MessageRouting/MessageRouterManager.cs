@@ -14,7 +14,7 @@ namespace Underscore.Bot.MessageRouting
     /// 
     /// Note that your bot should only ever have but one instance of this class!
     /// </summary>
-    public class MessageRouterManager
+    public class MessageRouter
     {
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
@@ -29,7 +29,7 @@ namespace Underscore.Bot.MessageRouting
         /// Constructor.
         /// </summary>
         /// <param name="routingDataManager">The routing data manager.</param>
-        public MessageRouterManager(IRoutingDataManager routingDataManager)
+        public MessageRouter(IRoutingDataManager routingDataManager)
         {
             RoutingDataManager = routingDataManager;
         }
