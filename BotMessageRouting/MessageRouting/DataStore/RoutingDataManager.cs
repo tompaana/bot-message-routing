@@ -203,7 +203,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="aggregationChannelToRemove">The aggregation channel to remove.</param>
         /// <returns>True, if removed successfully. False otherwise.</returns>
-        public virtual bool RemoveaggregationChannel(ConversationReference aggregationChannelToRemove)
+        public virtual bool RemoveAggregationChannel(ConversationReference aggregationChannelToRemove)
         {
             return RoutingDataStore.RemoveAggregationChannel(aggregationChannelToRemove);
         }
