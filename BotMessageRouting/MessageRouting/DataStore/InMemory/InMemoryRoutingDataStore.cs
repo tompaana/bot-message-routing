@@ -23,13 +23,13 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// Parties that are users (not this bot).
         /// </summary>
-        protected IList<ConversationReference> UserParties { get; set; }
+        protected IList<ConversationReference> Users { get; set; }
 
         /// <summary>
         /// If the bot is addressed from different channels, its identity in terms of ID and name
         /// can vary. Those different identities are stored in this list.
         /// </summary>
-        protected IList<ConversationReference> BotParties { get; set; }
+        protected IList<ConversationReference> BotInstances { get; set; }
 
         /// <summary>
         /// Represents the channels (and the specific conversations e.g. specific channel in Slack),
@@ -58,20 +58,20 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             : base()
         {
             AggregationChannels = new List<ConversationReference>();
-            UserParties = new List<ConversationReference>();
-            BotParties = new List<ConversationReference>();
+            Users = new List<ConversationReference>();
+            BotInstances = new List<ConversationReference>();
             ConnectionRequests = new List<ConnectionRequest>();
         }
 
         public IList<ConversationReference> GetUsers()
         {
-            List<ConversationReference> userPartiesAsList = UserParties as List<ConversationReference>;
+            List<ConversationReference> userPartiesAsList = Users as List<ConversationReference>;
             return userPartiesAsList?.AsReadOnly();
         }
 
         public IList<ConversationReference> GetBotInstances()
         {
-            List<ConversationReference> botPartiesAsList = BotParties as List<ConversationReference>;
+            List<ConversationReference> botPartiesAsList = BotInstances as List<ConversationReference>;
             return botPartiesAsList?.AsReadOnly();
         }
 
@@ -79,13 +79,13 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         {
             if (conversationReferenceToAdd.User != null)
             {
-                UserParties.Add(conversationReferenceToAdd);
+                Users.Add(conversationReferenceToAdd);
                 return true;
             }
             
             if (conversationReferenceToAdd.Bot != null)
             {
-                BotParties.Add(conversationReferenceToAdd);
+                BotInstances.Add(conversationReferenceToAdd);
                 return true;
             }
 
@@ -96,12 +96,12 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         {
             if (conversationReferenceToRemove.User !=null)
             {
-                return UserParties.Remove(conversationReferenceToRemove);
+                return Users.Remove(conversationReferenceToRemove);
             }
 
             if(conversationReferenceToRemove.Bot != null)
             {
-                return BotParties.Remove(conversationReferenceToRemove);
+                return BotInstances.Remove(conversationReferenceToRemove);
             }
 
             return false;

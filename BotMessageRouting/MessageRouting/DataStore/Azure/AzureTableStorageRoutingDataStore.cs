@@ -4,10 +4,8 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Underscore.Bot.Models;
-using Underscore.Bot.Models.Azure;
 using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
@@ -18,19 +16,20 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     /// See IRoutingDataManager and AbstractRoutingDataManager for general documentation of
     /// properties and methods.
     /// </summary>
+
     [Serializable]
     public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
-        protected const string TableNameBotParties = "BotParties";
-        protected const string TableNameUserParties = "UserParties";
-        protected const string TableNameAggregationParties = "AggregationParties";
+        protected const string TableNameBotInstances = "BotInstances";
+        protected const string TableNameUsers= "Users";
+        protected const string TableNameAggregationChannels = "AggregationChannels";
         protected const string TableNameConnectionRequests = "ConnectionRequests";
         protected const string TableNameConnections = "Connections";
         protected const string PartitionKey = "PartitionKey";
 
-        protected CloudTable _botPartiesTable;
-        protected CloudTable _userPartiesTable;
-        protected CloudTable _aggregationPartiesTable;
+        protected CloudTable _botInstancesTable;
+        protected CloudTable _usersTable;
+        protected CloudTable _aggregationChannelsTable;
         protected CloudTable _connectionRequestsTable;
         protected CloudTable _connectionsTable;
 
@@ -41,143 +40,169 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
         public AzureTableStorageRoutingDataStore(string connectionString, GlobalTimeProvider globalTimeProvider = null)
-            : base(globalTimeProvider)
+            : base()
         {
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new ArgumentNullException("The connection string cannot be null or empty");
             }
 
-            _botPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotParties);
-            _userPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameUserParties);
-            _aggregationPartiesTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationParties);
+            _botInstancesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
+            _usersTable = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
+            _aggregationChannelsTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationChannels);
             _connectionRequestsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
             _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
 
             MakeSureTablesExistAsync();
         }
-
-        public override IList<ConversationReference> GetUserParties()
+        #region Get region
+        public IList<ConversationReference> GetUsers()
         {
-            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.User).Result);
+            var entities = GetAllEntitiesFromTable("botHandOff", _usersTable).Result;
+
+            return GetAllConversationReferencesFromEntities(entities);
         }
 
-        public override IList<ConversationReference> GetBotParties()
+        public IList<ConversationReference> GetBotInstances()
         {
-            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Bot).Result);
+            var entities = GetAllEntitiesFromTable("botHandOff", _botInstancesTable).Result;
+
+            return GetAllConversationReferencesFromEntities(entities);
         }
 
-        public override IList<ConversationReference> GetAggregationChannels()
+        public IList<ConversationReference> GetAggregationChannels()
         {
-            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.Aggregation).Result);
+            var entities = GetAllEntitiesFromTable("botHandOff", _aggregationChannelsTable).Result;
+
+            return GetAllConversationReferencesFromEntities(entities);
         }
 
-        public override IList<ConversationReference> GetConnectionRequests()
+        public IList<ConnectionRequest> GetConnectionRequests()
         {
-            return ToConversationReferenceList(GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType.ConnectionRequest).Result);
-        }
+            IList<HandOffEntity> entities = GetAllEntitiesFromTable("botHandOff", _connectionRequestsTable).Result;
 
-        public override Dictionary<ConversationReference, ConversationReference> GetConnectedParties()
-        {
-            return ToConnectedPartiesDictionary(GetConnectionEntitiesAsync().Result);
-        }
-
-        public override async void DeleteAll()
-        {
-            base.DeleteAll();
-
-            CloudTable[] cloudTables =
-{
-                _botPartiesTable,
-                _userPartiesTable,
-                _aggregationPartiesTable,
-                _connectionsTable
-            };
-
-            foreach (CloudTable cloudTable in cloudTables)
+            List<ConnectionRequest> connectionRequests = new List<ConnectionRequest>();
+            foreach (HandOffEntity entity in entities)
             {
-                try
-                {
-                    var ConversationReferenceEntities = await GetConversationReferenceEntitiesAsync(cloudTable);
-
-                    foreach (var ConversationReferenceEntity in ConversationReferenceEntities)
-                    {
-                        await AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
-                            cloudTable, ConversationReferenceEntity.PartitionKey, ConversationReferenceEntity.RowKey);
-                    }
-                }
-                catch (StorageException e)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to delete entries from table '{cloudTable.Name}': {e.Message}");
-                    return;
-                }
+                ConnectionRequest connectionRequest =
+                    JsonConvert.DeserializeObject<ConnectionRequest>(entity.Body);
+                connectionRequests.Add(connectionRequest);
             }
+            return connectionRequests;
+        }
 
-            var connectionEntities = await GetConnectionEntitiesAsync();
+        public IList<Connection> GetConnections()
+        {
+            IList<HandOffEntity> entities = GetAllEntitiesFromTable("botHandOff", _connectionsTable).Result;
 
-            foreach (var connectionEntity in connectionEntities)
+            List<Connection> connections = new List<Connection>();
+            foreach (HandOffEntity entity in entities)
             {
-                await AzureStorageHelper.DeleteEntryAsync<ConnectionEntity>(
-                    _connectionsTable, connectionEntity.PartitionKey, connectionEntity.RowKey);
+                Connection connection =
+                    JsonConvert.DeserializeObject<Connection>(entity.Body);
+                connections.Add(connection);
             }
+            return connections;
+        }
+        #endregion
+
+        #region Add region
+        public bool AddConversationReference(ConversationReference conversationReferenceToAdd)
+        {
+            CloudTable table;
+            if (conversationReferenceToAdd.Bot != null)
+                table = _botInstancesTable;
+            else table = _usersTable;
+
+            return AzureStorageHelper.InsertAsync<HandOffEntity>(
+                table,
+                new HandOffEntity()
+                {
+                    Body = JsonConvert.SerializeObject(conversationReferenceToAdd),
+                    PartitionKey = "handOffBot",
+                    RowKey = conversationReferenceToAdd.Conversation.Id
+                }).Result;
         }
 
-        protected override bool ExecuteAddConversationReference(ConversationReference ConversationReferenceToAdd, bool isUser)
+        public bool AddAggregationChannel(ConversationReference aggregationChannelToAdd)
         {
-            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
-                isUser ? _userPartiesTable : _botPartiesTable,
-                new ConversationReferenceEntity(ConversationReferenceToAdd, isUser ? ConversationReferenceEntityType.User : ConversationReferenceEntityType.Bot)).Result;
+            return AzureStorageHelper.InsertAsync<HandOffEntity>(
+                _aggregationChannelsTable,
+                new HandOffEntity()
+                {
+                    Body = JsonConvert.SerializeObject(aggregationChannelToAdd),
+                    PartitionKey = "handOffBot",
+                    RowKey = aggregationChannelToAdd.Conversation.Id
+                }).Result;
         }
 
-        protected override bool ExecuteRemoveConversationReference(ConversationReference ConversationReferenceToRemove, bool isUser)
+        public bool AddConnectionRequest(ConnectionRequest connectionRequestToAdd)
         {
-            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
-                isUser ? _userPartiesTable : _botPartiesTable,
-                ConversationReferenceEntity.CreatePartitionKey(ConversationReferenceToRemove, isUser ? ConversationReferenceEntityType.User : ConversationReferenceEntityType.Bot),
-                ConversationReferenceEntity.CreateRowKey(ConversationReferenceToRemove)).Result;
-        }
-
-        protected override bool ExecuteAddAggregationConversationReference(ConversationReference aggregationConversationReferenceToAdd)
-        {
-            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
-                _aggregationPartiesTable, new ConversationReferenceEntity(aggregationConversationReferenceToAdd, ConversationReferenceEntityType.Aggregation)).Result;
-        }
-
-        protected override bool ExecuteRemoveAggregationConversationReference(ConversationReference aggregationConversationReferenceToRemove)
-        {
-            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
-                _aggregationPartiesTable,
-                ConversationReferenceEntity.CreatePartitionKey(aggregationConversationReferenceToRemove, ConversationReferenceEntityType.Aggregation),
-                ConversationReferenceEntity.CreateRowKey(aggregationConversationReferenceToRemove)).Result;
-        }
-
-        protected override bool ExecuteAddConnectionRequest(ConversationReference requestorConversationReference)
-        {
-            return AzureStorageHelper.InsertAsync<ConversationReferenceEntity>(
-                _connectionRequestsTable, new ConversationReferenceEntity(requestorConversationReference, ConversationReferenceEntityType.ConnectionRequest)).Result;
-        }
-
-        protected override bool ExecuteRemoveConnectionRequest(ConversationReference requestorConversationReference)
-        {
-            return AzureStorageHelper.DeleteEntryAsync<ConversationReferenceEntity>(
+            return AzureStorageHelper.InsertAsync<HandOffEntity>(
                 _connectionRequestsTable,
-                ConversationReferenceEntity.CreatePartitionKey(requestorConversationReference, ConversationReferenceEntityType.ConnectionRequest),
-                ConversationReferenceEntity.CreateRowKey(requestorConversationReference)).Result;
+                new HandOffEntity()
+                {
+                    Body = JsonConvert.SerializeObject(connectionRequestToAdd),
+                    PartitionKey = "handOffBot",
+                    RowKey = connectionRequestToAdd.Requestor.Conversation.Id
+                }).Result;
         }
-
-        protected override bool ExecuteAddConnection(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference)
+        public bool AddConnection(Connection connectionToAdd)
         {
-            string conversationOwnerAccountID, conversationClientAccountID;
-            CheckWichConversationReferenceIsNull(conversationOwnerConversationReference, conversationClientConversationReference, out conversationOwnerAccountID, out conversationClientAccountID);
+            string rowKey = connectionToAdd.ConversationReference1.Conversation.Id +
+                connectionToAdd.ConversationReference2.Conversation.Id;
 
-            return AzureStorageHelper.InsertAsync<ConnectionEntity>(_connectionsTable, new ConnectionEntity()
-            {
-                PartitionKey = conversationClientAccountID,
-                RowKey = conversationOwnerAccountID,
-                Client = JsonConvert.SerializeObject(new ConversationReferenceEntity(conversationClientConversationReference, ConversationReferenceEntityType.Client)),
-                Owner = JsonConvert.SerializeObject(new ConversationReferenceEntity(conversationOwnerConversationReference, ConversationReferenceEntityType.Owner))
-            }).Result;
+            return AzureStorageHelper.InsertAsync<HandOffEntity>(
+                _connectionRequestsTable,
+                new HandOffEntity()
+                {
+                    Body = JsonConvert.SerializeObject(connectionToAdd),
+                    PartitionKey = "handOffBot",
+                    RowKey = rowKey
+                }).Result;
         }
+        #endregion
+
+        #region Remove region
+        public bool RemoveConversationReference(ConversationReference conversationReferenceToAdd)
+        {
+            CloudTable table;
+            if (conversationReferenceToAdd.Bot != null)
+                table = _botInstancesTable;
+            else table = _usersTable;
+
+            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
+                table, 
+                "handOffBot", 
+                conversationReferenceToAdd.Conversation.Id).Result;
+        }
+
+        public bool RemoveAggregationChannel(ConversationReference toRemove)
+        {
+            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
+                _connectionRequestsTable, 
+                "handOffBot", 
+                toRemove.Conversation.Id).Result;
+        }
+
+        public bool RemoveConnectionRequest(ConnectionRequest connectionRequestToRemove)
+        {
+            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
+                _connectionRequestsTable, 
+                "handOffBot", 
+                connectionRequestToRemove.Requestor.Conversation.Id).Result;
+        }
+
+        public bool RemoveConnection(Connection connectionToRemove)
+        {
+            string rowKey = connectionToRemove.ConversationReference1.Conversation.Id +
+                connectionToRemove.ConversationReference2.Conversation.Id;
+            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
+                _connectionsTable, 
+                "handOffBot", 
+                rowKey).Result;
+        }
+        #endregion
 
         // PARTIAL METHOD
         private static void CheckWichConversationReferenceIsNull(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference, out string conversationOwnerAccountID, out string conversationClientAccountID)
@@ -191,26 +216,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             else conversationOwnerAccountID = conversationOwnerConversationReference.User.Id;
         }
 
-        protected override bool ExecuteRemoveConnection(ConversationReference conversationOwnerConversationReference)
-        {
-            Dictionary<ConversationReference, ConversationReference> connectedParties = GetConnectedParties();
-
-            if (connectedParties != null && connectedParties.Remove(conversationOwnerConversationReference))
-            {
-                ConversationReference conversationClientConversationReference = GetConnectedCounterpart(conversationOwnerConversationReference);
-
-                string conversationOwnerAccountID, conversationClientAccountID;
-                CheckWichConversationReferenceIsNull(conversationOwnerConversationReference, conversationClientConversationReference, out conversationOwnerAccountID, out conversationClientAccountID);
-
-                return AzureStorageHelper.DeleteEntryAsync<ConnectionEntity>(
-                    _connectionsTable,
-                    conversationClientAccountID,
-                    conversationOwnerAccountID).Result;
-            }
-
-            return false;
-        }
-
         /// <summary>
         /// Makes sure the required tables exist.
         /// </summary>
@@ -218,9 +223,9 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         {
             CloudTable[] cloudTables =
             {
-                _botPartiesTable,
-                _userPartiesTable,
-                _aggregationPartiesTable,
+                _botInstancesTable,
+                _usersTable,
+                _aggregationChannelsTable,
                 _connectionRequestsTable,
                 _connectionsTable
             };
@@ -259,98 +264,32 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
         }
 
-        /// <summary>
-        /// Resolves the cloud table associated with the given ConversationReference entity type.
-        /// </summary>
-        /// <param name="ConversationReferenceEntityType">The ConversationReference entity type.</param>
-        /// <returns>The cloud table associated with the ConversationReference entity type.</returns>
-        protected virtual CloudTable CloudTableByConversationReferenceEntityType(ConversationReferenceEntityType ConversationReferenceEntityType)
+        private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<HandOffEntity> entities)
         {
-            switch (ConversationReferenceEntityType)
+            List<ConversationReference> conversationReferences = new List<ConversationReference>();
+            foreach (HandOffEntity entity in entities)
             {
-                case ConversationReferenceEntityType.Bot:
-                    return _botPartiesTable;
-                case ConversationReferenceEntityType.User:
-                    return _userPartiesTable;
-                case ConversationReferenceEntityType.Aggregation:
-                    return _aggregationPartiesTable;
-                case ConversationReferenceEntityType.ConnectionRequest:
-                    return _connectionRequestsTable;
-                default:
-                    throw new ArgumentException($"No cloud table associated with ConversationReference entity type {ConversationReferenceEntityType}");
+                ConversationReference conversationReference =
+                    JsonConvert.DeserializeObject<ConversationReference>(entity.Body);
+                conversationReferences.Add(conversationReference);
             }
+            return conversationReferences;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="cloudTable"></param>
-        /// <param name="tableQuery"></param>
-        /// <returns></returns>
-        protected virtual async Task<IEnumerable<ConversationReferenceEntity>> GetConversationReferenceEntitiesAsync(
-            CloudTable cloudTable, TableQuery<ConversationReferenceEntity> tableQuery = null)
+        private async Task<IList<HandOffEntity>> GetAllEntitiesFromTable(string partitionKey, CloudTable table)
         {
-            tableQuery = tableQuery ?? new TableQuery<ConversationReferenceEntity>();
-            return await AzureStorageHelper.ExecuteTableQueryAsync<ConversationReferenceEntity>(cloudTable, tableQuery);
+            TableQuery<HandOffEntity> query = new TableQuery<HandOffEntity>()
+                .Where(TableQuery.GenerateFilterCondition(
+                    "PartitionKey",
+                    QueryComparisons.Equal,
+                    partitionKey));
+
+            return await table.ExecuteTableQueryAsync(query);
         }
+    }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="ConversationReferenceEntityType"></param>
-        /// <returns></returns>
-        protected virtual async Task<IEnumerable<ConversationReferenceEntity>> GetConversationReferenceEntitiesAsync(ConversationReferenceEntityType ConversationReferenceEntityType)
-        {
-            TableQuery<ConversationReferenceEntity> tableQuery = new TableQuery<ConversationReferenceEntity>();
-            return await GetConversationReferenceEntitiesAsync(CloudTableByConversationReferenceEntityType(ConversationReferenceEntityType), tableQuery);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="tableQuery"></param>
-        /// <returns></returns>
-        protected virtual async Task<IEnumerable<ConnectionEntity>> GetConnectionEntitiesAsync(TableQuery<ConnectionEntity> tableQuery = null)
-        {
-            Dictionary<ConversationReference, ConversationReference> connectedParties = new Dictionary<ConversationReference, ConversationReference>();
-            tableQuery = tableQuery ?? new TableQuery<ConnectionEntity>();
-            return await AzureStorageHelper.ExecuteTableQueryAsync(_connectionsTable, tableQuery);
-        }
-
-        /// <summary>
-        /// Converts the given entities into a ConversationReference list.
-        /// </summary>
-        /// <param name="ConversationReferenceEntities">The entities to convert.</param>
-        /// <returns>A newly created list of parties based on the given entities.</returns>
-        protected virtual List<ConversationReference> ToConversationReferenceList(IEnumerable<ConversationReferenceEntity> ConversationReferenceEntities)
-        {
-            List<ConversationReference> ConversationReferenceList = new List<ConversationReference>();
-
-            foreach (var ConversationReferenceEntity in ConversationReferenceEntities)
-            {
-                ConversationReferenceList.Add(ConversationReferenceEntity.ToConversationReference());
-            }
-
-            return ConversationReferenceList.ToList();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="connectionEntities"></param>
-        /// <returns></returns>
-        protected virtual Dictionary<ConversationReference, ConversationReference> ToConnectedPartiesDictionary(IEnumerable<ConnectionEntity> connectionEntities)
-        {
-            Dictionary<ConversationReference, ConversationReference> connectedParties = new Dictionary<ConversationReference, ConversationReference>();
-
-            foreach (var connectionEntity in connectionEntities)
-            {
-                connectedParties.Add(
-                    JsonConvert.DeserializeObject<ConversationReferenceEntity>(connectionEntity.Owner).ToConversationReference(),
-                    JsonConvert.DeserializeObject<ConversationReferenceEntity>(connectionEntity.Client).ToConversationReference());
-            }
-
-            return connectedParties;
-        }
+    public class HandOffEntity : TableEntity
+    {
+        public string Body { get; set; }
     }
 }
