@@ -204,18 +204,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         }
         #endregion
 
-        // PARTIAL METHOD
-        private static void CheckWichConversationReferenceIsNull(ConversationReference conversationOwnerConversationReference, ConversationReference conversationClientConversationReference, out string conversationOwnerAccountID, out string conversationClientAccountID)
-        {
-            if (conversationClientConversationReference.Bot != null)
-                conversationClientAccountID = conversationClientConversationReference.Bot.Id;
-            else conversationClientAccountID = conversationClientConversationReference.User.Id;
-
-            if (conversationOwnerConversationReference.Bot != null)
-                conversationOwnerAccountID = conversationOwnerConversationReference.Bot.Id;
-            else conversationOwnerAccountID = conversationOwnerConversationReference.User.Id;
-        }
-
         /// <summary>
         /// Makes sure the required tables exist.
         /// </summary>
@@ -241,26 +229,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 {
                     System.Diagnostics.Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
                 }
-            }
-        }
-
-        protected virtual void OnPartiesTableCreateIfNotExistsFinished(IAsyncResult result)
-        {
-            if (result == null)
-            {
-                System.Diagnostics.Debug.WriteLine((result.IsCompleted)
-                    ? "Create table operation for parties table completed"
-                    : "Create table operation for parties table did not complete");
-            }
-        }
-
-        protected virtual void OnConnectionsTableCreateIfNotExistsFinished(IAsyncResult result)
-        {
-            if (result == null)
-            {
-                System.Diagnostics.Debug.WriteLine((result.IsCompleted)
-                    ? "Create table operation for connections table completed"
-                    : "Create table operation for connections table did not complete");
             }
         }
 
