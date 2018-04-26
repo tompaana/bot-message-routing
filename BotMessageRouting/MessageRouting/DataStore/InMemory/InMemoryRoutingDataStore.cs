@@ -17,7 +17,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
     /// properties and methods.
     /// </summary>
     [Serializable]
-    public class LocalRoutingDataManager : IRoutingDataStore
+    public class InMemoryRoutingDataStore : IRoutingDataStore
     {
         #region Classes
         /// <summary>
@@ -54,7 +54,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// </summary>
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
-        public LocalRoutingDataManager(GlobalTimeProvider globalTimeProvider = null)
+        public InMemoryRoutingDataStore(GlobalTimeProvider globalTimeProvider = null)
             : base()
         {
             AggregationChannels = new List<ConversationReference>();
