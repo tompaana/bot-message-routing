@@ -21,7 +21,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
         protected const string TableNameBotInstances = "BotInstances";
-        protected const string TableNameUsers= "Users";
+        protected const string TableNameUsers = "Users";
         protected const string TableNameAggregationChannels = "AggregationChannels";
         protected const string TableNameConnectionRequests = "ConnectionRequests";
         protected const string TableNameConnections = "Connections";
@@ -55,6 +55,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             MakeSureTablesExistAsync();
         }
+
         #region Get region
         public IList<ConversationReference> GetUsers()
         {
@@ -114,52 +115,34 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 table = _botInstancesTable;
             else table = _usersTable;
 
-            return AzureStorageHelper.InsertAsync<HandOffEntity>(
-                table,
-                new HandOffEntity()
-                {
-                    Body = JsonConvert.SerializeObject(conversationReferenceToAdd),
-                    PartitionKey = "handOffBot",
-                    RowKey = conversationReferenceToAdd.Conversation.Id
-                }).Result;
+            string rowKey = conversationReferenceToAdd.Conversation.Id;
+            string body = JsonConvert.SerializeObject(conversationReferenceToAdd);
+
+            return InsertEntityToTable(rowKey, body, table);
         }
 
         public bool AddAggregationChannel(ConversationReference aggregationChannelToAdd)
         {
-            return AzureStorageHelper.InsertAsync<HandOffEntity>(
-                _aggregationChannelsTable,
-                new HandOffEntity()
-                {
-                    Body = JsonConvert.SerializeObject(aggregationChannelToAdd),
-                    PartitionKey = "handOffBot",
-                    RowKey = aggregationChannelToAdd.Conversation.Id
-                }).Result;
+            string rowKey = aggregationChannelToAdd.Conversation.Id;
+            string body = JsonConvert.SerializeObject(aggregationChannelToAdd);
+
+            return InsertEntityToTable(rowKey, body, _aggregationChannelsTable);
         }
 
         public bool AddConnectionRequest(ConnectionRequest connectionRequestToAdd)
         {
-            return AzureStorageHelper.InsertAsync<HandOffEntity>(
-                _connectionRequestsTable,
-                new HandOffEntity()
-                {
-                    Body = JsonConvert.SerializeObject(connectionRequestToAdd),
-                    PartitionKey = "handOffBot",
-                    RowKey = connectionRequestToAdd.Requestor.Conversation.Id
-                }).Result;
+            string rowKey = connectionRequestToAdd.Requestor.Conversation.Id;
+            string body = JsonConvert.SerializeObject(connectionRequestToAdd);
+
+            return InsertEntityToTable(rowKey, body, _connectionRequestsTable);
         }
         public bool AddConnection(Connection connectionToAdd)
         {
             string rowKey = connectionToAdd.ConversationReference1.Conversation.Id +
                 connectionToAdd.ConversationReference2.Conversation.Id;
+            string body = JsonConvert.SerializeObject(connectionToAdd);
 
-            return AzureStorageHelper.InsertAsync<HandOffEntity>(
-                _connectionRequestsTable,
-                new HandOffEntity()
-                {
-                    Body = JsonConvert.SerializeObject(connectionToAdd),
-                    PartitionKey = "handOffBot",
-                    RowKey = rowKey
-                }).Result;
+            return InsertEntityToTable(rowKey, body, _connectionsTable);
         }
         #endregion
 
@@ -172,24 +155,24 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             else table = _usersTable;
 
             return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                table, 
-                "handOffBot", 
+                table,
+                "handOffBot",
                 conversationReferenceToAdd.Conversation.Id).Result;
         }
 
         public bool RemoveAggregationChannel(ConversationReference toRemove)
         {
             return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionRequestsTable, 
-                "handOffBot", 
+                _connectionRequestsTable,
+                "handOffBot",
                 toRemove.Conversation.Id).Result;
         }
 
         public bool RemoveConnectionRequest(ConnectionRequest connectionRequestToRemove)
         {
             return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionRequestsTable, 
-                "handOffBot", 
+                _connectionRequestsTable,
+                "handOffBot",
                 connectionRequestToRemove.Requestor.Conversation.Id).Result;
         }
 
@@ -197,13 +180,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         {
             string rowKey = connectionToRemove.ConversationReference1.Conversation.Id +
                 connectionToRemove.ConversationReference2.Conversation.Id;
+
             return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionsTable, 
-                "handOffBot", 
+                _connectionsTable,
+                "handOffBot",
                 rowKey).Result;
         }
         #endregion
 
+        #region Validators and helpers
         /// <summary>
         /// Makes sure the required tables exist.
         /// </summary>
@@ -254,6 +239,18 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             return await table.ExecuteTableQueryAsync(query);
         }
+
+        private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
+        {
+            return AzureStorageHelper.InsertAsync<HandOffEntity>(
+                table, new HandOffEntity()
+                {
+                    Body = body,
+                    PartitionKey = "handOffBot",
+                    RowKey = rowKey
+                }).Result;
+        }
+        #endregion
     }
 
     public class HandOffEntity : TableEntity
