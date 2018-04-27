@@ -1,7 +1,7 @@
-﻿using Underscore.Bot.Utils;
-using Microsoft.Bot.Schema;
+﻿using Microsoft.Bot.Schema;
 using System;
 using Newtonsoft.Json;
+using Underscore.Bot.MessageRouting.DataStore;
 
 namespace Underscore.Bot.Models
 {
@@ -45,10 +45,10 @@ namespace Underscore.Bot.Models
         public bool Equals(Connection other)
         {
             return (other != null
-                && ((MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
-                     && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
-                     || (MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
-                         && MessageRoutingUtils.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
+                && ((RoutingDataManager.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
+                     && RoutingDataManager.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
+                     || (RoutingDataManager.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
+                         && RoutingDataManager.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
         }
 
         public static Connection FromJson(string connectionAsJsonString)

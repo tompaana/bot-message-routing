@@ -99,8 +99,8 @@ namespace Underscore.Bot.MessageRouting
                 // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
                 // The identity of the bot in the channel of the sender is most likely a different one and
                 // thus unusable since it will not be recognized on the recipient's channel.
-                botConversationReference = RoutingDataManager.FindBotConversationReferenceByChannelAndConversation(
-                    conversationReferenceToMessage.ChannelId, conversationReferenceToMessage.Conversation);
+                botConversationReference = RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                    conversationReferenceToMessage.ChannelId, conversationReferenceToMessage.Conversation.Id, true);
             }
 
             if (botConversationReference != null
@@ -133,8 +133,8 @@ namespace Underscore.Bot.MessageRouting
 
             if (ConversationReferenceToMessage != null)
             {
-                botConversationReference = RoutingDataManager.FindBotConversationReferenceByChannelAndConversation(
-                    ConversationReferenceToMessage.ChannelId, ConversationReferenceToMessage.Conversation);
+                botConversationReference = RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                    ConversationReferenceToMessage.ChannelId, ConversationReferenceToMessage.Conversation.Id, true);
             }
 
             if (botConversationReference != null)
@@ -187,7 +187,7 @@ namespace Underscore.Bot.MessageRouting
             if (RoutingDataManager.IsAssociatedWithAggregation(requestor))
             {
                 addConnectionRequestResult.Type = MessageRouterResultType.Error;
-                addConnectionRequestResult.ErrorMessage = $"The given ConversationReference ({MessageRoutingUtils.GetChannelAccount(requestor)?.Name}) is associated with aggregation and hence invalid to request a connection";
+                addConnectionRequestResult.ErrorMessage = $"The given ConversationReference ({RoutingDataManager.GetChannelAccount(requestor)?.Name}) is associated with aggregation and hence invalid to request a connection";
             }
             else
             {
@@ -272,8 +272,8 @@ namespace Underscore.Bot.MessageRouting
             connectResult.ConversationReferences.Add(conversationReference2);
 
             ConversationReference botConversationReference =
-                RoutingDataManager.FindBotConversationReferenceByChannelAndConversation(
-                    conversationReference1.ChannelId, conversationReference1.Conversation);
+                RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                    conversationReference1.ChannelId, conversationReference1.Conversation.Id, true);
 
             if (botConversationReference != null)
             {
@@ -350,8 +350,8 @@ namespace Underscore.Bot.MessageRouting
 
                 foreach (Connection connection in RoutingDataManager.GetConnections())
                 {
-                    if (MessageRoutingUtils.HasMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference1)
-                        || MessageRoutingUtils.HasMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference2))
+                    if (RoutingDataManager.HasMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference1)
+                        || RoutingDataManager.HasMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference2))
                     {
                         MessageRouterResult disconnectResult = RoutingDataManager.Disconnect(connection);
                         disconnectResults.Add(disconnectResult);

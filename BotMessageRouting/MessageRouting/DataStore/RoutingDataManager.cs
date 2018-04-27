@@ -69,7 +69,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             }
 
             if (conversationReferenceToAdd == null
-                || (MessageRoutingUtils.IsBot(conversationReferenceToAdd) ?
+                || (IsBot(conversationReferenceToAdd) ?
                     GetBotInstances().Contains(conversationReferenceToAdd)
                     : GetUsers().Contains(conversationReferenceToAdd)))
             {
@@ -102,7 +102,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 ? GetUsers() : GetBotInstances();
 
             IList<ConversationReference> conversationReferencesToRemove =
-                MessageRoutingUtils.ResolveConversationReferencesWithMatchingChannelAccount(
+                ResolveConversationReferencesWithMatchingChannelAccount(
                     conversationReferenceToRemove, conversationReferenceList);
 
             if (conversationReferencesToRemove != null)
@@ -130,7 +130,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
                 {
-                    if (MessageRoutingUtils.HasMatchingChannelAccounts(
+                    if (HasMatchingChannelAccounts(
                             conversationReferenceToRemove, connectionRequest.Requestor))
                     {
                         MessageRouterResult removeConnectionRequestResult = RemoveConnectionRequest(connectionRequest);
@@ -154,8 +154,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (Connection connection in GetConnections())
                 {
-                    if (MessageRoutingUtils.HasMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference1)
-                        || MessageRoutingUtils.HasMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference2))
+                    if (HasMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference1)
+                        || HasMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference2))
                     {
                         wasRemoved = true;
                         messageRouterResults.Add(Disconnect(connection)); // TODO: Check that the disconnect was successful
@@ -182,7 +182,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             if (aggregationChannelToAdd != null)
             {
-                if (MessageRoutingUtils.GetChannelAccount(aggregationChannelToAdd) != null)
+                if (GetChannelAccount(aggregationChannelToAdd) != null)
                 {
                     throw new ArgumentException("The ConversationReference instance for an aggregation channel cannot contain a ChannelAccount instance");
                 }
@@ -313,8 +313,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (Connection connection in GetConnections())
             {
-                if (MessageRoutingUtils.HasMatchingChannelAccounts(conversationReference, connection.ConversationReference1)
-                    || MessageRoutingUtils.HasMatchingChannelAccounts(conversationReference, connection.ConversationReference2))
+                if (HasMatchingChannelAccounts(conversationReference, connection.ConversationReference1)
+                    || HasMatchingChannelAccounts(conversationReference, connection.ConversationReference2))
                 {
                     return true;
                 }
@@ -332,12 +332,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (Connection connection in GetConnections())
             {
-                if (MessageRoutingUtils.HasMatchingChannelAccounts(
+                if (HasMatchingChannelAccounts(
                         conversationReferenceWhoseCounterpartToFind, connection.ConversationReference1))
                 {
                     return connection.ConversationReference2;
                 }
-                else if (MessageRoutingUtils.HasMatchingChannelAccounts(
+                else if (HasMatchingChannelAccounts(
                             conversationReferenceWhoseCounterpartToFind, connection.ConversationReference2))
                 {
                     return connection.ConversationReference1;
@@ -432,6 +432,85 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
+        /// Checks if the given ConversationReference contains the ChannelAccount instance for a bot.
+        /// </summary>
+        /// <param name="conversationReference">The ConversationReference instance to check.</param>
+        /// <returns>True, if the ChannelAccount instance for the bot is not null. False otherwise.</returns>
+        public static bool IsBot(ConversationReference conversationReference)
+        {
+            return (conversationReference.Bot != null);
+        }
+
+        /// <summary>
+        /// Resolves the non-null ChannelAccount instance from the given ConversationReference.
+        /// </summary>
+        /// <param name="conversationReference"></param>
+        /// <returns>The non-null ChannelAccount (user or bot) or null, if both are null.</returns>
+        public static ChannelAccount GetChannelAccount(ConversationReference conversationReference)
+        {
+            if (conversationReference.User != null)
+            {
+                return conversationReference.User;
+            }
+
+            if (conversationReference.Bot != null)
+            {
+                return conversationReference.Bot;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Compares the ChannelAccount instances of the given ConversationReferences.
+        /// </summary>
+        /// <param name="conversationReference1"></param>
+        /// <param name="conversationReference2"></param>
+        /// <returns>True, if the ChannelAccount instances (IDs) match. False otherwise.</returns>
+        public static bool HasMatchingChannelAccounts(
+            ConversationReference conversationReference1, ConversationReference conversationReference2)
+        {
+            if (conversationReference1.Bot != null && conversationReference2.Bot != null)
+            {
+                return conversationReference1.Bot.Id.Equals(conversationReference2.Bot.Id);
+            }
+            else if (conversationReference1.User != null && conversationReference2.User != null)
+            {
+                return conversationReference1.User.Id.Equals(conversationReference2.User.Id);
+            }
+
+            return false;
+        }
+
+        public static IList<ConversationReference> ResolveConversationReferencesWithMatchingChannelAccount(
+            ConversationReference conversationReferenceToFind, IList<ConversationReference> conversationReferenceCandidates)
+        {
+            IList<ConversationReference> matchingParties = null;
+            IEnumerable<ConversationReference> foundConversationReferences = null;
+
+            try
+            {
+                foundConversationReferences = conversationReferenceCandidates.Where(conversationReference =>
+                        HasMatchingChannelAccounts(conversationReferenceToFind, conversationReference));
+            }
+            catch (ArgumentNullException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find a conversation reference: {e.Message}");
+            }
+            catch (InvalidOperationException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find a conversation reference: {e.Message}");
+            }
+
+            if (foundConversationReferences != null)
+            {
+                matchingParties = foundConversationReferences.ToArray();
+            }
+
+            return matchingParties;
+        }
+
+        /// <summary>
         /// Checks if the given ConversationReference is associated with aggregation. In human toung this means
         /// that the given ConversationReference is, for instance, a customer service agent who deals with the
         /// requests coming from customers.
@@ -461,8 +540,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
             if (conversationReference != null)
             {
                 ConversationReference botConversationReference =
-                    FindBotConversationReferenceByChannelAndConversation(
-                        conversationReference.ChannelId, conversationReference.Conversation);
+                    FindConversationReferenceByChannelIdAndConversationId(
+                        conversationReference.ChannelId, conversationReference.Conversation.Id, true);
 
                 if (botConversationReference != null && botConversationReference.Bot != null)
                 {
@@ -483,7 +562,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
             {
-                if (MessageRoutingUtils.HasMatchingChannelAccounts(conversationReference, connectionRequest.Requestor))
+                if (HasMatchingChannelAccounts(conversationReference, connectionRequest.Requestor))
                 {
                     return connectionRequest;
                 }
@@ -531,37 +610,75 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
-        /// Tries to find a stored bot ConversationReference instance matching the given channel ID and
-        /// conversation account.
+        /// Tries to find a stored ConversationReference instance matching the given channel ID
+        /// and conversation ID.
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
-        /// <param name="conversationAccount">The conversation account.</param>
-        /// <returns>The bot ConversationReference instance matching the given details or null if not found.</returns>
-        public virtual ConversationReference FindBotConversationReferenceByChannelAndConversation(
-            string channelId, ConversationAccount conversationAccount)
+        /// <param name="conversationId">The conversation ID.</param>
+        /// <param name="onlyBotInstances">If true, will only look for ConversationReference instance belonging to a bot.</param>
+        /// <returns>The ConversationReference instance matching the given details or null, if not found.</returns>
+        public virtual ConversationReference FindConversationReferenceByChannelIdAndConversationId(
+            string channelId, string conversationId, bool onlyBotInstances)
         {
             ConversationReference conversationReference = null;
 
-            try
+            if (!onlyBotInstances)
             {
-                conversationReference = GetUsers().Single(userConversationReference =>
-                        (userConversationReference.ChannelId.Equals(channelId)
-                         && userConversationReference.Conversation.Id.Equals(conversationAccount.Id)));
-            }
-            catch (InvalidOperationException)
-            {
+                // Check users
+                try
+                {
+                    conversationReference = GetUsers().Single(userConversationReference =>
+                            (userConversationReference.ChannelId.Equals(channelId)
+                             && userConversationReference.Conversation.Id.Equals(conversationId)));
+                }
+                catch (InvalidOperationException)
+                {
+                }
             }
 
             if (conversationReference == null)
             {
+                // Check bots
                 try
                 {
                     conversationReference = GetBotInstances().Single(botConversationReference =>
                             (botConversationReference.ChannelId.Equals(channelId)
-                             && botConversationReference.Conversation.Id.Equals(conversationAccount.Id)));
+                             && botConversationReference.Conversation.Id.Equals(conversationId)));
                 }
                 catch (InvalidOperationException)
                 {
+                }
+            }
+
+            if (!onlyBotInstances && conversationReference == null)
+            {
+                // Check connection requests
+                foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
+                {
+                    if (connectionRequest.Requestor.ChannelId.Equals(channelId)
+                        && connectionRequest.Requestor.Conversation.Id.Equals(conversationId))
+                    {
+                        return connectionRequest.Requestor;
+                    }
+                }
+            }
+
+            if (!onlyBotInstances && conversationReference == null)
+            {
+                // Check connections
+                foreach (Connection connection in GetConnections())
+                {
+                    if (connection.ConversationReference1.ChannelId.Equals(channelId)
+                        && connection.ConversationReference1.Conversation.Id.Equals(conversationId))
+                    {
+                        return connection.ConversationReference1;
+                    }
+
+                    if (connection.ConversationReference2.ChannelId.Equals(channelId)
+                        && connection.ConversationReference2.Conversation.Id.Equals(conversationId))
+                    {
+                        return connection.ConversationReference2;
+                    }
                 }
             }
 
@@ -582,9 +699,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
             foreach (Connection connection in GetConnections())
             {
                 ChannelAccount channelAccount1 =
-                    MessageRoutingUtils.GetChannelAccount(connection.ConversationReference1);
+                    GetChannelAccount(connection.ConversationReference1);
                 ChannelAccount channelAccount2 =
-                    MessageRoutingUtils.GetChannelAccount(connection.ConversationReference2);
+                    GetChannelAccount(connection.ConversationReference2);
 
                 if (connection.ConversationReference1.ChannelId.Equals(channelId)
                     && channelAccount1 != null
