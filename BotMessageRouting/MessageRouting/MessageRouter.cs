@@ -99,7 +99,7 @@ namespace Underscore.Bot.MessageRouting
                 // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
                 // The identity of the bot in the channel of the sender is most likely a different one and
                 // thus unusable since it will not be recognized on the recipient's channel.
-                botConversationReference = RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                botConversationReference = RoutingDataManager.FindConversationReference(
                     conversationReferenceToMessage.ChannelId, conversationReferenceToMessage.Conversation.Id, true);
             }
 
@@ -133,7 +133,7 @@ namespace Underscore.Bot.MessageRouting
 
             if (ConversationReferenceToMessage != null)
             {
-                botConversationReference = RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                botConversationReference = RoutingDataManager.FindConversationReference(
                     ConversationReferenceToMessage.ChannelId, ConversationReferenceToMessage.Conversation.Id, true);
             }
 
@@ -217,7 +217,7 @@ namespace Underscore.Bot.MessageRouting
 
             MessageRouterResult rejectConnectionRequestResult = null;
             ConnectionRequest connectionRequest =
-                RoutingDataManager.FindConnectionRequestByConversationReference(requestorToReject);
+                RoutingDataManager.FindConnectionRequest(requestorToReject);
 
             if (connectionRequest != null)
             {
@@ -272,7 +272,7 @@ namespace Underscore.Bot.MessageRouting
             connectResult.ConversationReferences.Add(conversationReference2);
 
             ConversationReference botConversationReference =
-                RoutingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                RoutingDataManager.FindConversationReference(
                     conversationReference1.ChannelId, conversationReference1.Conversation.Id, true);
 
             if (botConversationReference != null)

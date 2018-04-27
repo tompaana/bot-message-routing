@@ -370,7 +370,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             if (wasConnectionAdded)
             {
                 connectResult.Type = MessageRouterResultType.Connected;
-                RemoveConnectionRequest(FindConnectionRequestByConversationReference(requestorConversationReference));
+                RemoveConnectionRequest(FindConnectionRequest(requestorConversationReference));
             }
             else
             {
@@ -540,7 +540,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             if (conversationReference != null)
             {
                 ConversationReference botConversationReference =
-                    FindConversationReferenceByChannelIdAndConversationId(
+                    FindConversationReference(
                         conversationReference.ChannelId, conversationReference.Conversation.Id, true);
 
                 if (botConversationReference != null && botConversationReference.Bot != null)
@@ -558,7 +558,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="conversationReference">The conversation reference associated with the requestor.</param>
         /// <returns>The connection request or null, if not found.</returns>
-        public ConnectionRequest FindConnectionRequestByConversationReference(ConversationReference conversationReference)
+        public ConnectionRequest FindConnectionRequest(ConversationReference conversationReference)
         {
             foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
             {
@@ -578,7 +578,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="channelAccountId">The channel account ID (user ID).</param>
         /// <param name="conversationId">The conversation ID.</param>
         /// <returns>The ConversationReference instance matching the given IDs or null if not found.</returns>
-        public virtual ConversationReference FindConversationReferenceByChannelAccountIdAndConversationId(
+        public virtual ConversationReference FindConversationReference(
             string channelAccountId, string conversationId)
         {
             ConversationReference conversationReference = null;
@@ -617,7 +617,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="conversationId">The conversation ID.</param>
         /// <param name="onlyBotInstances">If true, will only look for ConversationReference instance belonging to a bot.</param>
         /// <returns>The ConversationReference instance matching the given details or null, if not found.</returns>
-        public virtual ConversationReference FindConversationReferenceByChannelIdAndConversationId(
+        public virtual ConversationReference FindConversationReference(
             string channelId, string conversationId, bool onlyBotInstances)
         {
             ConversationReference conversationReference = null;
@@ -691,7 +691,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="channelId">The channel ID.</param>
         /// <param name="channelAccount">The channel account.</param>
         /// <returns>The ConversationReference matching the given details or null if not found.</returns>
-        public virtual ConversationReference FindConnectedConversationReferenceByChannel(
+        public virtual ConversationReference FindConnectedConversationReference(
             string channelId, ChannelAccount channelAccount)
         {
             ConversationReference conversationReference = null;
