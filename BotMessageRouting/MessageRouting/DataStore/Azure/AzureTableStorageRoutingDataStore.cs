@@ -1,9 +1,11 @@
-﻿using Microsoft.Bot.Schema;
+﻿using BotMessageRouting.Models.Azure;
+using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
@@ -12,14 +14,13 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
     /// <summary>
     /// Routing data manager that stores the data in Azure Table Storage.
-    /// 
     /// See IRoutingDataManager and AbstractRoutingDataManager for general documentation of
     /// properties and methods.
     /// </summary>
-
     [Serializable]
     public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
+        protected const string partitionKey = "botHandOff";
         protected const string TableNameBotInstances = "BotInstances";
         protected const string TableNameUsers = "Users";
         protected const string TableNameAggregationChannels = "AggregationChannels";
@@ -39,8 +40,8 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
-        public AzureTableStorageRoutingDataStore(string connectionString, GlobalTimeProvider globalTimeProvider = null)
-            : base()
+        public AzureTableStorageRoutingDataStore(string connectionString, 
+            GlobalTimeProvider globalTimeProvider = null): base()
         {
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -59,33 +60,30 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         #region Get region
         public IList<ConversationReference> GetUsers()
         {
-            var entities = GetAllEntitiesFromTable("botHandOff", _usersTable).Result;
-
+            var entities = GetAllEntitiesFromTable(_usersTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConversationReference> GetBotInstances()
         {
-            var entities = GetAllEntitiesFromTable("botHandOff", _botInstancesTable).Result;
-
+            var entities = GetAllEntitiesFromTable(_botInstancesTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConversationReference> GetAggregationChannels()
         {
-            var entities = GetAllEntitiesFromTable("botHandOff", _aggregationChannelsTable).Result;
-
+            var entities = GetAllEntitiesFromTable(_aggregationChannelsTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConnectionRequest> GetConnectionRequests()
         {
-            IList<HandOffEntity> entities = GetAllEntitiesFromTable("botHandOff", _connectionRequestsTable).Result;
+            var entities = GetAllEntitiesFromTable(_connectionRequestsTable).Result;
 
-            List<ConnectionRequest> connectionRequests = new List<ConnectionRequest>();
-            foreach (HandOffEntity entity in entities)
+            var connectionRequests = new List<ConnectionRequest>();
+            foreach (RoutingDataEntity entity in entities)
             {
-                ConnectionRequest connectionRequest =
+                var connectionRequest = 
                     JsonConvert.DeserializeObject<ConnectionRequest>(entity.Body);
                 connectionRequests.Add(connectionRequest);
             }
@@ -94,12 +92,12 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public IList<Connection> GetConnections()
         {
-            IList<HandOffEntity> entities = GetAllEntitiesFromTable("botHandOff", _connectionsTable).Result;
+            var entities = GetAllEntitiesFromTable(_connectionsTable).Result;
 
-            List<Connection> connections = new List<Connection>();
-            foreach (HandOffEntity entity in entities)
+            var connections = new List<Connection>();
+            foreach (RoutingDataEntity entity in entities)
             {
-                Connection connection =
+                var connection = 
                     JsonConvert.DeserializeObject<Connection>(entity.Body);
                 connections.Add(connection);
             }
@@ -108,83 +106,78 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         #endregion
 
         #region Add region
-        public bool AddConversationReference(ConversationReference conversationReferenceToAdd)
+        public bool AddConversationReference(ConversationReference conversationReference)
         {
             CloudTable table;
-            if (conversationReferenceToAdd.Bot != null)
+            if (conversationReference.Bot != null)
                 table = _botInstancesTable;
             else table = _usersTable;
 
-            string rowKey = conversationReferenceToAdd.Conversation.Id;
-            string body = JsonConvert.SerializeObject(conversationReferenceToAdd);
+            string rowKey = conversationReference.Conversation.Id;
+            string body = JsonConvert.SerializeObject(conversationReference);
 
             return InsertEntityToTable(rowKey, body, table);
         }
 
-        public bool AddAggregationChannel(ConversationReference aggregationChannelToAdd)
+        public bool AddAggregationChannel(ConversationReference aggregationChannel)
         {
-            string rowKey = aggregationChannelToAdd.Conversation.Id;
-            string body = JsonConvert.SerializeObject(aggregationChannelToAdd);
+            string rowKey = aggregationChannel.Conversation.Id;
+            string body = JsonConvert.SerializeObject(aggregationChannel);
 
             return InsertEntityToTable(rowKey, body, _aggregationChannelsTable);
         }
 
-        public bool AddConnectionRequest(ConnectionRequest connectionRequestToAdd)
+        public bool AddConnectionRequest(ConnectionRequest connectionRequest)
         {
-            string rowKey = connectionRequestToAdd.Requestor.Conversation.Id;
-            string body = JsonConvert.SerializeObject(connectionRequestToAdd);
+            string rowKey = connectionRequest.Requestor.Conversation.Id;
+            string body = JsonConvert.SerializeObject(connectionRequest);
 
             return InsertEntityToTable(rowKey, body, _connectionRequestsTable);
         }
-        public bool AddConnection(Connection connectionToAdd)
+
+        public bool AddConnection(Connection connection)
         {
-            string rowKey = connectionToAdd.ConversationReference1.Conversation.Id +
-                connectionToAdd.ConversationReference2.Conversation.Id;
-            string body = JsonConvert.SerializeObject(connectionToAdd);
+            string rowKey = connection.ConversationReference1.Conversation.Id +
+                connection.ConversationReference2.Conversation.Id;
+            string body = JsonConvert.SerializeObject(connection);
 
             return InsertEntityToTable(rowKey, body, _connectionsTable);
         }
         #endregion
 
         #region Remove region
-        public bool RemoveConversationReference(ConversationReference conversationReferenceToAdd)
+        public bool RemoveConversationReference(ConversationReference conversationReference)
         {
             CloudTable table;
-            if (conversationReferenceToAdd.Bot != null)
+            if (conversationReference.Bot != null)
                 table = _botInstancesTable;
             else table = _usersTable;
 
-            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                table,
-                "handOffBot",
-                conversationReferenceToAdd.Conversation.Id).Result;
+            string rowKey = conversationReference.Conversation.Id;
+            return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
+                table, partitionKey, rowKey).Result;
         }
 
-        public bool RemoveAggregationChannel(ConversationReference toRemove)
+        public bool RemoveAggregationChannel(ConversationReference aggregationChannel)
         {
-            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionRequestsTable,
-                "handOffBot",
-                toRemove.Conversation.Id).Result;
+            string rowKey = aggregationChannel.Conversation.Id;
+            return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
+                _aggregationChannelsTable, partitionKey, rowKey).Result;
         }
 
-        public bool RemoveConnectionRequest(ConnectionRequest connectionRequestToRemove)
+        public bool RemoveConnectionRequest(ConnectionRequest connectionRequest)
         {
-            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionRequestsTable,
-                "handOffBot",
-                connectionRequestToRemove.Requestor.Conversation.Id).Result;
+            string rowKey = connectionRequest.Requestor.Conversation.Id;
+            return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
+                _connectionRequestsTable, partitionKey, rowKey).Result;
         }
 
-        public bool RemoveConnection(Connection connectionToRemove)
+        public bool RemoveConnection(Connection connection)
         {
-            string rowKey = connectionToRemove.ConversationReference1.Conversation.Id +
-                connectionToRemove.ConversationReference2.Conversation.Id;
-
-            return AzureStorageHelper.DeleteEntryAsync<HandOffEntity>(
-                _connectionsTable,
-                "handOffBot",
-                rowKey).Result;
+            string rowKey = connection.ConversationReference1.Conversation.Id +
+                connection.ConversationReference2.Conversation.Id;
+            return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
+                _connectionsTable, partitionKey, rowKey).Result;
         }
         #endregion
 
@@ -208,53 +201,43 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 try
                 {
                     await cloudTable.CreateIfNotExistsAsync();
-                    System.Diagnostics.Debug.WriteLine($"Table '{cloudTable.Name}' created or did already exist");
+                    Debug.WriteLine($"Table '{cloudTable.Name}' created or did already exist");
                 }
                 catch (StorageException e)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
+                    Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
                 }
             }
         }
 
-        private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<HandOffEntity> entities)
+        private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<RoutingDataEntity> entities)
         {
-            List<ConversationReference> conversationReferences = new List<ConversationReference>();
-            foreach (HandOffEntity entity in entities)
+            var conversationReferences = new List<ConversationReference>();
+            foreach (RoutingDataEntity entity in entities)
             {
-                ConversationReference conversationReference =
+                var conversationReference =
                     JsonConvert.DeserializeObject<ConversationReference>(entity.Body);
                 conversationReferences.Add(conversationReference);
             }
             return conversationReferences;
         }
 
-        private async Task<IList<HandOffEntity>> GetAllEntitiesFromTable(string partitionKey, CloudTable table)
+        private async Task<IList<RoutingDataEntity>> GetAllEntitiesFromTable(CloudTable table)
         {
-            TableQuery<HandOffEntity> query = new TableQuery<HandOffEntity>()
+            var query = new TableQuery<RoutingDataEntity>()
                 .Where(TableQuery.GenerateFilterCondition(
-                    "PartitionKey",
-                    QueryComparisons.Equal,
-                    partitionKey));
-
+                    "PartitionKey", QueryComparisons.Equal, partitionKey));
             return await table.ExecuteTableQueryAsync(query);
         }
 
         private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
         {
-            return AzureStorageHelper.InsertAsync<HandOffEntity>(
-                table, new HandOffEntity()
+            return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table, 
+                new RoutingDataEntity()
                 {
-                    Body = body,
-                    PartitionKey = "handOffBot",
-                    RowKey = rowKey
+                    Body = body, PartitionKey = partitionKey, RowKey = rowKey
                 }).Result;
         }
         #endregion
-    }
-
-    public class HandOffEntity : TableEntity
-    {
-        public string Body { get; set; }
     }
 }
