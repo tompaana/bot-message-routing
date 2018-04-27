@@ -131,11 +131,15 @@ Please do not hesitate to report ideas, bugs etc. under
 Special thanks to the contributors (in alphabetical order):
 
 * [Syed Hassaan Ahmed](https://github.com/syedhassaanahmed)
+* [Jorge Cupi](https://github.com/jorgecupi)
 * [Jamie D](https://github.com/daltskin)
+* [Pedro Dias](https://github.com/digitaldias)
+* [Drazen Dodik](https://twitter.com/diggthedrazen)
 * [Lucas Humenhuk](https://github.com/lcarli)
 * [Lilian Kasem](https://github.com/liliankasem)
 * [Edouard Mathon](https://github.com/edouard-mathon)
 * [Gary Pretty](https://github.com/garypretty)
+* [Jessica Tibaldi](https://github.com/jetiba-ms)
 
 Note that you may not find (all of their) contributions in the change history of this project,
 because all of the code including this core functionality used to reside in
