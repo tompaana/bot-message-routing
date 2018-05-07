@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore
 {
@@ -81,8 +80,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
         /// <summary>
         /// Removes the specified ConversationReference from all possible containers.
-        /// Note that this method removes the ConversationReference's every instance (user from all conversations
-        /// in addition to connection requests).
         /// </summary>
         /// <param name="conversationReferenceToRemove">The ConversationReference to remove.</param>
         /// <returns>A list of operation result(s):
@@ -98,8 +95,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             // Check users and bots
             IList<ConversationReference> conversationReferenceList =
-                (conversationReferenceToRemove.Bot == null)
-                ? GetUsers() : GetBotInstances();
+                (conversationReferenceToRemove.Bot == null) ? GetUsers() : GetBotInstances();
 
             IList<ConversationReference> conversationReferencesToRemove =
                 ResolveConversationReferencesWithMatchingChannelAccount(
@@ -145,7 +141,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 }
             }
 
-            // Check if the ConversationReference exists in connections
+            // Check the connections
             wasRemoved = true;
 
             while (wasRemoved)

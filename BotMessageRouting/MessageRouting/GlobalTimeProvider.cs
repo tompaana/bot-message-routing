@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Underscore.Bot.Utils
+namespace Underscore.Bot.MessageRouting
 {
     /// <summary>
     /// Provides the global time. Used by the message router manager and, moreover,

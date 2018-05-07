@@ -2,26 +2,23 @@
 using System;
 using System.Collections.Generic;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Local
 {
     /// <summary>
-    /// Routing data manager that stores the data locally.
+    /// Routing data store that stores the data locally.
     /// 
     /// NOTE: USE THIS CLASS ONLY FOR TESTING!
     /// Storing the data like this in production would not work since the bot can and likely will
     /// have multiple instances.
     /// 
-    /// See IRoutingDataManager and AbstractRoutingDataManager for general documentation of
-    /// properties and methods.
+    /// See the IRoutingDataStore interface for the general documentation of properties and methods.
     /// </summary>
     [Serializable]
     public class InMemoryRoutingDataStore : IRoutingDataStore
     {
-        #region Classes
         /// <summary>
-        /// Parties that are users (not this bot).
+        /// The list of users (identities).
         /// </summary>
         protected IList<ConversationReference> Users { get; set; }
 
@@ -32,30 +29,26 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         protected IList<ConversationReference> BotInstances { get; set; }
 
         /// <summary>
-        /// Represents the channels (and the specific conversations e.g. specific channel in Slack),
+        /// Represents the channels (and the specific conversations e.g. specific channel in Teams),
         /// where the chat requests are directed. For instance, a channel could be where the
         /// customer service agents accept customer chat requests. 
         /// </summary>
         protected IList<ConversationReference> AggregationChannels{ get; set; }
 
         /// <summary>
-        /// Represents the connections
+        /// The list of connections.
         /// </summary>
         protected IList<Connection> Connections { get; set; }
 
         /// <summary>
-        /// The list of parties waiting for their (conversation) requests to be accepted.
+        /// The list of connections requests waiting to be accepted/rejected.
         /// </summary>
         protected List<ConnectionRequest> ConnectionRequests { get; set; }
-        #endregion
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="globalTimeProvider">The global time provider for providing the current
-        /// time for various events such as when a connection is requested.</param>
-        public InMemoryRoutingDataStore(GlobalTimeProvider globalTimeProvider = null)
-            : base()
+        public InMemoryRoutingDataStore()
         {
             AggregationChannels = new List<ConversationReference>();
             Users = new List<ConversationReference>();

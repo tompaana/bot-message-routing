@@ -8,25 +8,22 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {
     /// <summary>
-    /// Routing data manager that stores the data in Azure Table Storage.
-    /// See IRoutingDataManager and AbstractRoutingDataManager for general documentation of
-    /// properties and methods.
+    /// Routing data store that stores the data in Azure Table Storage.
+    /// See the IRoutingDataStore interface for the general documentation of properties and methods.
     /// </summary>
     [Serializable]
     public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
-        protected const string partitionKey = "botHandOff";
+        protected const string DefaultPartitionKey = "BotMessageRouting";
         protected const string TableNameBotInstances = "BotInstances";
         protected const string TableNameUsers = "Users";
         protected const string TableNameAggregationChannels = "AggregationChannels";
         protected const string TableNameConnectionRequests = "ConnectionRequests";
         protected const string TableNameConnections = "Connections";
-        protected const string PartitionKey = "PartitionKey";
 
         protected CloudTable _botInstancesTable;
         protected CloudTable _usersTable;
@@ -38,10 +35,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// Constructor.
         /// </summary>
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
-        /// <param name="globalTimeProvider">The global time provider for providing the current
-        /// time for various events such as when a connection is requested.</param>
-        public AzureTableStorageRoutingDataStore(string connectionString, 
-            GlobalTimeProvider globalTimeProvider = null): base()
+        public AzureTableStorageRoutingDataStore(string connectionString)
         {
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -155,21 +149,21 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             string rowKey = conversationReference.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
-                table, partitionKey, rowKey).Result;
+                table, DefaultPartitionKey, rowKey).Result;
         }
 
         public bool RemoveAggregationChannel(ConversationReference aggregationChannel)
         {
             string rowKey = aggregationChannel.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
-                _aggregationChannelsTable, partitionKey, rowKey).Result;
+                _aggregationChannelsTable, DefaultPartitionKey, rowKey).Result;
         }
 
         public bool RemoveConnectionRequest(ConnectionRequest connectionRequest)
         {
             string rowKey = connectionRequest.Requestor.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
-                _connectionRequestsTable, partitionKey, rowKey).Result;
+                _connectionRequestsTable, DefaultPartitionKey, rowKey).Result;
         }
 
         public bool RemoveConnection(Connection connection)
@@ -177,7 +171,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             string rowKey = connection.ConversationReference1.Conversation.Id +
                 connection.ConversationReference2.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
-                _connectionsTable, partitionKey, rowKey).Result;
+                _connectionsTable, DefaultPartitionKey, rowKey).Result;
         }
         #endregion
 
@@ -226,7 +220,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         {
             var query = new TableQuery<RoutingDataEntity>()
                 .Where(TableQuery.GenerateFilterCondition(
-                    "PartitionKey", QueryComparisons.Equal, partitionKey));
+                    "PartitionKey", QueryComparisons.Equal, DefaultPartitionKey));
             return await table.ExecuteTableQueryAsync(query);
         }
 
@@ -235,7 +229,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table, 
                 new RoutingDataEntity()
                 {
-                    Body = body, PartitionKey = partitionKey, RowKey = rowKey
+                    Body = body, PartitionKey = DefaultPartitionKey, RowKey = rowKey
                 }).Result;
         }
         #endregion
