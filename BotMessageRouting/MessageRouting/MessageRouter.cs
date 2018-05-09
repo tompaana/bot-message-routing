@@ -475,6 +475,11 @@ namespace Underscore.Bot.MessageRouting
                     if (resourceResponse != null)
                     {
                         messageRoutingResult.Type = MessageRouterResultType.OK;
+
+                        if (!RoutingDataManager.UpdateTimeSinceLastActivity(connection))
+                        {
+                            System.Diagnostics.Debug.WriteLine("Failed to update the time since the last activity property of the connection");
+                        }
                     }
                     else
                     {

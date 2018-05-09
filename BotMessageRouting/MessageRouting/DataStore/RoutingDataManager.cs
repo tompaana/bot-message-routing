@@ -540,6 +540,22 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
+        /// Updates the time since last activity property of the given connection instance.
+        /// </summary>
+        /// <param name="connection">The connection to update.</param>
+        /// <returns>True, if the connection was updated successfully. False otherwise.</returns>
+        public virtual bool UpdateTimeSinceLastActivity(Connection connection)
+        {
+            if (RoutingDataStore.RemoveConnection(connection))
+            {
+                connection.TimeSinceLastActivity = GetCurrentGlobalTime();
+                return RoutingDataStore.AddConnection(connection);
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Disconnects the given connection.
         /// </summary>
         /// <param name="connectionToDisconnect">The connection to disconnect.</param>
