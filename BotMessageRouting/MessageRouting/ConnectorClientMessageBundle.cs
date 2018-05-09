@@ -35,7 +35,7 @@ namespace Underscore.Bot.MessageRouting
         /// <summary>
         /// Creates a new message activity based on the given arguments.
         /// </summary>
-        /// <param name="conversationReferenceToMessage">The ConversationReference instance to send the message to.</param>
+        /// <param name="conversationReferenceToMessage">The conversation reference instance to send the message to.</param>
         /// <param name="senderChannelAccount">The channel account of the sender.</param>
         /// <param name="messageText">The message text content.</param>
         /// <returns>A newly created message activity.</returns>

@@ -38,7 +38,7 @@ namespace Underscore.Bot.Models
         public bool Equals(ConnectionRequest other)
         {
             return (other != null
-                && RoutingDataManager.HasMatchingChannelAccounts(Requestor, other.Requestor));
+                && RoutingDataManager.HaveMatchingChannelAccounts(Requestor, other.Requestor));
         }
 
         public static ConnectionRequest FromJson(string connectionAsJsonString)

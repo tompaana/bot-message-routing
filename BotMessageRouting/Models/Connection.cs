@@ -10,9 +10,8 @@ namespace Underscore.Bot.Models
     {
         /// <summary>
         /// Represents the last time in which user and agent interact in the connection.
-        /// TODO: We had to change the value every time there is an interaction between the two.
         /// </summary>
-        public DateTime LastInteractionTime
+        public DateTime TimeSinceLastActivity
         {
             get;
             set;
@@ -34,7 +33,7 @@ namespace Underscore.Bot.Models
         {
             ConversationReference1 = conversationReference1;
             ConversationReference2 = conversationReference2;
-            LastInteractionTime = DateTime.Now;
+            TimeSinceLastActivity = DateTime.Now;
         }
 
         /// <summary>
@@ -45,10 +44,10 @@ namespace Underscore.Bot.Models
         public bool Equals(Connection other)
         {
             return (other != null
-                && ((RoutingDataManager.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
-                     && RoutingDataManager.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
-                     || (RoutingDataManager.HasMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
-                         && RoutingDataManager.HasMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
+                && ((RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
+                     && RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
+                     || (RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
+                         && RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
         }
 
         public static Connection FromJson(string connectionAsJsonString)

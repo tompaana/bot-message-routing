@@ -13,16 +13,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
         IList<ConversationReference> GetBotInstances();
 
         /// <summary>
-        /// Adds the given ConversationReference instance to the collection.
+        /// Adds the given conversation reference instance to the collection.
         /// </summary>
-        /// <param name="conversationReferenceToAdd">The new ConversationReference instance to add.</param>
+        /// <param name="conversationReferenceToAdd">The new conversation reference instance to add.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         bool AddConversationReference(ConversationReference conversationReferenceToAdd);
 
         /// <summary>
-        /// Removes the given ConversationReference from the collection.
+        /// Removes the given conversation reference from the collection.
         /// </summary>
-        /// <param name="conversationReferenceToRemove">The ConversationReference to remove.</param>
+        /// <param name="conversationReferenceToRemove">The conversation reference to remove.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         bool RemoveConversationReference(ConversationReference conversationReferenceToRemove);
 
