@@ -411,21 +411,16 @@ namespace Underscore.Bot.MessageRouting
             while (wasDisconnected)
             {
                 wasDisconnected = false;
+                Connection connection = RoutingDataManager.FindConnection(connectedConversationReference);
 
-                foreach (Connection connection in RoutingDataManager.GetConnections())
+                if (connection != null)
                 {
-                    if (RoutingDataManager.HaveMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference1)
-                        || RoutingDataManager.HaveMatchingChannelAccounts(connectedConversationReference, connection.ConversationReference2))
+                    MessageRouterResult disconnectResult = RoutingDataManager.Disconnect(connection);
+                    disconnectResults.Add(disconnectResult);
+
+                    if (disconnectResult.Type == MessageRouterResultType.Disconnected)
                     {
-                        MessageRouterResult disconnectResult = RoutingDataManager.Disconnect(connection);
-                        disconnectResults.Add(disconnectResult);
-
-                        if (disconnectResult.Type == MessageRouterResultType.Disconnected)
-                        {
-                            wasDisconnected = true;
-                        }
-
-                        break;
+                        wasDisconnected = true;
                     }
                 }
             }
