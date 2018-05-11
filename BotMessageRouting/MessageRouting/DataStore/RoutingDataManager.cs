@@ -206,7 +206,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     {
                         messageRouterResults.Add(new MessageRoutingResult()
                         {
-                            Type = MessageRoutingResultType.OK
+                            Type = MessageRoutingResultType.MessageRouted
                         });
                     }
                 }

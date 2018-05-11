@@ -259,13 +259,13 @@ namespace Underscore.Bot.MessageRouting
         /// Tries to reject the connection request of the associated with the given conversation reference.
         /// </summary>
         /// <param name="requestorToReject">The conversation reference of the party whose request to reject.</param>
-        /// <param name="rejecterConversationReference">The conversation reference of the party rejecting the request (optional).</param>
+        /// <param name="rejecter">The conversation reference of the party  rejecting the request (optional).</param>
         /// <returns>The result of the operation:
         /// - ConnectionRequestResultType.Rejected or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
         public virtual ConnectionRequestResult RejectConnectionRequest(
-            ConversationReference requestorToReject, ConversationReference rejecterConversationReference = null)
+            ConversationReference requestorToReject, ConversationReference rejecter = null)
         {
             if (requestorToReject == null)
             {
@@ -279,6 +279,7 @@ namespace Underscore.Bot.MessageRouting
             if (connectionRequest != null)
             {
                 rejectConnectionRequestResult = RoutingDataManager.RemoveConnectionRequest(connectionRequest);
+                rejectConnectionRequestResult.Rejecter = rejecter;
             }
 
             return rejectConnectionRequestResult;
@@ -452,7 +453,7 @@ namespace Underscore.Bot.MessageRouting
 
                     if (resourceResponse != null)
                     {
-                        messageRoutingResult.Type = MessageRoutingResultType.OK;
+                        messageRoutingResult.Type = MessageRoutingResultType.MessageRouted;
 
                         if (!RoutingDataManager.UpdateTimeSinceLastActivity(connection))
                         {
@@ -461,7 +462,7 @@ namespace Underscore.Bot.MessageRouting
                     }
                     else
                     {
-                        messageRoutingResult.Type = MessageRoutingResultType.FailedToForwardMessage;
+                        messageRoutingResult.Type = MessageRoutingResultType.FailedToRouteMessage;
                         messageRoutingResult.ErrorMessage = $"Failed to forward the message to user {conversationReferenceToForwardMessageTo}";
                     }
                 }

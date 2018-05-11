@@ -8,15 +8,15 @@ namespace Underscore.Bot.MessageRouting.Results
     /// <summary>
     /// The message routing result type:
     /// - NoActionTaken: Nothing needed to be done - The result handler should ignore results with this type,
-    /// - OK: The message was routed successfully,
+    /// - MessageRouted: The message was routed successfully,
     /// - FailedToRouteMessage: Failed to route the message, see the error message for more information,
     /// - Error: Generic error, see the error message.
     /// </summary>
     public enum MessageRoutingResultType
     {
         NoActionTaken = 0,
-        OK,
-        FailedToForwardMessage,
+        MessageRouted,
+        FailedToRouteMessage,
         Error
     }
 

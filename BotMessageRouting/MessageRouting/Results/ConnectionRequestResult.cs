@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Bot.Schema;
+using Newtonsoft.Json;
 using System;
 using Underscore.Bot.MessageRouting.Models;
 
@@ -36,6 +37,16 @@ namespace Underscore.Bot.MessageRouting.Results
         /// The connection request associated with this result.
         /// </summary>
         public ConnectionRequest ConnectionRequest
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// If this result of type 'Rejected', this property can contain the user,
+        /// who rejected the request.
+        /// </summary>
+        public ConversationReference Rejecter
         {
             get;
             set;
