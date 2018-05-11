@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System;
 using Underscore.Bot.MessageRouting.DataStore;
 
-namespace Underscore.Bot.Models
+namespace Underscore.Bot.MessageRouting.Models
 {
     [Serializable]
     public class ConnectionRequest : IEquatable<ConnectionRequest>
@@ -49,8 +49,9 @@ namespace Underscore.Bot.Models
             {
                 connectionRequest = JsonConvert.DeserializeObject<ConnectionRequest>(connectionAsJsonString);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                System.Diagnostics.Debug.WriteLine($"Failed to deserialize from JSON: {e.Message}");
             }
 
             return connectionRequest;
@@ -59,6 +60,11 @@ namespace Underscore.Bot.Models
         public string ToJson()
         {
             return JsonConvert.SerializeObject(this);
+        }
+
+        public override string ToString()
+        {
+            return ToJson();
         }
     }
 }

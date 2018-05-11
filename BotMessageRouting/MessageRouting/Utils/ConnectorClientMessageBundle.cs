@@ -2,7 +2,7 @@
 using Microsoft.Bot.Schema;
 using System;
 
-namespace Underscore.Bot.MessageRouting
+namespace Underscore.Bot.MessageRouting.Utils
 {
     /// <summary>
     /// A utility class for sending messages.

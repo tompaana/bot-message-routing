@@ -3,7 +3,7 @@ using System;
 using Newtonsoft.Json;
 using Underscore.Bot.MessageRouting.DataStore;
 
-namespace Underscore.Bot.Models
+namespace Underscore.Bot.MessageRouting.Models
 {
     [Serializable]
     public class Connection : IEquatable<Connection>
@@ -68,6 +68,11 @@ namespace Underscore.Bot.Models
         public string ToJson()
         {
             return JsonConvert.SerializeObject(this);
+        }
+
+        public override string ToString()
+        {
+            return ToJson();
         }
     }
 }

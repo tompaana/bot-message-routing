@@ -1,5 +1,4 @@
-﻿using BotMessageRouting.Models.Azure;
-using Microsoft.Bot.Schema;
+﻿using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
@@ -7,7 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
+using Underscore.Bot.MessageRouting.Models.Azure;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Azure
 {

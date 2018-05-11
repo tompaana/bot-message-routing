@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
+using Underscore.Bot.MessageRouting.Results;
+using Underscore.Bot.MessageRouting.Utils;
 
 namespace Underscore.Bot.MessageRouting.DataStore
 {
@@ -179,16 +181,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Removes the specified ConversationReference from all possible containers.
         /// </summary>
         /// <param name="conversationReferenceToRemove">The ConversationReference to remove.</param>
-        /// <returns>A list of operation result(s):
-        /// - MessageRouterResultType.NoActionTaken, if the was not found in any collection OR
-        /// - MessageRouterResultType.OK, if the ConversationReference was removed from the collection AND
-        /// - MessageRouterResultType.ConnectionRejected, if the ConversationReference had a connection request AND
-        /// - Disconnect() results, if the ConversationReference was connected in a conversation.
-        /// </returns>
-        public virtual IList<MessageRouterResult> RemoveConversationReference(
+        /// <returns>A list of operation result(s).</returns>
+        public virtual IList<AbstractMessageRouterResult> RemoveConversationReference(
             ConversationReference conversationReferenceToRemove)
         {
-            List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+            List<AbstractMessageRouterResult> messageRouterResults = new List<AbstractMessageRouterResult>();
             bool wasRemoved = false;
 
             // Check users and bots
@@ -207,9 +204,9 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     if (wasRemoved)
                     {
-                        messageRouterResults.Add(new MessageRouterResult()
+                        messageRouterResults.Add(new MessageRoutingResult()
                         {
-                            Type = MessageRouterResultType.OK
+                            Type = MessageRoutingResultType.OK
                         });
                     }
                 }
@@ -227,11 +224,10 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     if (HaveMatchingChannelAccounts(
                             conversationReferenceToRemove, connectionRequest.Requestor))
                     {
-                        MessageRouterResult removeConnectionRequestResult =
+                        ConnectionRequestResult removeConnectionRequestResult =
                             RemoveConnectionRequest(connectionRequest);
 
-                        if (removeConnectionRequestResult.Type
-                            == MessageRouterResultType.ConnectionRejected)
+                        if (removeConnectionRequestResult.Type == ConnectionRequestResultType.Rejected)
                         {
                             wasRemoved = true;
                             messageRouterResults.Add(removeConnectionRequestResult);
@@ -361,14 +357,15 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Adds the given connection request.
         /// </summary>
         /// <param name="connectionRequestToAdd">The connection request to add.</param>
-        /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true, will reject all requests, if there is no aggregation channel.</param>
+        /// <param name="rejectConnectionRequestIfNoAggregationChannel">
+        /// If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.ConnectionRequested, if a request was successfully made OR
-        /// - MessageRouterResultType.ConnectionAlreadyRequested, if a request for the given conversation reference already exists OR
-        /// - MessageRouterResultType.NoAgentsAvailable, if no aggregation while one is required OR
-        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// - ConnectionRequestResultType.OK,
+        /// - ConnectionRequestResultType.AlreadyRequested,
+        /// - ConnectionRequestResultType.NotSetup or
+        /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual MessageRouterResult AddConnectionRequest(
+        public virtual ConnectionRequestResult AddConnectionRequest(
             ConnectionRequest connectionRequestToAdd, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
             if (connectionRequestToAdd == null)
@@ -376,17 +373,20 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 throw new ArgumentNullException("Connection request is null");
             }
 
-            MessageRouterResult addConnectionRequestResult = new MessageRouterResult();
+            ConnectionRequestResult addConnectionRequestResult = new ConnectionRequestResult()
+            {
+                ConnectionRequest = connectionRequestToAdd
+            };
 
             if (GetConnectionRequests().Contains(connectionRequestToAdd))
             {
-                addConnectionRequestResult.Type = MessageRouterResultType.ConnectionAlreadyRequested;
+                addConnectionRequestResult.Type = ConnectionRequestResultType.AlreadyRequested;
             }
             else
             {
                 if (!GetAggregationChannels().Any() && rejectConnectionRequestIfNoAggregationChannel)
                 {
-                    addConnectionRequestResult.Type = MessageRouterResultType.NoAgentsAvailable;
+                    addConnectionRequestResult.Type = ConnectionRequestResultType.NotSetup;
                 }
                 else
                 {
@@ -394,11 +394,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     if (RoutingDataStore.AddConnectionRequest(connectionRequestToAdd))
                     {
-                        addConnectionRequestResult.Type = MessageRouterResultType.ConnectionRequested;
+                        addConnectionRequestResult.Type = ConnectionRequestResultType.OK;
                     }
                     else
                     {
-                        addConnectionRequestResult.Type = MessageRouterResultType.Error;
+                        addConnectionRequestResult.Type = ConnectionRequestResultType.Error;
                         addConnectionRequestResult.ErrorMessage = "Failed to add the connection request - this is likely an error caused by the storage implementation";
                     }
                 }
@@ -412,29 +412,36 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="connectionRequestToRemove">The connection request to remove.</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.ConnectionRejected, if the connection request was removed OR
-        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// - ConnectionRequestResultType.Rejected or
+        /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual MessageRouterResult RemoveConnectionRequest(ConnectionRequest connectionRequestToRemove)
+        public virtual ConnectionRequestResult RemoveConnectionRequest(ConnectionRequest connectionRequestToRemove)
         {
-            MessageRouterResult removeConnectionRequestResult = new MessageRouterResult();
-            removeConnectionRequestResult.ConversationReferences.Add(connectionRequestToRemove.Requestor);
+            if (connectionRequestToRemove == null)
+            {
+                throw new ArgumentNullException("Connection request is null");
+            }
+
+            ConnectionRequestResult removeConnectionRequestResult = new ConnectionRequestResult
+            {
+                ConnectionRequest = connectionRequestToRemove
+            };
 
             if (GetConnectionRequests().Contains(connectionRequestToRemove))
             {
                 if (RoutingDataStore.RemoveConnectionRequest(connectionRequestToRemove))
                 {
-                    removeConnectionRequestResult.Type = MessageRouterResultType.ConnectionRejected;
+                    removeConnectionRequestResult.Type = ConnectionRequestResultType.Rejected;
                 }
                 else
                 {
-                    removeConnectionRequestResult.Type = MessageRouterResultType.Error;
+                    removeConnectionRequestResult.Type = ConnectionRequestResultType.Error;
                     removeConnectionRequestResult.ErrorMessage = "Failed to remove the connection request associated with the given user";
                 }
             }
             else
             {
-                removeConnectionRequestResult.Type = MessageRouterResultType.Error;
+                removeConnectionRequestResult.Type = ConnectionRequestResultType.Error;
                 removeConnectionRequestResult.ErrorMessage = "Could not find a connection request associated with the given user";
             }
 
@@ -512,27 +519,39 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="connectionToAdd">The connection to add.</param>
         /// <param name="requestor">The requestor.</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.Connected, if successfully connected OR
-        /// - MessageRouterResultType.Error in case of an error (see the error message).
+        /// - ConnectionResultType.Connected,
+        /// - ConnectionResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual MessageRouterResult ConnectAndRemoveConnectionRequest(
+        public virtual ConnectionResult ConnectAndRemoveConnectionRequest(
             Connection connectionToAdd, ConversationReference requestor)
         {
-            MessageRouterResult connectResult = new MessageRouterResult();
+            ConnectionResult connectResult = new ConnectionResult()
+            {
+                Connection = connectionToAdd
+            };
 
-            DateTime connectionEstablishedTime = GetCurrentGlobalTime();
-            connectionToAdd.TimeSinceLastActivity = connectionEstablishedTime;
-
+            connectionToAdd.TimeSinceLastActivity = GetCurrentGlobalTime();
             bool wasConnectionAdded = RoutingDataStore.AddConnection(connectionToAdd);
 
             if (wasConnectionAdded)
             {
-                connectResult.Type = MessageRouterResultType.Connected;
-                RemoveConnectionRequest(FindConnectionRequest(requestor));
+                ConnectionRequest acceptedConnectionRequest = FindConnectionRequest(requestor);
+
+                if (acceptedConnectionRequest == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to find the connection request to remove");
+                }
+                else
+                {
+                    RemoveConnectionRequest(acceptedConnectionRequest);
+                }
+
+                connectResult.Type = ConnectionResultType.Connected;
+                connectResult.ConnectionRequest = acceptedConnectionRequest;
             }
             else
             {
-                connectResult.Type = MessageRouterResultType.Error;
+                connectResult.Type = ConnectionResultType.Error;
                 connectResult.ErrorMessage = $"Failed to add the connection {connectionToAdd}";
             }
 
@@ -560,12 +579,15 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="connectionToDisconnect">The connection to disconnect.</param>
         /// <returns>The result of the operation:
-        /// - MessageRouterResultType.NoActionTaken, if no connection to disconnect was found OR,
-        /// - MessageRouterResultType.Disconnected for each disconnection, when successful.
+        /// - ConnectionResultType.Disconnected,
+        /// - ConnectionResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual MessageRouterResult Disconnect(Connection connectionToDisconnect)
+        public virtual ConnectionResult Disconnect(Connection connectionToDisconnect)
         {
-            MessageRouterResult disconnectResult = null;
+            ConnectionResult disconnectResult = new ConnectionResult()
+            {
+                Connection = connectionToDisconnect
+            };
 
             foreach (Connection connection in GetConnections())
             {
@@ -573,33 +595,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 {
                     if (RoutingDataStore.RemoveConnection(connectionToDisconnect))
                     {
-                        disconnectResult = new MessageRouterResult()
-                        {
-                            Type = MessageRouterResultType.Disconnected
-                        };
-
-                        if (connectionToDisconnect.ConversationReference1 != null)
-                        {
-                            disconnectResult.ConversationReferences.Add(connectionToDisconnect.ConversationReference1);
-                        }
-
-                        if (connectionToDisconnect.ConversationReference2 != null)
-                        {
-                            disconnectResult.ConversationReferences.Add(connectionToDisconnect.ConversationReference2);
-                        }
+                        disconnectResult.Type = ConnectionResultType.Disconnected;
+                    }
+                    else
+                    {
+                        disconnectResult.Type = ConnectionResultType.Error;
+                        disconnectResult.ErrorMessage = "Failed to remove the connection";
                     }
 
                     break;
                 }
-            }
-
-            if (disconnectResult == null)
-            {
-                disconnectResult = new MessageRouterResult()
-                {
-                    Type = MessageRouterResultType.Error,
-                    ErrorMessage = "Failed to find the connection"
-                };
             }
 
             return disconnectResult;

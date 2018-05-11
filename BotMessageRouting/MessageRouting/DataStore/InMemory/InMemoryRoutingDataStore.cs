@@ -1,7 +1,7 @@
 ﻿using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
 
 namespace Underscore.Bot.MessageRouting.DataStore.Local
 {
