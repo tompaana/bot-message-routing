@@ -360,8 +360,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">
         /// If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation:
-        /// - ConnectionRequestResultType.OK,
-        /// - ConnectionRequestResultType.AlreadyRequested,
+        /// - ConnectionRequestResultType.Created,
+        /// - ConnectionRequestResultType.AlreadyExists,
         /// - ConnectionRequestResultType.NotSetup or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
@@ -380,7 +380,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (GetConnectionRequests().Contains(connectionRequestToAdd))
             {
-                addConnectionRequestResult.Type = ConnectionRequestResultType.AlreadyRequested;
+                addConnectionRequestResult.Type = ConnectionRequestResultType.AlreadyExists;
             }
             else
             {
@@ -394,7 +394,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     if (RoutingDataStore.AddConnectionRequest(connectionRequestToAdd))
                     {
-                        addConnectionRequestResult.Type = ConnectionRequestResultType.OK;
+                        addConnectionRequestResult.Type = ConnectionRequestResultType.Created;
                     }
                     else
                     {

@@ -6,8 +6,8 @@ namespace Underscore.Bot.MessageRouting.Results
 {
     /// <summary>
     /// The connection request result type:
-    /// - OK: Connection request successfully created,
-    /// - AlreadyRequested: A connection request for the requestor already exists,
+    /// - Created: Connection request successfully created and added into the data store,
+    /// - AlreadyExists: A connection request for the requestor already exists,
     /// - NotSetup: No aggregation channel or portal available (no-one to accept/reject the request),
     /// - Rejected: The request was rejected,
     /// - Error: Generic error, see the error message.
@@ -16,8 +16,8 @@ namespace Underscore.Bot.MessageRouting.Results
     /// </summary>
     public enum ConnectionRequestResultType
     {
-        OK = 0,
-        AlreadyRequested,
+        Created = 0,
+        AlreadyExists,
         NotSetup,
         Rejected,
         Error

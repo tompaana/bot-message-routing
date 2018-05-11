@@ -221,8 +221,8 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="rejectConnectionRequestIfNoAggregationChannel">
         /// If true, will reject all requests, if there is no aggregation channel.</param>
         /// <returns>The result of the operation:
-        /// - ConnectionRequestResultType.OK,
-        /// - ConnectionRequestResultType.AlreadyRequested,
+        /// - ConnectionRequestResultType.Created,
+        /// - ConnectionRequestResultType.AlreadyExists,
         /// - ConnectionRequestResultType.NotSetup or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
