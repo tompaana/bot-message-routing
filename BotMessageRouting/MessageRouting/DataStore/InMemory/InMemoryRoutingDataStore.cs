@@ -50,10 +50,11 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// </summary>
         public InMemoryRoutingDataStore()
         {
-            AggregationChannels = new List<ConversationReference>();
             Users = new List<ConversationReference>();
             BotInstances = new List<ConversationReference>();
+            AggregationChannels = new List<ConversationReference>();
             ConnectionRequests = new List<ConnectionRequest>();
+            Connections = new List<Connection>();
         }
 
         public IList<ConversationReference> GetUsers()
