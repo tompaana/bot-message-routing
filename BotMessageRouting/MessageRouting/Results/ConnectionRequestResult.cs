@@ -73,7 +73,7 @@ namespace Underscore.Bot.MessageRouting.Results
             return connectionRequestResult;
         }
 
-        public string ToJson()
+        public override string ToJson()
         {
             return JsonConvert.SerializeObject(this);
         }

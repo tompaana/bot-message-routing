@@ -18,6 +18,8 @@ namespace Underscore.Bot.MessageRouting.Results
             ErrorMessage = string.Empty;
         }
 
+        public abstract string ToJson();
+
         public static string ChannelAccountToString(ChannelAccount channelAccount)
         {
             StringBuilder stringBuilder = new StringBuilder();
