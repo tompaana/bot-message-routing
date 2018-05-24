@@ -81,12 +81,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
         }
 
         /// <summary>
-        /// Compares the channel account instances of the two given conversation references.
+        /// Compares the conversation and channel account instances of the two given conversation references.
         /// </summary>
         /// <param name="conversationReference1"></param>
         /// <param name="conversationReference2"></param>
-        /// <returns>True, if the channel account IDs match. False otherwise.</returns>
-        public static bool HaveMatchingChannelAccounts(
+        /// <returns>True, if the IDs match. False otherwise.</returns>
+        public static bool Match(
             ConversationReference conversationReference1, ConversationReference conversationReference2)
         {
             if (conversationReference1 == null || conversationReference2 == null)
@@ -94,17 +94,27 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 return false;
             }
 
-            if (conversationReference1.Bot != null && conversationReference2.Bot != null)
+            string conversationAccount1Id = conversationReference1.Conversation?.Id;
+            string conversationAccount2Id = conversationReference2.Conversation?.Id;
+
+            if (string.IsNullOrWhiteSpace(conversationAccount1Id) != string.IsNullOrWhiteSpace(conversationAccount2Id))
             {
-                return conversationReference1.Bot.Id.Equals(conversationReference2.Bot.Id);
+                return false;
             }
 
-            if (conversationReference1.User != null && conversationReference2.User != null)
-            {
-                return conversationReference1.User.Id.Equals(conversationReference2.User.Id);
-            }
+            bool conversationAccountsMatch =
+                (string.IsNullOrWhiteSpace(conversationAccount1Id)
+                 && string.IsNullOrWhiteSpace(conversationAccount2Id))
+                || conversationAccount1Id.Equals(conversationAccount2Id);
 
-            return false;
+            ChannelAccount channelAccount1 = GetChannelAccount(conversationReference1, out bool isBot1);
+            ChannelAccount channelAccount2 = GetChannelAccount(conversationReference2, out bool isBot2);
+
+            return (conversationAccountsMatch
+                && isBot1 == isBot2
+                && channelAccount1 != null
+                && channelAccount2 != null
+                && channelAccount1.Id.Equals(channelAccount2.Id));
         }
 
         #endregion
@@ -221,7 +231,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
                 {
-                    if (HaveMatchingChannelAccounts(
+                    if (Match(
                             conversationReferenceToRemove, connectionRequest.Requestor))
                     {
                         ConnectionRequestResult removeConnectionRequestResult =
@@ -246,8 +256,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (Connection connection in GetConnections())
                 {
-                    if (HaveMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference1)
-                        || HaveMatchingChannelAccounts(conversationReferenceToRemove, connection.ConversationReference2))
+                    if (Match(conversationReferenceToRemove, connection.ConversationReference1)
+                        || Match(conversationReferenceToRemove, connection.ConversationReference2))
                     {
                         wasRemoved = true;
                         messageRouterResults.Add(Disconnect(connection)); // TODO: Check that the disconnect was successful
@@ -344,7 +354,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
             {
-                if (HaveMatchingChannelAccounts(conversationReference, connectionRequest.Requestor))
+                if (Match(conversationReference, connectionRequest.Requestor))
                 {
                     return connectionRequest;
                 }
@@ -467,8 +477,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (Connection connection in GetConnections())
             {
-                if (HaveMatchingChannelAccounts(conversationReference, connection.ConversationReference1)
-                    || HaveMatchingChannelAccounts(conversationReference, connection.ConversationReference2))
+                if (Match(conversationReference, connection.ConversationReference1)
+                    || Match(conversationReference, connection.ConversationReference2))
                 {
                     return connection;
                 }
@@ -497,12 +507,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             foreach (Connection connection in GetConnections())
             {
-                if (HaveMatchingChannelAccounts(
+                if (Match(
                         conversationReferenceWhoseCounterpartToFind, connection.ConversationReference1))
                 {
                     return connection.ConversationReference2;
                 }
-                else if (HaveMatchingChannelAccounts(
+                else if (Match(
                             conversationReferenceWhoseCounterpartToFind, connection.ConversationReference2))
                 {
                     return connection.ConversationReference1;

@@ -440,7 +440,7 @@ namespace Underscore.Bot.MessageRouting
             if (connection != null)
             {
                 ConversationReference conversationReferenceToForwardMessageTo =
-                    RoutingDataManager.HaveMatchingChannelAccounts(
+                    RoutingDataManager.Match(
                         senderConversationReference, connection.ConversationReference1)
                         ? connection.ConversationReference2 : connection.ConversationReference1;
 

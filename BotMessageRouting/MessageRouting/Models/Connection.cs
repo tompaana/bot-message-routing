@@ -44,10 +44,10 @@ namespace Underscore.Bot.MessageRouting.Models
         public bool Equals(Connection other)
         {
             return (other != null
-                && ((RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference1, other.ConversationReference1)
-                     && RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference2, other.ConversationReference2))
-                     || (RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference1, other.ConversationReference2)
-                         && RoutingDataManager.HaveMatchingChannelAccounts(ConversationReference2, other.ConversationReference1))));
+                && ((RoutingDataManager.Match(ConversationReference1, other.ConversationReference1)
+                     && RoutingDataManager.Match(ConversationReference2, other.ConversationReference2))
+                     || (RoutingDataManager.Match(ConversationReference1, other.ConversationReference2)
+                         && RoutingDataManager.Match(ConversationReference2, other.ConversationReference1))));
         }
 
         public static Connection FromJson(string connectionAsJsonString)
