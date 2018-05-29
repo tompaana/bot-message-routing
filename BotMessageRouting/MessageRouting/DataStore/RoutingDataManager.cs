@@ -117,6 +117,30 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 && channelAccount1.Id.Equals(channelAccount2.Id));
         }
 
+        /// <summary>
+        /// Checks whether the given list of conversation references contains the given one.
+        /// </summary>
+        /// <param name="conversationReferences">The list of conversation references possibly containing the given one.</param>
+        /// <param name="conversationReferenceToCheck">The conversation reference to check.</param>
+        /// <returns>True, if the given conversation reference is contained by the list. False otherwise.</returns>
+        public static bool Contains(
+            IList<ConversationReference> conversationReferences,
+            ConversationReference conversationReferenceToCheck)
+        {
+            if (conversationReferences != null)
+            {
+                foreach (ConversationReference conversationReference in conversationReferences)
+                {
+                    if (Match(conversationReference, conversationReferenceToCheck))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         #endregion
 
         /// <returns>The current global time.</returns>
@@ -178,8 +202,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             if (conversationReferenceToAdd == null
                 || (IsBot(conversationReferenceToAdd) ?
-                    GetBotInstances().Contains(conversationReferenceToAdd)
-                    : GetUsers().Contains(conversationReferenceToAdd)))
+                    Contains(GetBotInstances(), conversationReferenceToAdd)
+                    : Contains(GetUsers(), conversationReferenceToAdd)))
             {
                 return false;
             }
@@ -315,7 +339,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 IList<ConversationReference> aggregationParties = GetAggregationChannels();
 
-                if (!aggregationParties.Contains(aggregationChannelToAdd))
+                if (!Contains(aggregationParties, aggregationChannelToAdd))
                 {
                     return RoutingDataStore.AddAggregationChannel(aggregationChannelToAdd);
                 }
