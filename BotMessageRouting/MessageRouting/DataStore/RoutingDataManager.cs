@@ -224,7 +224,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             // Check users and bots
             IList<ConversationReference> conversationReferenceToSearch =
-                IsBot(conversationReferenceToRemove) ? GetUsers() : GetBotInstances();
+                IsBot(conversationReferenceToRemove) ? GetBotInstances() : GetUsers();
 
             IList<ConversationReference> conversationReferencesToRemove = FindConversationReferences(
                 conversationReferenceToSearch, null, null,
