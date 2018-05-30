@@ -1,4 +1,5 @@
 ﻿using Microsoft.Bot.Connector;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
@@ -132,9 +133,11 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="conversationReferenceToMessage">The conversation reference to send the message to.</param>
         /// <param name="messageActivity">The message activity to send (message content).</param>
+        /// <param name="microsoftAppCredentials">The credentials.</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
         public virtual async Task<ResourceResponse> SendMessageAsync(
-            ConversationReference conversationReferenceToMessage, IMessageActivity messageActivity)
+            ConversationReference conversationReferenceToMessage, IMessageActivity messageActivity,
+            MicrosoftAppCredentials microsoftAppCredentials = null)
         {
             ConversationReference botConversationReference = null;
 
@@ -154,7 +157,7 @@ namespace Underscore.Bot.MessageRouting
                 messageActivity.Recipient = conversationReferenceToMessage.User;
 
                 ConnectorClientMessageBundle bundle = new ConnectorClientMessageBundle(
-                        conversationReferenceToMessage.ServiceUrl, messageActivity);
+                        conversationReferenceToMessage.ServiceUrl, messageActivity, microsoftAppCredentials);
 
                 ResourceResponse resourceResponse = null;
 
@@ -184,9 +187,11 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         /// <param name="conversationReferenceToMessage">The conversation reference instance to send the message to.</param>
         /// <param name="messageText">The message text content.</param>
+        /// <param name="microsoftAppCredentials">The credentials.</param>
         /// <returns>A valid ResourceResponse instance, if successful. Null in case of an error.</returns>
         public virtual async Task<ResourceResponse> SendMessageAsync(
-            ConversationReference conversationReferenceToMessage, string messageText)
+            ConversationReference conversationReferenceToMessage, string messageText,
+            MicrosoftAppCredentials microsoftAppCredentials = null)
         {
             ConversationReference botConversationReference = null;
 
@@ -200,7 +205,7 @@ namespace Underscore.Bot.MessageRouting
                 ConnectorClientMessageBundle.CreateMessageActivity(
                     conversationReferenceToMessage, botConversationReference?.Bot, messageText);
 
-            return await SendMessageAsync(conversationReferenceToMessage, messageActivity);
+            return await SendMessageAsync(conversationReferenceToMessage, messageActivity, microsoftAppCredentials);
         }
 
         /// <summary>

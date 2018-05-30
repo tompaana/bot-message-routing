@@ -1,4 +1,5 @@
 ﻿using Microsoft.Bot.Connector;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using System;
 
@@ -25,10 +26,21 @@ namespace Underscore.Bot.MessageRouting.Utils
         /// Constructor.
         /// </summary>
         /// <param name="serviceUrl">The service URL.</param>
-        /// <param name="newMessageActivity">The message activity to send.</param>
-        public ConnectorClientMessageBundle(string serviceUrl, IMessageActivity messageActivity)
+        /// <param name="messageActivity">The message activity to send.</param>
+        /// <param name="microsoftAppCredentials">The credentials.</param>
+        public ConnectorClientMessageBundle(
+            string serviceUrl, IMessageActivity messageActivity,
+            MicrosoftAppCredentials microsoftAppCredentials = null)
         {
-            ConnectorClient = new ConnectorClient(new Uri(serviceUrl));
+            if (microsoftAppCredentials == null)
+            {
+                ConnectorClient = new ConnectorClient(new Uri(serviceUrl));
+            }
+            else
+            {
+                ConnectorClient = new ConnectorClient(new Uri(serviceUrl), microsoftAppCredentials);
+            }
+
             MessageActivity = messageActivity;
         }
 
