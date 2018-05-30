@@ -236,11 +236,12 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 {
                     wasRemoved = RoutingDataStore.RemoveConversationReference(conversationReference);
 
-                    if (wasRemoved)
+                    if (!wasRemoved)
                     {
                         messageRouterResults.Add(new MessageRoutingResult()
                         {
-                            Type = MessageRoutingResultType.MessageRouted
+                            Type = MessageRoutingResultType.Error,
+                            ErrorMessage = "Failed to remove conversation reference"
                         });
                     }
                 }
