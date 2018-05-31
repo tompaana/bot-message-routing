@@ -37,7 +37,7 @@ namespace Underscore.Bot.MessageRouting
         /// time for various events such as when a connection is requested.</param>
         public MessageRouter(
             IRoutingDataStore routingDataStore,
-            MicrosoftAppCredentials microsoftAppCredentials = null,
+            MicrosoftAppCredentials microsoftAppCredentials,
             GlobalTimeProvider globalTimeProvider = null)
         {
             RoutingDataManager = new RoutingDataManager(routingDataStore, globalTimeProvider);
