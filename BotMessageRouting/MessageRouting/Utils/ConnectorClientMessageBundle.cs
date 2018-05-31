@@ -2,6 +2,7 @@
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using System;
+using Underscore.Bot.MessageRouting.DataStore;
 
 namespace Underscore.Bot.MessageRouting.Utils
 {
@@ -45,29 +46,39 @@ namespace Underscore.Bot.MessageRouting.Utils
         }
 
         /// <summary>
-        /// Creates a new message activity based on the given arguments.
+        /// Creates a new message activity and populates it based on the given arguments.
         /// </summary>
-        /// <param name="conversationReferenceToMessage">The conversation reference instance to send the message to.</param>
-        /// <param name="senderChannelAccount">The channel account of the sender.</param>
-        /// <param name="messageText">The message text content.</param>
+        /// <param name="sender">The channel account of the sender.</param>
+        /// <param name="recipient">The conversation reference of the recipient.</param>
+        /// <param name="message">The message content.</param>
         /// <returns>A newly created message activity.</returns>
         public static IMessageActivity CreateMessageActivity(
-            ConversationReference conversationReferenceToMessage, ChannelAccount senderChannelAccount, string messageText)
+            ChannelAccount sender, ConversationReference recipient, string message)
         {
             IMessageActivity messageActivity = Activity.CreateMessageActivity();
-            messageActivity.Conversation = conversationReferenceToMessage.Conversation;
-            messageActivity.Text = messageText;
-
-            if (senderChannelAccount != null)
+            
+            if (sender != null)
             {
-                messageActivity.From = senderChannelAccount;
+                messageActivity.From = sender;
             }
 
-            if (conversationReferenceToMessage.User != null)
+            if (recipient != null)
             {
-                messageActivity.Recipient = conversationReferenceToMessage.User;
+                if (recipient.Conversation != null)
+                {
+                    messageActivity.Conversation = recipient.Conversation;
+                }
+
+                ChannelAccount recipientChannelAccount =
+                    RoutingDataManager.GetChannelAccount(recipient);
+
+                if (recipientChannelAccount != null)
+                {
+                    messageActivity.Recipient = recipientChannelAccount;
+                }
             }
 
+            messageActivity.Text = message;
             return messageActivity;
         }
     }

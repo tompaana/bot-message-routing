@@ -59,7 +59,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Resolves the non-null channel account instance in the given conversation reference.
         /// </summary>
-        /// <param name="conversationReference">The conversation reference to check.</param>
+        /// <param name="conversationReference">The conversation reference whose channel account to resolve.</param>
         /// <param name="isBot">Will be true, if the conversation reference is associated with a bot. False otherwise.</param>
         /// <returns>The non-null channel account instance (user or bot) or null, if both are null.</returns>
         public static ChannelAccount GetChannelAccount(ConversationReference conversationReference, out bool isBot)
@@ -78,6 +78,16 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             isBot = false;
             return null;
+        }
+
+        /// <summary>
+        /// Resolves the non-null channel account instance in the given conversation reference.
+        /// </summary>
+        /// <param name="conversationReference">The conversation reference whose channel account to resolve.</param>
+        /// <returns>The non-null channel account instance (user or bot) or null, if both are null.</returns>
+        public static ChannelAccount GetChannelAccount(ConversationReference conversationReference)
+        {
+            return GetChannelAccount(conversationReference, out bool isBot);
         }
 
         /// <summary>
@@ -228,7 +238,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             IList<ConversationReference> conversationReferencesToRemove = FindConversationReferences(
                 conversationReferenceToSearch, null, null,
-                GetChannelAccount(conversationReferenceToRemove, out bool isBot)?.Id);
+                GetChannelAccount(conversationReferenceToRemove)?.Id);
 
             if (conversationReferencesToRemove != null)
             {
@@ -333,7 +343,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         {
             if (aggregationChannelToAdd != null)
             {
-                if (GetChannelAccount(aggregationChannelToAdd, out bool isBot) != null)
+                if (GetChannelAccount(aggregationChannelToAdd) != null)
                 {
                     throw new ArgumentException("The conversation reference instance for an aggregation channel cannot contain a channel account");
                 }
@@ -703,8 +713,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                     if (!string.IsNullOrWhiteSpace(channelAccountId))
                     {
-                        ChannelAccount channelAccount =
-                            GetChannelAccount(conversationReference, out bool isBot);
+                        ChannelAccount channelAccount = GetChannelAccount(conversationReference);
 
                         if (channelAccount == null
                             || string.IsNullOrWhiteSpace(channelAccount.Id)
