@@ -132,6 +132,7 @@ Special thanks to the contributors (in alphabetical order):
 
 * [Syed Hassaan Ahmed](https://github.com/syedhassaanahmed)
 * [Jorge Cupi](https://github.com/jorgecupi)
+* [Michael Dahl](https://github.com/micdah)
 * [Jamie D](https://github.com/daltskin)
 * [Pedro Dias](https://github.com/digitaldias)
 * [Drazen Dodik](https://twitter.com/diggthedrazen)
