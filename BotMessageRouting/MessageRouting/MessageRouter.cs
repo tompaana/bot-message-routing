@@ -136,7 +136,7 @@ namespace Underscore.Bot.MessageRouting
 
             if (botInstance == null || botInstance.Bot == null)
             {
-                _logger.LogWarning(("Failed to find the bot instance");
+                _logger.LogWarning("Failed to find the bot instance");
                 return null;
             }
 
