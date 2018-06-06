@@ -65,5 +65,33 @@ namespace BotMessageRouting.MessageRouting.Handlers
             }
             return default(TResult);
         }
+
+
+        /// <summary>
+        /// Executes a potentially unsafe asynchronous method. 
+        /// </summary>
+        /// <param name="unsafeFunction">A method delegate that returns an (awaitable) task</param>
+        /// <param name="customHandler">For custom handling of the exception, add a delegate here that accepts an exception as input</param>
+        /// <param name="callerMemberName">Name of the offending method that crashed. Can be replaced with a custom message if you want</param>        
+        /// <returns></returns>
+        public Task ExecteAsync(Func<Task> unsafeFunction, Action<Exception> customHandler = null, [CallerMemberName] string callerMemberName = "")
+        {
+            try
+            {
+                return unsafeFunction.Invoke();
+            }
+            catch(Exception ex)
+            {
+                if (customHandler != null)
+                {
+                    customHandler(ex);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"{callerMemberName}() : {ex.Message}");
+                }
+            }
+            return Task.CompletedTask;
+        }
     }
 }
