@@ -18,9 +18,9 @@ namespace Underscore.Bot.MessageRouting
     /// </summary>
     public class MessageRouter
     {
-        private readonly ILogger        _logger;
-        private ExceptionHandler        _exceptionHandler;
-        private MicrosoftAppCredentials _microsoftAppCredentials;
+        private readonly ILogger            _logger;
+        private readonly ExceptionHandler   _exceptionHandler;
+        private MicrosoftAppCredentials     _microsoftAppCredentials;
 
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
