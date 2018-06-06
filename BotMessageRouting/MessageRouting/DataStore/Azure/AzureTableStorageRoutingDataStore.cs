@@ -18,18 +18,19 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     [Serializable]
     public class AzureTableStorageRoutingDataStore : IRoutingDataStore
     {
-        protected const string DefaultPartitionKey = "BotMessageRouting";
-        protected const string TableNameBotInstances = "BotInstances";
-        protected const string TableNameUsers = "Users";
+        protected const string DefaultPartitionKey          = "BotMessageRouting";
+        protected const string TableNameBotInstances        = "BotInstances";
+        protected const string TableNameUsers               = "Users";
         protected const string TableNameAggregationChannels = "AggregationChannels";
-        protected const string TableNameConnectionRequests = "ConnectionRequests";
-        protected const string TableNameConnections = "Connections";
+        protected const string TableNameConnectionRequests  = "ConnectionRequests";
+        protected const string TableNameConnections         = "Connections";
 
         protected CloudTable _botInstancesTable;
         protected CloudTable _usersTable;
         protected CloudTable _aggregationChannelsTable;
         protected CloudTable _connectionRequestsTable;
         protected CloudTable _connectionsTable;
+
 
         /// <summary>
         /// Constructor.
@@ -42,14 +43,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 throw new ArgumentNullException("The connection string cannot be null or empty");
             }
 
-            _botInstancesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
-            _usersTable = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
+            _botInstancesTable        = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
+            _usersTable               = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
             _aggregationChannelsTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationChannels);
-            _connectionRequestsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
-            _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
+            _connectionRequestsTable  = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
+            _connectionsTable         = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
 
             MakeSureTablesExistAsync();
         }
+
 
         #region Get region
         public IList<ConversationReference> GetUsers()
@@ -58,17 +60,20 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return GetAllConversationReferencesFromEntities(entities);
         }
 
+
         public IList<ConversationReference> GetBotInstances()
         {
             var entities = GetAllEntitiesFromTable(_botInstancesTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
+
         public IList<ConversationReference> GetAggregationChannels()
         {
             var entities = GetAllEntitiesFromTable(_aggregationChannelsTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
+
 
         public IList<ConnectionRequest> GetConnectionRequests()
         {
@@ -83,6 +88,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
             return connectionRequests;
         }
+
 
         public IList<Connection> GetConnections()
         {
@@ -113,6 +119,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return InsertEntityToTable(rowKey, body, table);
         }
 
+
         public bool AddAggregationChannel(ConversationReference aggregationChannel)
         {
             string rowKey = aggregationChannel.Conversation.Id;
@@ -120,6 +127,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             return InsertEntityToTable(rowKey, body, _aggregationChannelsTable);
         }
+
 
         public bool AddConnectionRequest(ConnectionRequest connectionRequest)
         {
@@ -129,6 +137,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return InsertEntityToTable(rowKey, body, _connectionRequestsTable);
         }
 
+
         public bool AddConnection(Connection connection)
         {
             string rowKey = connection.ConversationReference1.Conversation.Id +
@@ -137,6 +146,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             return InsertEntityToTable(rowKey, body, _connectionsTable);
         }
+
         #endregion
 
         #region Remove region
@@ -152,6 +162,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 table, DefaultPartitionKey, rowKey).Result;
         }
 
+
         public bool RemoveAggregationChannel(ConversationReference aggregationChannel)
         {
             string rowKey = aggregationChannel.Conversation.Id;
@@ -159,12 +170,14 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 _aggregationChannelsTable, DefaultPartitionKey, rowKey).Result;
         }
 
+
         public bool RemoveConnectionRequest(ConnectionRequest connectionRequest)
         {
             string rowKey = connectionRequest.Requestor.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
                 _connectionRequestsTable, DefaultPartitionKey, rowKey).Result;
         }
+
 
         public bool RemoveConnection(Connection connection)
         {
@@ -176,6 +189,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         #endregion
 
         #region Validators and helpers
+
         /// <summary>
         /// Makes sure the required tables exist.
         /// </summary>
@@ -204,6 +218,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
         }
 
+
         private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<RoutingDataEntity> entities)
         {
             var conversationReferences = new List<ConversationReference>();
@@ -216,6 +231,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return conversationReferences;
         }
 
+
         private async Task<IList<RoutingDataEntity>> GetAllEntitiesFromTable(CloudTable table)
         {
             var query = new TableQuery<RoutingDataEntity>()
@@ -223,6 +239,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                     "PartitionKey", QueryComparisons.Equal, DefaultPartitionKey));
             return await table.ExecuteTableQueryAsync(query);
         }
+
 
         private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
         {
@@ -232,6 +249,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                     Body = body, PartitionKey = DefaultPartitionKey, RowKey = rowKey
                 }).Result;
         }
+
         #endregion
     }
 }
