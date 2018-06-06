@@ -20,7 +20,6 @@ namespace Underscore.Bot.MessageRouting.Models
 
         public ConversationReference ConversationReference2 { get; set; }
 
-
         public Connection(ConversationReference conversationReference1, ConversationReference conversationReference2, ILogger logger = null)
         {
             _logger                = logger ?? DebugLogger.Default;

@@ -35,7 +35,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         private ILogger          _logger;
         private ExceptionHandler _exceptionHandler;
 
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -61,7 +60,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             MakeSureTablesExistAsync();
         }
 
-
         #region Get region
         public IList<ConversationReference> GetUsers()
         {
@@ -71,7 +69,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return GetAllConversationReferencesFromEntities(entities);
         }
 
-
         public IList<ConversationReference> GetBotInstances()
         {
             _logger.Enter();
@@ -80,7 +77,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return GetAllConversationReferencesFromEntities(entities);
         }
 
-
         public IList<ConversationReference> GetAggregationChannels()
         {
             _logger.Enter();
@@ -88,7 +84,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             var entities = GetAllEntitiesFromTable(_aggregationChannelsTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
-
 
         public IList<ConnectionRequest> GetConnectionRequests()
         {
@@ -105,7 +100,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
             return connectionRequests;
         }
-
 
         public IList<Connection> GetConnections()
         {
@@ -141,7 +135,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return InsertEntityToTable(rowKey, body, table);
         }
 
-
         public bool AddAggregationChannel(ConversationReference aggregationChannel)
         {
             _logger.Enter();
@@ -152,7 +145,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return InsertEntityToTable(rowKey, body, _aggregationChannelsTable);
         }
 
-
         public bool AddConnectionRequest(ConnectionRequest connectionRequest)
         {
             _logger.Enter();
@@ -162,7 +154,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             return InsertEntityToTable(rowKey, body, _connectionRequestsTable);
         }
-
 
         public bool AddConnection(Connection connection)
         {
@@ -192,7 +183,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 table, DefaultPartitionKey, rowKey).Result;
         }
 
-
         public bool RemoveAggregationChannel(ConversationReference aggregationChannel)
         {
             _logger.Enter();
@@ -202,7 +192,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 _aggregationChannelsTable, DefaultPartitionKey, rowKey).Result;
         }
 
-
         public bool RemoveConnectionRequest(ConnectionRequest connectionRequest)
         {
             _logger.Enter();
@@ -211,7 +200,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
                 _connectionRequestsTable, DefaultPartitionKey, rowKey).Result;
         }
-
 
         public bool RemoveConnection(Connection connection)
         {
@@ -251,7 +239,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
         }
 
-
         private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<RoutingDataEntity> entities)
         {
             _logger.Enter();
@@ -266,7 +253,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return conversationReferences;
         }
 
-
         private async Task<IList<RoutingDataEntity>> GetAllEntitiesFromTable(CloudTable table)
         {
             _logger.Enter();
@@ -276,7 +262,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                     "PartitionKey", QueryComparisons.Equal, DefaultPartitionKey));
             return await table.ExecuteTableQueryAsync(query);
         }
-
 
         private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
         {            

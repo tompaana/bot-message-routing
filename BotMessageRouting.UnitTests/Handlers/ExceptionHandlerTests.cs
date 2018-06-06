@@ -10,7 +10,6 @@ namespace BotMessageRouting.UnitTests.Handlers
 {
     public class ExceptionHandlerTests : TestsFor<ExceptionHandler>
     {
-
         [Fact]
         public async Task GetAsync_FunctionReferenceIsNull_LogsWarning()
         {

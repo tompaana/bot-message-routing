@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using BotMessageRouting.UnitTests.AutoMocking;
+using Moq;
 
 namespace BotMessageRouting.UnitTests
 {
@@ -6,7 +7,6 @@ namespace BotMessageRouting.UnitTests
     {
         public TInstance Instance { get; set; }
         public MoqAutoMocker<TInstance> AutoMocker { get; private set; }
-
 
         public TestsFor()
         {
@@ -19,16 +19,13 @@ namespace BotMessageRouting.UnitTests
             AfterTestClassCreation();
         }
 
-
         public virtual void BeforeTestClassCreation(){
             // No code - ever!
         }
 
-
         public virtual void AfterTestClassCreation(){
             // No code - ever!
         }
-
 
         public Mock<TContract> GetMockFor<TContract>() where TContract : class
         {

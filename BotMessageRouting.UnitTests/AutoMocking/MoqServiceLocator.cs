@@ -1,7 +1,7 @@
 ﻿using StructureMap.AutoMocking;
 using System;
 
-namespace BotMessageRouting.UnitTests
+namespace BotMessageRouting.UnitTests.AutoMocking
 {
     public class MoqServiceLocator : ServiceLocator
     {

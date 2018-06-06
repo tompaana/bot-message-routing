@@ -85,7 +85,6 @@ namespace BotMessageRouting.MessageRouting.Handlers
             return default(TResult);
         }
 
-
         /// <summary>
         /// Executes a potentially unsafe asynchronous method. 
         /// </summary>

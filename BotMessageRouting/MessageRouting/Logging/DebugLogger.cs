@@ -18,20 +18,17 @@ namespace BotMessageRouting.MessageRouting.Logging
             SetLogLevel(logLevel);
         }
 
-
         public void Enter([CallerMemberName] string methodName = "")
         {
             if (_logLevel == LogLevel.Verbose)
                 Log($"Entering {methodName}()");
         }
 
-
         public void LogError(string message, [CallerMemberName] string methodName = "")
         {
             if (_logLevel >= LogLevel.Error)
                 Log($"ERROR: {methodName}(): {message}");
         }
-
 
         public void LogException(Exception ex, string message = "", [CallerMemberName] string methodName = "")
         {
@@ -44,13 +41,11 @@ namespace BotMessageRouting.MessageRouting.Logging
             }
         }
 
-
         public void LogInformation(string message, [CallerMemberName] string methodName = "")
         {
             if (_logLevel >= LogLevel.Information)
                 Log($"Information: {methodName}(): {message}");
         }
-
 
         public void LogVerbose(string message, [CallerMemberName] string methodName = "")
         {
@@ -58,13 +53,11 @@ namespace BotMessageRouting.MessageRouting.Logging
                 Log($"Information: {methodName}(): {message}");
         }
 
-
         public void LogWarning(string message, [CallerMemberName] string methodName = "")
         {
             if (_logLevel >= LogLevel.Warning)
                 Log($"Warning: {methodName}(): {message}");
         }
-
 
         public void SetLogLevel(LogLevel logLevel)
         {
@@ -73,7 +66,6 @@ namespace BotMessageRouting.MessageRouting.Logging
 
             _logLevel = logLevel;
         }
-
 
         private void Log(string message)
         {

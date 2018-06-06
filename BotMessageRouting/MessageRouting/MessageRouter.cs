@@ -27,8 +27,6 @@ namespace Underscore.Bot.MessageRouting
         /// </summary>
         public RoutingDataManager RoutingDataManager { get; protected set; }
 
-
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -49,7 +47,6 @@ namespace Underscore.Bot.MessageRouting
             RoutingDataManager       = new RoutingDataManager(routingDataStore, globalTimeProvider);
         }
 
-
         /// <summary>
         /// Constructs a conversation reference instance using the sender of the given activity.
         /// </summary>
@@ -67,7 +64,6 @@ namespace Underscore.Bot.MessageRouting
                 activity.ServiceUrl);
         }
 
-
         /// <summary>
         /// Constructs a conversation reference instance using the recipient, which is expected to
         /// be a bot instance, of the given activity.
@@ -84,7 +80,6 @@ namespace Underscore.Bot.MessageRouting
                 activity.ChannelId,
                 activity.ServiceUrl);
         }
-
 
         /// <summary>
         /// Handles the new activity:
@@ -113,10 +108,8 @@ namespace Underscore.Bot.MessageRouting
             {
                 return CreateConnectionRequest(CreateSenderConversationReference(activity),rejectConnectionRequestIfNoAggregationChannel);
             }
-
             return messageRoutingResult;
         }
-
 
         /// <summary>
         /// Sends the given message to the given recipient.
@@ -159,7 +152,6 @@ namespace Underscore.Bot.MessageRouting
                 returnDefaultType: false);
         }
 
-
         /// <summary>
         /// Sends the given message to the given recipient.
         /// </summary>
@@ -173,7 +165,6 @@ namespace Underscore.Bot.MessageRouting
             return await SendMessageAsync(recipient, messageActivity);
         }
 
-
         /// <summary>
         /// Stores the conversation reference instances (sender and recipient) in the given activity.
         /// </summary>
@@ -183,7 +174,6 @@ namespace Underscore.Bot.MessageRouting
             RoutingDataManager.AddConversationReference(CreateSenderConversationReference(activity));
             RoutingDataManager.AddConversationReference(CreateRecipientConversationReference(activity));
         }
-
 
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
@@ -227,7 +217,6 @@ namespace Underscore.Bot.MessageRouting
             return createConnectionRequestResult;
         }
 
-
         /// <summary>
         /// Tries to reject the connection request of the associated with the given conversation reference.
         /// </summary>
@@ -257,7 +246,6 @@ namespace Underscore.Bot.MessageRouting
 
             return rejectConnectionRequestResult;
         }
-
 
         /// <summary>
         /// Tries to establish a connection (1:1 chat) between the two given parties.
@@ -345,7 +333,6 @@ namespace Underscore.Bot.MessageRouting
             return connectResult;
         }
 
-
         /// <summary>
         /// Disconnects all connections associated with the given conversation reference.
         /// </summary>
@@ -378,7 +365,6 @@ namespace Underscore.Bot.MessageRouting
 
             return disconnectResults;
         }
-
 
         /// <summary>
         /// Routes the message in the given activity, if the sender is connected in a conversation.

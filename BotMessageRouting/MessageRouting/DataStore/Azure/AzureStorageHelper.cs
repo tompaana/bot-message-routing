@@ -17,8 +17,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         private static ILogger          _logger = DebugLogger.Default;
         private static ExceptionHandler _exceptionHandler = new ExceptionHandler(_logger);
 
-
-
         /// <summary>
         /// Allows you to override the default built-in logger and replace it with your own ILogger implementation
         /// </summary>
@@ -31,7 +29,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 _exceptionHandler = new ExceptionHandler(_logger);
             }
         }
-
 
         /// <summary>
         /// Tries to resolve a table in the storage defined by the given connection string and table name.
@@ -56,7 +53,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return cloudTableClient?.GetTableReference(tableName);
         }
 
-
         /// <summary>
         /// Tries to insert the given entry into the given table.
         /// </summary>
@@ -76,7 +72,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             return (insertResult?.Result != null);
         }
-
 
         /// <summary>
         /// Deletes an entry from the given table by the given partition and row key.
@@ -99,7 +94,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             }
             return false;
         }
-
 
         /// <summary>
         /// 

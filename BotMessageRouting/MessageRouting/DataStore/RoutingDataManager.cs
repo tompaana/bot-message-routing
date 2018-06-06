@@ -16,7 +16,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
     {
         public IRoutingDataStore RoutingDataStore { get; protected set; }
 
-
         /// <summary>
         /// A global time provider.
         /// Used for providing the current time for various of events.
@@ -24,7 +23,6 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// agent front-ends to see who has waited the longest and/or to collect response times.
         /// </summary>
         public virtual GlobalTimeProvider GlobalTimeProvider { get; protected set; }
-
 
         /// <summary>
         /// Constructor.

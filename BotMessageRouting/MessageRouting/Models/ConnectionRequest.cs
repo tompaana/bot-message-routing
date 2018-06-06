@@ -21,7 +21,6 @@ namespace Underscore.Bot.MessageRouting.Models
         /// </summary>
         public DateTime ConnectionRequestTime { get; set; }
 
-
         public ConnectionRequest(ConversationReference requestor, ILogger logger = null)
         {
             if (_exceptionHandler == null)
@@ -34,20 +33,17 @@ namespace Underscore.Bot.MessageRouting.Models
             ResetConnectionRequestTime(); 
         }
 
-
         public void ResetConnectionRequestTime()
         {
             _logger.Enter();
             ConnectionRequestTime = DateTime.MinValue;
         }
 
-
         public bool Equals(ConnectionRequest other)
         {
             _logger.Enter();
             return (other != null && RoutingDataManager.Match(Requestor, other.Requestor));
         }
-
 
         public static ConnectionRequest FromJson(string connectionAsJsonString)
         {
@@ -56,14 +52,12 @@ namespace Underscore.Bot.MessageRouting.Models
             return _exceptionHandler.Get(() => JsonConvert.DeserializeObject<ConnectionRequest>(connectionAsJsonString));
         }
 
-
         public string ToJson()
         {
             _logger.Enter();
 
             return JsonConvert.SerializeObject(this);
         }
-
 
         public override string ToString()
         {

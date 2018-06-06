@@ -16,14 +16,12 @@ namespace BotMessageRouting.MessageRouting.Logging
         /// <param name="methodName"></param>
         void Enter([CallerMemberName] string methodName = "");
 
-
         /// <summary>
         /// Log messages in verbose level or above
         /// </summary>
         /// <param name="message">The message to log</param>
         /// <param name="methodName">Resolved by the [CallerMemberName] attribute. No value required</param>
         void LogVerbose(string message, [CallerMemberName] string methodName = "");
-
 
         /// <summary>
         /// Log messages in Information level or above
@@ -32,7 +30,6 @@ namespace BotMessageRouting.MessageRouting.Logging
         /// <param name="methodName">Resolved by the [CallerMemberName] attribute. No value required</param>
         void LogInformation(string message, [CallerMemberName] string methodName = "");
 
-
         /// <summary>
         /// Log messages in Warning level or above
         /// </summary>
@@ -40,16 +37,12 @@ namespace BotMessageRouting.MessageRouting.Logging
         /// <param name="methodName">Resolved by the [CallerMemberName] attribute. No value required</param>
         void LogWarning(string message, [CallerMemberName] string methodName = "");
 
-
         /// <summary>
         /// Log messages in Error level or above
         /// </summary>
         /// <param name="message">The message to log</param>
         /// <param name="methodName">Resolved by the [CallerMemberName] attribute. No value required</param>
-
-
         void LogError(string message, [CallerMemberName] string methodName = "");
-
 
         /// <summary>
         /// Used for logging exceptions (see class ExceptionHandler for sample usage)
