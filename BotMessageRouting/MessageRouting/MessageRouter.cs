@@ -148,7 +148,7 @@ namespace Underscore.Bot.MessageRouting
 
             var bundle = new ConnectorClientMessageBundle(recipient.ServiceUrl, messageActivity, _microsoftAppCredentials);
 
-            return await _exceptionHandler.Get(() =>
+            return await _exceptionHandler.GetAsync(() =>
                 bundle.ConnectorClient.Conversations.SendToConversationAsync((Activity)bundle.MessageActivity),
                 returnDefaultType: false);
         }
@@ -296,7 +296,7 @@ namespace Underscore.Bot.MessageRouting
                 ChannelAccount conversationReference1ChannelAccount = RoutingDataManager.GetChannelAccount(conversationReference1, out bool conversationReference1IsBot);
                 ConnectorClient connectorClient                     = new ConnectorClient(new Uri(conversationReference1.ServiceUrl));
 
-                conversationResourceResponse = await _exceptionHandler.Get(
+                conversationResourceResponse = await _exceptionHandler.GetAsync(
                         () => connectorClient.Conversations.CreateDirectConversationAsync(botInstance.Bot, conversationReference1ChannelAccount)
                     );
 
