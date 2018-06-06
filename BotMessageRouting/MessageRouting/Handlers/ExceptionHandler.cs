@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BotMessageRouting.MessageRouting.Logging;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -6,6 +7,13 @@ namespace BotMessageRouting.MessageRouting.Handlers
 {
     public class ExceptionHandler
     {
+        private readonly ILogger _logger;
+
+        public ExceptionHandler(ILogger logger)
+        {
+            _logger = logger;
+        }
+
         /// <summary>
         /// Execute a potentially unsafe asynchronous function and handle any exception that happens in a clean manner
         /// </summary>
@@ -16,6 +24,12 @@ namespace BotMessageRouting.MessageRouting.Handlers
         /// <param name="callerMemberName">Name of the offending method that crashed. Can be replaced with a custom message if you want</param>        
         public Task<TContract> GetAsync<TContract>(Func<Task<TContract>> unsafeFunction, bool returnDefaultType = true, Action<Exception> customHandler = null, [CallerMemberName] string callerMemberName = "")
         {
+            if (unsafeFunction == null)
+            {
+                _logger.LogWarning("The function delegate to execute was null", callerMemberName);
+                return Task.FromResult(default(TContract));
+            }
+
             try
             {
                 return unsafeFunction.Invoke();
@@ -28,14 +42,13 @@ namespace BotMessageRouting.MessageRouting.Handlers
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"{callerMemberName}() : {ex.Message}");
+                    _logger.LogException(ex, methodName: callerMemberName);
                 }
                 if (!returnDefaultType)
                     throw;
             }
             return Task.FromResult(default(TContract));       
         }
-
 
         /// <summary>
         /// Execute a potentially unsafe function and handle any exception that happens in a clean manner
@@ -46,6 +59,12 @@ namespace BotMessageRouting.MessageRouting.Handlers
         /// <param name="callerMemberName">Name of the offending method that crashed. Can be replaced with a custom message if you want</param>        
         public TResult Get<TResult>(Func<TResult> unsafeFunction, bool returnDefaultType = true, Action<Exception> customHandler = null, [CallerMemberName] string callerMemberName = "")
         {
+            if (unsafeFunction == null)
+            {
+                _logger.LogWarning("The function delegate to execute was null", callerMemberName);
+                return default(TResult);
+            }
+
             try
             {
                 return unsafeFunction.Invoke();
@@ -58,7 +77,7 @@ namespace BotMessageRouting.MessageRouting.Handlers
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"{callerMemberName}() : {ex.Message}");
+                    _logger.LogException(ex, methodName: callerMemberName);                    
                 }
                 if (!returnDefaultType)
                     throw;
@@ -74,8 +93,14 @@ namespace BotMessageRouting.MessageRouting.Handlers
         /// <param name="customHandler">For custom handling of the exception, add a delegate here that accepts an exception as input</param>
         /// <param name="callerMemberName">Name of the offending method that crashed. Can be replaced with a custom message if you want</param>        
         /// <returns></returns>
-        public Task ExecteAsync(Func<Task> unsafeFunction, Action<Exception> customHandler = null, [CallerMemberName] string callerMemberName = "")
+        public Task ExecuteAsync(Func<Task> unsafeFunction, Action<Exception> customHandler = null, [CallerMemberName] string callerMemberName = "")
         {
+            if (unsafeFunction == null)
+            {
+                _logger.LogWarning("The function delegate to execute was null", callerMemberName);
+                return Task.CompletedTask;
+            }
+
             try
             {
                 return unsafeFunction.Invoke();
@@ -88,8 +113,8 @@ namespace BotMessageRouting.MessageRouting.Handlers
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"{callerMemberName}() : {ex.Message}");
-                }
+                    _logger.LogException(ex, methodName: callerMemberName);
+               }
             }
             return Task.CompletedTask;
         }

@@ -1,4 +1,5 @@
 ﻿using BotMessageRouting.MessageRouting.Handlers;
+using BotMessageRouting.MessageRouting.Logging;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
@@ -17,6 +18,7 @@ namespace Underscore.Bot.MessageRouting
     /// </summary>
     public class MessageRouter
     {
+        private readonly ILogger        _logger;
         private ExceptionHandler        _exceptionHandler;
         private MicrosoftAppCredentials _microsoftAppCredentials;
 
@@ -34,10 +36,14 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="microsoftAppCredentials">The bot application credentials.
         /// May be required, depending on the setup of your app, for sending messages.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
+        /// <param name="logger">Logger to use. Defaults to DebugLogger</param>
         /// time for various events such as when a connection is requested.</param>
-        public MessageRouter(IRoutingDataStore routingDataStore, MicrosoftAppCredentials microsoftAppCredentials, GlobalTimeProvider globalTimeProvider = null)
+        public MessageRouter(IRoutingDataStore routingDataStore, MicrosoftAppCredentials microsoftAppCredentials, GlobalTimeProvider globalTimeProvider = null, ILogger logger = null)
         {
-            _exceptionHandler        = new ExceptionHandler();
+            _logger                  = logger ?? new DebugLogger();
+            _logger.Enter();
+
+            _exceptionHandler        = new ExceptionHandler(_logger);
             _microsoftAppCredentials = microsoftAppCredentials;
 
             RoutingDataManager       = new RoutingDataManager(routingDataStore, globalTimeProvider);
@@ -51,7 +57,7 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="senderIsBot">Defines whether to classify the sender as a bot or a user.</param>
         /// <returns>A newly created conversation reference instance.</returns>
         public static ConversationReference CreateSenderConversationReference(IActivity activity, bool senderIsBot = false)
-        {
+        {            
             return new ConversationReference(
                 null,
                 senderIsBot ? null : activity.From,
@@ -79,6 +85,7 @@ namespace Underscore.Bot.MessageRouting
                 activity.ServiceUrl);
         }
 
+
         /// <summary>
         /// Handles the new activity:
         ///   1. Adds both the sender and the recipient of the given activity into the routing data
@@ -104,13 +111,12 @@ namespace Underscore.Bot.MessageRouting
 
             if (tryToRequestConnectionIfNotConnected && messageRoutingResult.Type == MessageRoutingResultType.NoActionTaken)
             {
-                return CreateConnectionRequest(
-                    CreateSenderConversationReference(activity),
-                    rejectConnectionRequestIfNoAggregationChannel);
+                return CreateConnectionRequest(CreateSenderConversationReference(activity),rejectConnectionRequestIfNoAggregationChannel);
             }
 
             return messageRoutingResult;
         }
+
 
         /// <summary>
         /// Sends the given message to the given recipient.
@@ -167,6 +173,7 @@ namespace Underscore.Bot.MessageRouting
             return await SendMessageAsync(recipient, messageActivity);
         }
 
+
         /// <summary>
         /// Stores the conversation reference instances (sender and recipient) in the given activity.
         /// </summary>
@@ -176,6 +183,7 @@ namespace Underscore.Bot.MessageRouting
             RoutingDataManager.AddConversationReference(CreateSenderConversationReference(activity));
             RoutingDataManager.AddConversationReference(CreateRecipientConversationReference(activity));
         }
+
 
         /// <summary>
         /// Tries to initiate a connection (1:1 conversation) by creating a request on behalf of
@@ -219,6 +227,7 @@ namespace Underscore.Bot.MessageRouting
             return createConnectionRequestResult;
         }
 
+
         /// <summary>
         /// Tries to reject the connection request of the associated with the given conversation reference.
         /// </summary>
@@ -248,6 +257,7 @@ namespace Underscore.Bot.MessageRouting
 
             return rejectConnectionRequestResult;
         }
+
 
         /// <summary>
         /// Tries to establish a connection (1:1 chat) between the two given parties.
@@ -335,6 +345,7 @@ namespace Underscore.Bot.MessageRouting
             return connectResult;
         }
 
+
         /// <summary>
         /// Disconnects all connections associated with the given conversation reference.
         /// </summary>
@@ -367,6 +378,7 @@ namespace Underscore.Bot.MessageRouting
 
             return disconnectResults;
         }
+
 
         /// <summary>
         /// Routes the message in the given activity, if the sender is connected in a conversation.
