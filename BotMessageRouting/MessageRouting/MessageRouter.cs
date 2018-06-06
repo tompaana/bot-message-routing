@@ -38,7 +38,7 @@ namespace Underscore.Bot.MessageRouting
         /// time for various events such as when a connection is requested.</param>
         public MessageRouter(IRoutingDataStore routingDataStore, MicrosoftAppCredentials microsoftAppCredentials, GlobalTimeProvider globalTimeProvider = null, ILogger logger = null)
         {
-            _logger                  = logger ?? new DebugLogger();
+            _logger                  = logger ?? DebugLogger.Default;
             _logger.Enter();
 
             _exceptionHandler        = new ExceptionHandler(_logger);
@@ -101,6 +101,8 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>The result of the operation.</returns>    
         public virtual async Task<AbstractMessageRouterResult> HandleActivityAsync(IMessageActivity activity, bool tryToRequestConnectionIfNotConnected, bool rejectConnectionRequestIfNoAggregationChannel, bool addSenderNameToMessage = true)
         {
+            _logger.Enter();
+
             StoreConversationReferences(activity);
             var messageRoutingResult = await RouteMessageIfSenderIsConnectedAsync(activity, addSenderNameToMessage);
 
@@ -119,6 +121,8 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>A valid resource response instance, if successful. Null in case of an error.</returns>
         public virtual async Task<ResourceResponse> SendMessageAsync(ConversationReference recipient, IMessageActivity messageActivity)
         {
+            _logger.Enter();
+
             if (recipient == null)
             {
                 System.Diagnostics.Debug.WriteLine("The conversation reference is null");
@@ -132,7 +136,7 @@ namespace Underscore.Bot.MessageRouting
 
             if (botInstance == null || botInstance.Bot == null)
             {
-                System.Diagnostics.Debug.WriteLine("Failed to find the bot instance");
+                _logger.LogWarning(("Failed to find the bot instance");
                 return null;
             }
 
@@ -160,6 +164,8 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>A valid resource response instance, if successful. Null in case of an error.</returns>
         public virtual async Task<ResourceResponse> SendMessageAsync(ConversationReference recipient, string message)
         {
+            _logger.Enter();
+
             var messageActivity = ConnectorClientMessageBundle.CreateMessageActivity(null, recipient, message);
 
             return await SendMessageAsync(recipient, messageActivity);
@@ -171,6 +177,8 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="activity">The activity.</param>
         public void StoreConversationReferences(IActivity activity)
         {
+            _logger.Enter();
+
             RoutingDataManager.AddConversationReference(CreateSenderConversationReference(activity));
             RoutingDataManager.AddConversationReference(CreateRecipientConversationReference(activity));
         }
@@ -188,9 +196,10 @@ namespace Underscore.Bot.MessageRouting
         /// - ConnectionRequestResultType.NotSetup or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual ConnectionRequestResult CreateConnectionRequest(
-            ConversationReference requestor, bool rejectConnectionRequestIfNoAggregationChannel = false)
+        public virtual ConnectionRequestResult CreateConnectionRequest(ConversationReference requestor, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
+            _logger.Enter();
+
             if (requestor == null)
             {
                 throw new ArgumentNullException("Requestor missing");
@@ -226,9 +235,10 @@ namespace Underscore.Bot.MessageRouting
         /// - ConnectionRequestResultType.Rejected or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual ConnectionRequestResult RejectConnectionRequest(
-            ConversationReference requestorToReject, ConversationReference rejecter = null)
+        public virtual ConnectionRequestResult RejectConnectionRequest(ConversationReference requestorToReject, ConversationReference rejecter = null)
         {
+            _logger.Enter();
+
             if (requestorToReject == null)
             {
                 throw new ArgumentNullException("The conversation reference instance of the party whose request to reject cannot be null");
@@ -270,10 +280,11 @@ namespace Underscore.Bot.MessageRouting
         /// </returns>
         public virtual async Task<ConnectionResult> ConnectAsync(ConversationReference conversationReference1, ConversationReference conversationReference2, bool createNewDirectConversation)
         {
+            _logger.Enter();
+
             if (conversationReference1 == null || conversationReference2 == null)
             {
-                throw new ArgumentNullException(
-                    $"Neither of the arguments ({nameof(conversationReference1)}, {nameof(conversationReference2)}) can be null");
+                throw new ArgumentNullException($"Neither of the arguments ({nameof(conversationReference1)}, {nameof(conversationReference2)}) can be null");
             }
 
             ConversationReference botInstance = RoutingDataManager.FindConversationReference(conversationReference1.ChannelId, conversationReference1.Conversation.Id, null, true);
@@ -343,6 +354,8 @@ namespace Underscore.Bot.MessageRouting
         /// </returns>
         public virtual IList<ConnectionResult> Disconnect(ConversationReference conversationReference)
         {
+            _logger.Enter();
+
             IList<ConnectionResult> disconnectResults = new List<ConnectionResult>();
             bool wasDisconnected = true;
 
@@ -376,11 +389,12 @@ namespace Underscore.Bot.MessageRouting
         /// - MessageRouterResultType.OK, if the message was routed successfully OR
         /// - MessageRouterResultType.FailedToForwardMessage in case of an error (see the error message).
         /// </returns>
-        public virtual async Task<MessageRoutingResult> RouteMessageIfSenderIsConnectedAsync(
-            IMessageActivity activity, bool addNameToMessage = true)
+        public virtual async Task<MessageRoutingResult> RouteMessageIfSenderIsConnectedAsync(IMessageActivity activity, bool addNameToMessage = true)
         {
+            _logger.Enter();
+
             ConversationReference sender = CreateSenderConversationReference(activity);
-            Connection connection = RoutingDataManager.FindConnection(sender);
+            Connection connection        = RoutingDataManager.FindConnection(sender);
 
             MessageRoutingResult messageRoutingResult = new MessageRoutingResult()
             {
