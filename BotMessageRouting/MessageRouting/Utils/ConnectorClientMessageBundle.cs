@@ -11,17 +11,10 @@ namespace Underscore.Bot.MessageRouting.Utils
     /// </summary>
     public class ConnectorClientMessageBundle
     {
-        public ConnectorClient ConnectorClient
-        {
-            get;
-            set;
-        }
+        public ConnectorClient ConnectorClient { get; set; }
 
-        public IMessageActivity MessageActivity
-        {
-            get;
-            set;
-        }
+        public IMessageActivity MessageActivity { get; set; }
+
 
         /// <summary>
         /// Constructor.
@@ -29,9 +22,7 @@ namespace Underscore.Bot.MessageRouting.Utils
         /// <param name="serviceUrl">The service URL.</param>
         /// <param name="messageActivity">The message activity to send.</param>
         /// <param name="microsoftAppCredentials">The credentials.</param>
-        public ConnectorClientMessageBundle(
-            string serviceUrl, IMessageActivity messageActivity,
-            MicrosoftAppCredentials microsoftAppCredentials = null)
+        public ConnectorClientMessageBundle(string serviceUrl, IMessageActivity messageActivity, MicrosoftAppCredentials microsoftAppCredentials = null)
         {
             if (microsoftAppCredentials == null)
             {
@@ -52,8 +43,7 @@ namespace Underscore.Bot.MessageRouting.Utils
         /// <param name="recipient">The conversation reference of the recipient.</param>
         /// <param name="message">The message content.</param>
         /// <returns>A newly created message activity.</returns>
-        public static IMessageActivity CreateMessageActivity(
-            ChannelAccount sender, ConversationReference recipient, string message)
+        public static IMessageActivity CreateMessageActivity(ChannelAccount sender, ConversationReference recipient, string message)
         {
             IMessageActivity messageActivity = Activity.CreateMessageActivity();
             
@@ -69,9 +59,7 @@ namespace Underscore.Bot.MessageRouting.Utils
                     messageActivity.Conversation = recipient.Conversation;
                 }
 
-                ChannelAccount recipientChannelAccount =
-                    RoutingDataManager.GetChannelAccount(recipient);
-
+                ChannelAccount recipientChannelAccount = RoutingDataManager.GetChannelAccount(recipient);
                 if (recipientChannelAccount != null)
                 {
                     messageActivity.Recipient = recipientChannelAccount;

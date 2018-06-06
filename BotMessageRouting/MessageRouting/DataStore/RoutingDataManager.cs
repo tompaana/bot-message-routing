@@ -14,11 +14,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
     [Serializable]
     public class RoutingDataManager
     {
-        public IRoutingDataStore RoutingDataStore
-        {
-            get;
-            protected set;
-        }
+        public IRoutingDataStore RoutingDataStore { get; protected set; }
+
 
         /// <summary>
         /// A global time provider.
@@ -26,11 +23,8 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// For instance, the time when a connection request is made may be useful for customer
         /// agent front-ends to see who has waited the longest and/or to collect response times.
         /// </summary>
-        public virtual GlobalTimeProvider GlobalTimeProvider
-        {
-            get;
-            protected set;
-        }
+        public virtual GlobalTimeProvider GlobalTimeProvider { get; protected set; }
+
 
         /// <summary>
         /// Constructor.
@@ -40,7 +34,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// time for various events such as when a connection is requested.</param>
         public RoutingDataManager(IRoutingDataStore routingDataStore, GlobalTimeProvider globalTimeProvider = null)
         {
-            RoutingDataStore = routingDataStore ?? throw new ArgumentNullException("Routing data store missing");
+            RoutingDataStore   = routingDataStore ?? throw new ArgumentNullException("Routing data store missing");
             GlobalTimeProvider = globalTimeProvider ?? new GlobalTimeProvider();
         }
 
