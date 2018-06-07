@@ -18,7 +18,7 @@ namespace Underscore.Bot.MessageRouting
     /// </summary>
     public class MessageRouter
     {
-        private readonly ILogger            _logger;
+        private ILogger            _logger;
         private readonly ExceptionHandler   _exceptionHandler;
         private MicrosoftAppCredentials     _microsoftAppCredentials;
 
@@ -26,6 +26,15 @@ namespace Underscore.Bot.MessageRouting
         /// The routing data and all the parties the bot has seen including the instances of itself.
         /// </summary>
         public RoutingDataManager RoutingDataManager { get; protected set; }
+
+        /// <summary>
+        /// For access to the current ILogger instance
+        /// </summary>
+        public ILogger Logger
+        {
+            get { return _logger; }
+            set { _logger = value; }
+        }
 
         /// <summary>
         /// Constructor.
@@ -103,6 +112,10 @@ namespace Underscore.Bot.MessageRouting
         {
             _logger.Enter();
 
+            if (activity == null)
+            {
+                throw new ArgumentNullException("The value for IMessageActivity cannot be null");
+            }        
             StoreConversationReferences(activity);
             var messageRoutingResult = await RouteMessageIfSenderIsConnectedAsync(activity, addSenderNameToMessage);
 
