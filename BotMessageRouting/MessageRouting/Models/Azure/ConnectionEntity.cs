@@ -1,6 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage.Table;
 
-namespace Underscore.Bot.Models.Azure
+namespace Underscore.Bot.MessageRouting.Models.Azure
 {
     /// <summary>
     /// Table storage entity that represents a 1:1 connection (conversation).

@@ -255,3 +255,4 @@ paket-files/
 
 # Package and web configs
 #*.config
+/BotMessageRouting/Properties/launchSettings.json
