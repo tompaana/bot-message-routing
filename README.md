@@ -38,7 +38,7 @@ If you're looking to build your bot using the **Node.js** SDK instead, here's
 
 | Term | Description |
 | ---- | ----------- |
-| Aggregation (channel) | **Only applies if aggregation approach is used!** A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. |
+| Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. **Applies only if the aggregation channel based approach is used!** |
 | Connection | Is created when a request is accepted - the acceptor and the requester form a connection (1:1 chat where the bot relays the messages between the users). |
 
 The [ConversationReference](https://docs.botframework.com/en-us/csharp/builder/sdkreference/d2/d10/class_microsoft_1_1_bot_1_1_connector_1_1_conversation_reference.html)
@@ -86,7 +86,7 @@ connected users/bots.
 
 * [RoutingDataManager](/BotMessageRouting/MessageRouting/DataStore/RoutingDataManager.cs):
   Provides the main interface for accessing and modifying the routing data (see
-  [IRoutingDataStore documentation](#IRoutingDataStore) for more information about the routing data
+  [IRoutingDataStore documentation](#iroutingdatastore) for more information about the routing data
   details).
 
 ##### Methods #####
@@ -106,7 +106,7 @@ connected users/bots.
 * **`RejectConnectionRequest`**: Removes (rejects) a pending connection request.
 * **`ConnectAsync`**: Establishes a connection between the given users/bots. When successful, this
   method removes the associated connection request automatically.
-* `Disconnect`: Ends the conversation and severs the connection between the users so that the
+* **`Disconnect`**: Ends the conversation and severs the connection between the users so that the
   messages are no longer relayed.
 * **`RouteMessageIfSenderIsConnectedAsync`**: Relays the message in the `Activity` instance given as 
   an argument, if the sender is connected with a user/bot.
