@@ -1,17 +1,12 @@
-version: 1.9.0.{build}
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '{version}'
-  assembly_file_version: '{version}'
-  assembly_informational_version: '{version}'
+version: 1.9.{build}
 image: Visual Studio 2017
 configuration: Release
 platform: Any CPU
 before_build:
+- cmd: dotnet --version
 - cmd: nuget restore
 build:
-  publish_nuget: true
+  publish_nuget: false
   include_nuget_references: true
   verbosity: minimal
 test:
