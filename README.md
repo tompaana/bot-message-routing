@@ -29,8 +29,8 @@ This is a **.NET Core** project compatible with
 solution targeting Bot Framework v3.x can be found under releases
 [here](https://github.com/tompaana/bot-message-routing/releases/tag/v1.0.2).
 
-If you're looking to build your bot using the **Node.js** SDK instead, here's the 
-[Node.js/Typescript message routing component](https://github.com/GeekTrainer/botframework-routing).
+If you're looking to build your bot using the **Node.js** SDK instead, here's 
+[the Node.js/Typescript message routing project](https://github.com/GeekTrainer/botframework-routing).
 
 ## Implementation ##
 
