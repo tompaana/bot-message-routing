@@ -1,11 +1,9 @@
 version: 1.9.{build}
 image: Visual Studio 2017
-before_build:
-  # Display .NET Core version
-- cmd: dotnet --version
 configuration: Release
 platform: Any CPU
 before_build:
+- cmd: dotnet --version
 - cmd: nuget restore
 build:
   publish_nuget: false
