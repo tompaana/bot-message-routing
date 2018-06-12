@@ -209,7 +209,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Adds the given ConversationReference.
         /// </summary>
         /// <param name="conversationReferenceToAdd">The new ConversationReference to add.</param>
-        /// <returns>True, if the given ConversationReference was added. False otherwise (was null or already stored).</returns>
+        /// <returns>The result of the operation with type:
+        /// - ModifyRoutingDataResultType.Added,
+        /// - ModifyRoutingDataResultType.AlreadyExists or
+        /// - ModifyRoutingDataResultType.Error (see the error message for more details).
+        /// </returns>
         public virtual ModifyRoutingDataResult AddConversationReference(ConversationReference conversationReferenceToAdd)
         {
             if (conversationReferenceToAdd.Bot == null
