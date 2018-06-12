@@ -20,30 +20,50 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// The list of users (identities).
         /// </summary>
-        protected IList<ConversationReference> Users { get; set; }
+        protected IList<ConversationReference> Users
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// If the bot is addressed from different channels, its identity in terms of ID and name
         /// can vary. Those different identities are stored in this list.
         /// </summary>
-        protected IList<ConversationReference> BotInstances { get; set; }
+        protected IList<ConversationReference> BotInstances
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Represents the channels (and the specific conversations e.g. specific channel in Teams),
         /// where the chat requests are directed. For instance, a channel could be where the
         /// customer service agents accept customer chat requests. 
         /// </summary>
-        protected IList<ConversationReference> AggregationChannels{ get; set; }
+        protected IList<ConversationReference> AggregationChannels
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// The list of connections.
         /// </summary>
-        protected IList<Connection> Connections { get; set; }
+        protected IList<Connection> Connections
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// The list of connections requests waiting to be accepted/rejected.
         /// </summary>
-        protected List<ConnectionRequest> ConnectionRequests { get; set; }
+        protected List<ConnectionRequest> ConnectionRequests
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Constructor.
@@ -93,7 +113,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
                 return Users.Remove(conversationReferenceToRemove);
             }
 
-            if(conversationReferenceToRemove.Bot != null)
+            if (conversationReferenceToRemove.Bot != null)
             {
                 return BotInstances.Remove(conversationReferenceToRemove);
             }

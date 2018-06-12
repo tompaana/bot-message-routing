@@ -1,6 +1,5 @@
-﻿using BotMessageRouting.MessageRouting.Handlers;
-using BotMessageRouting.MessageRouting.Logging;
-using Microsoft.Bot.Schema;
+﻿using Microsoft.Bot.Schema;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using System;
@@ -17,14 +16,14 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     /// See the IRoutingDataStore interface for the general documentation of properties and methods.
     /// </summary>
     [Serializable]
-    public class AzureTableStorageRoutingDataStore : IRoutingDataStore
+    public class AzureTableRoutingDataStore : IRoutingDataStore
     {
-        protected const string DefaultPartitionKey          = "BotMessageRouting";
-        protected const string TableNameBotInstances        = "BotInstances";
-        protected const string TableNameUsers               = "Users";
+        protected const string DefaultPartitionKey = "BotMessageRouting";
+        protected const string TableNameBotInstances = "BotInstances";
+        protected const string TableNameUsers = "Users";
         protected const string TableNameAggregationChannels = "AggregationChannels";
-        protected const string TableNameConnectionRequests  = "ConnectionRequests";
-        protected const string TableNameConnections         = "Connections";
+        protected const string TableNameConnectionRequests = "ConnectionRequests";
+        protected const string TableNameConnections = "Connections";
 
         protected CloudTable _botInstancesTable;
         protected CloudTable _usersTable;
@@ -32,102 +31,92 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         protected CloudTable _connectionRequestsTable;
         protected CloudTable _connectionsTable;
 
-        private ILogger          _logger;
-        private ExceptionHandler _exceptionHandler;
-
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
-        /// <param name="logger">Logger to use. Defaults to DebugLogger in the SDK</param>
-        public AzureTableStorageRoutingDataStore(string connectionString, ILogger logger = null)
+        public AzureTableRoutingDataStore(string connectionString)
         {
-            _logger = logger ?? DebugLogger.Default;
-            _exceptionHandler = new ExceptionHandler(_logger);
-            _logger.Enter();
-
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new ArgumentNullException("The connection string cannot be null or empty");
             }
 
-            _botInstancesTable        = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
-            _usersTable               = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
+            _botInstancesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
+            _usersTable = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
             _aggregationChannelsTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationChannels);
-            _connectionRequestsTable  = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
-            _connectionsTable         = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
+            _connectionRequestsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnectionRequests);
+            _connectionsTable = AzureStorageHelper.GetTable(connectionString, TableNameConnections);
 
             MakeSureTablesExistAsync();
         }
 
         #region Get region
+
         public IList<ConversationReference> GetUsers()
         {
-            _logger.Enter();
-
             var entities = GetAllEntitiesFromTable(_usersTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConversationReference> GetBotInstances()
         {
-            _logger.Enter();
-
             var entities = GetAllEntitiesFromTable(_botInstancesTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConversationReference> GetAggregationChannels()
         {
-            _logger.Enter();
-
             var entities = GetAllEntitiesFromTable(_aggregationChannelsTable).Result;
             return GetAllConversationReferencesFromEntities(entities);
         }
 
         public IList<ConnectionRequest> GetConnectionRequests()
         {
-            _logger.Enter();
-
             var entities = GetAllEntitiesFromTable(_connectionRequestsTable).Result;
-
             var connectionRequests = new List<ConnectionRequest>();
+
             foreach (RoutingDataEntity entity in entities)
             {
                 var connectionRequest = 
                     JsonConvert.DeserializeObject<ConnectionRequest>(entity.Body);
                 connectionRequests.Add(connectionRequest);
             }
+
             return connectionRequests;
         }
 
         public IList<Connection> GetConnections()
         {
-            _logger.Enter();
-
             var entities = GetAllEntitiesFromTable(_connectionsTable).Result;
-
             var connections = new List<Connection>();
+
             foreach (RoutingDataEntity entity in entities)
             {
                 var connection = 
                     JsonConvert.DeserializeObject<Connection>(entity.Body);
                 connections.Add(connection);
             }
+
             return connections;
         }
+
         #endregion
 
         #region Add region
+
         public bool AddConversationReference(ConversationReference conversationReference)
         {
-            _logger.Enter();
+            CloudTable table = null;
 
-            CloudTable table;
             if (conversationReference.Bot != null)
+            {
                 table = _botInstancesTable;
+            }
             else
+            {
                 table = _usersTable;
+            }
 
             string rowKey = conversationReference.Conversation.Id;
             string body = JsonConvert.SerializeObject(conversationReference);
@@ -137,8 +126,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool AddAggregationChannel(ConversationReference aggregationChannel)
         {
-            _logger.Enter();
-
             string rowKey = aggregationChannel.Conversation.Id;
             string body = JsonConvert.SerializeObject(aggregationChannel);
 
@@ -147,8 +134,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool AddConnectionRequest(ConnectionRequest connectionRequest)
         {
-            _logger.Enter();
-
             string rowKey = connectionRequest.Requestor.Conversation.Id;
             string body = JsonConvert.SerializeObject(connectionRequest);
 
@@ -157,8 +142,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool AddConnection(Connection connection)
         {
-            _logger.Enter();
-
             string rowKey = connection.ConversationReference1.Conversation.Id +
                 connection.ConversationReference2.Conversation.Id;
             string body = JsonConvert.SerializeObject(connection);
@@ -169,14 +152,19 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         #endregion
 
         #region Remove region
+
         public bool RemoveConversationReference(ConversationReference conversationReference)
         {
-            _logger.Enter();
+            CloudTable table = null;
 
-            CloudTable table;
             if (conversationReference.Bot != null)
+            {
                 table = _botInstancesTable;
-            else table = _usersTable;
+            }
+            else
+            {
+                table = _usersTable;
+            }
 
             string rowKey = conversationReference.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
@@ -185,8 +173,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool RemoveAggregationChannel(ConversationReference aggregationChannel)
         {
-            _logger.Enter();
-
             string rowKey = aggregationChannel.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
                 _aggregationChannelsTable, DefaultPartitionKey, rowKey).Result;
@@ -194,8 +180,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool RemoveConnectionRequest(ConnectionRequest connectionRequest)
         {
-            _logger.Enter();
-
             string rowKey = connectionRequest.Requestor.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
                 _connectionRequestsTable, DefaultPartitionKey, rowKey).Result;
@@ -203,13 +187,12 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         public bool RemoveConnection(Connection connection)
         {
-            _logger.Enter();
-
             string rowKey = connection.ConversationReference1.Conversation.Id +
                 connection.ConversationReference2.Conversation.Id;
             return AzureStorageHelper.DeleteEntryAsync<RoutingDataEntity>(
                 _connectionsTable, DefaultPartitionKey, rowKey).Result;
         }
+
         #endregion
 
         #region Validators and helpers
@@ -219,8 +202,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// </summary>
         protected virtual async void MakeSureTablesExistAsync()
         {
-            _logger.Enter();
-
             CloudTable[] cloudTables =
             {
                 _botInstancesTable,
@@ -232,40 +213,45 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             foreach (CloudTable cloudTable in cloudTables)
             {
-                await _exceptionHandler.ExecuteAsync(
-                    unsafeFunction: ( ) => cloudTable.CreateIfNotExistsAsync(),
-                    customHandler : (e) => Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}")
-                    );
+                try
+                {
+                    await cloudTable.CreateIfNotExistsAsync();
+                    Debug.WriteLine($"Table '{cloudTable.Name}' created or did already exist");
+                }
+                catch (StorageException e)
+                {
+                    Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
+                }
             }
         }
 
         private List<ConversationReference> GetAllConversationReferencesFromEntities(IList<RoutingDataEntity> entities)
         {
-            _logger.Enter();
-
             var conversationReferences = new List<ConversationReference>();
+
             foreach (RoutingDataEntity entity in entities)
             {
                 var conversationReference =
                     JsonConvert.DeserializeObject<ConversationReference>(entity.Body);
                 conversationReferences.Add(conversationReference);
             }
+
             return conversationReferences;
         }
 
         private async Task<IList<RoutingDataEntity>> GetAllEntitiesFromTable(CloudTable table)
         {
-            _logger.Enter();
-
             var query = new TableQuery<RoutingDataEntity>()
                 .Where(TableQuery.GenerateFilterCondition(
                     "PartitionKey", QueryComparisons.Equal, DefaultPartitionKey));
+
             return await table.ExecuteTableQueryAsync(query);
         }
 
         private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
-        {            
-            return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table, new RoutingDataEntity()
+        {
+            return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table, 
+                new RoutingDataEntity()
                 {
                     Body = body, PartitionKey = DefaultPartitionKey, RowKey = rowKey
                 }).Result;

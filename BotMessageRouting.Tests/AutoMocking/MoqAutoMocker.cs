@@ -1,6 +1,6 @@
 ﻿using StructureMap.AutoMocking;
 
-namespace BotMessageRouting.UnitTests.AutoMocking
+namespace Bot.MessageRouting.Tests.AutoMocking
 {
     /// <summary>
     /// Provides an "Auto Mocking Container" for the concrete class TARGETCLASS using Moq

@@ -1,7 +1,6 @@
-﻿using BotMessageRouting.MessageRouting.Logging;
-using Microsoft.Bot.Schema;
-using Newtonsoft.Json;
+﻿using Microsoft.Bot.Schema;
 using System;
+using Newtonsoft.Json;
 using Underscore.Bot.MessageRouting.DataStore;
 
 namespace Underscore.Bot.MessageRouting.Models
@@ -9,25 +8,32 @@ namespace Underscore.Bot.MessageRouting.Models
     [Serializable]
     public class Connection : IEquatable<Connection>
     {
-        private readonly ILogger _logger;
-
         /// <summary>
         /// Represents the last time in which user and agent interact in the connection.
         /// </summary>
-        public DateTime TimeSinceLastActivity{ get; set; }
-
-        public ConversationReference ConversationReference1 { get; set; }
-
-        public ConversationReference ConversationReference2 { get; set; }
-
-        public Connection(ConversationReference conversationReference1, ConversationReference conversationReference2, ILogger logger = null)
+        public DateTime TimeSinceLastActivity
         {
-            _logger                = logger ?? DebugLogger.Default;
-            _logger.Enter();
+            get;
+            set;
+        }
 
+        public ConversationReference ConversationReference1
+        {
+            get;
+            set;
+        }
+
+        public ConversationReference ConversationReference2
+        {
+            get;
+            set;
+        }
+
+        public Connection(ConversationReference conversationReference1, ConversationReference conversationReference2)
+        {
             ConversationReference1 = conversationReference1;
             ConversationReference2 = conversationReference2;
-            TimeSinceLastActivity  = DateTime.Now;
+            TimeSinceLastActivity = DateTime.Now;
         }
 
         /// <summary>
@@ -37,8 +43,6 @@ namespace Underscore.Bot.MessageRouting.Models
         /// <returns>True, if the connections are match. False otherwise.</returns>
         public bool Equals(Connection other)
         {
-            _logger.Enter();
-
             return (other != null
                 && ((RoutingDataManager.Match(ConversationReference1, other.ConversationReference1)
                      && RoutingDataManager.Match(ConversationReference2, other.ConversationReference2))
@@ -47,7 +51,7 @@ namespace Underscore.Bot.MessageRouting.Models
         }
 
         public static Connection FromJson(string connectionAsJsonString)
-        {            
+        {
             Connection connection = null;
 
             try
@@ -63,15 +67,11 @@ namespace Underscore.Bot.MessageRouting.Models
 
         public string ToJson()
         {
-            _logger.Enter();
-
             return JsonConvert.SerializeObject(this);
         }
 
         public override string ToString()
         {
-            _logger.Enter();
-
             return ToJson();
         }
     }

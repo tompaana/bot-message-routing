@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Underscore.Bot.MessageRouting.Logging;
 using Underscore.Bot.MessageRouting.Models;
 using Underscore.Bot.MessageRouting.Results;
 using Underscore.Bot.MessageRouting.Utils;
@@ -14,7 +15,13 @@ namespace Underscore.Bot.MessageRouting.DataStore
     [Serializable]
     public class RoutingDataManager
     {
-        public IRoutingDataStore RoutingDataStore { get; protected set; }
+        protected ILogger _logger;
+
+        public IRoutingDataStore RoutingDataStore
+        {
+            get;
+            protected set;
+        }
 
         /// <summary>
         /// A global time provider.
@@ -22,7 +29,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// For instance, the time when a connection request is made may be useful for customer
         /// agent front-ends to see who has waited the longest and/or to collect response times.
         /// </summary>
-        public virtual GlobalTimeProvider GlobalTimeProvider { get; protected set; }
+        public virtual GlobalTimeProvider GlobalTimeProvider
+        {
+            get;
+            protected set;
+        }
 
         /// <summary>
         /// Constructor.
@@ -30,10 +41,15 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <param name="routingDataStore">The routing data store implementation.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
         /// time for various events such as when a connection is requested.</param>
-        public RoutingDataManager(IRoutingDataStore routingDataStore, GlobalTimeProvider globalTimeProvider = null)
+        /// <param name="logger">Logger to use.</param>
+        public RoutingDataManager(
+            IRoutingDataStore routingDataStore,
+            GlobalTimeProvider globalTimeProvider = null,
+            ILogger logger = null)
         {
-            RoutingDataStore   = routingDataStore ?? throw new ArgumentNullException("Routing data store missing");
+            RoutingDataStore = routingDataStore ?? throw new ArgumentNullException("Routing data store missing");
             GlobalTimeProvider = globalTimeProvider ?? new GlobalTimeProvider();
+            _logger = logger ?? new DebugLogger();
         }
 
         #region Static helper methods
@@ -194,7 +210,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </summary>
         /// <param name="conversationReferenceToAdd">The new ConversationReference to add.</param>
         /// <returns>True, if the given ConversationReference was added. False otherwise (was null or already stored).</returns>
-        public virtual bool AddConversationReference(ConversationReference conversationReferenceToAdd)
+        public virtual ModifyRoutingDataResult AddConversationReference(ConversationReference conversationReferenceToAdd)
         {
             if (conversationReferenceToAdd.Bot == null
                 && conversationReferenceToAdd.User == null)
@@ -207,10 +223,25 @@ namespace Underscore.Bot.MessageRouting.DataStore
                     Contains(GetBotInstances(), conversationReferenceToAdd)
                     : Contains(GetUsers(), conversationReferenceToAdd)))
             {
-                return false;
+                return new ModifyRoutingDataResult()
+                {
+                    Type = ModifyRoutingDataResultType.AlreadyExists
+                };
             }
 
-            return RoutingDataStore.AddConversationReference(conversationReferenceToAdd);
+            if (RoutingDataStore.AddConversationReference(conversationReferenceToAdd))
+            {
+                return new ModifyRoutingDataResult()
+                {
+                    Type = ModifyRoutingDataResultType.Added
+                };
+            }
+
+            return new ModifyRoutingDataResult()
+            {
+                Type = ModifyRoutingDataResultType.Error,
+                ErrorMessage = "Failed to add the conversation reference"
+            };
         }
 
         /// <summary>
@@ -236,13 +267,18 @@ namespace Underscore.Bot.MessageRouting.DataStore
             {
                 foreach (ConversationReference conversationReference in conversationReferencesToRemove)
                 {
-                    wasRemoved = RoutingDataStore.RemoveConversationReference(conversationReference);
-
-                    if (!wasRemoved)
+                    if (RoutingDataStore.RemoveConversationReference(conversationReference))
                     {
-                        messageRouterResults.Add(new MessageRoutingResult()
+                        messageRouterResults.Add(new ModifyRoutingDataResult()
                         {
-                            Type = MessageRoutingResultType.Error,
+                            Type = ModifyRoutingDataResultType.Removed
+                        });
+                    }
+                    else
+                    {
+                        messageRouterResults.Add(new ModifyRoutingDataResult()
+                        {
+                            Type = ModifyRoutingDataResultType.Error,
                             ErrorMessage = "Failed to remove conversation reference"
                         });
                     }
@@ -576,7 +612,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 if (acceptedConnectionRequest == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to find the connection request to remove");
+                    _logger.Log("Failed to find the connection request to remove");
                 }
                 else
                 {
@@ -720,11 +756,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
             }
             catch (ArgumentNullException e)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to search conversation references: {e.Message}");
+                _logger.Log($"Failed to search conversation references: {e.Message}");
             }
             catch (InvalidOperationException e)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to search conversation references: {e.Message}");
+                _logger.Log($"Failed to search conversation references: {e.Message}");
             }
 
             return conversationReferencesFound?.ToArray();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace BotMessageRouting.UnitTests.AutoMocking
+namespace Bot.MessageRouting.Tests.AutoMocking
 {
     public class MoqFactory
     {

@@ -29,6 +29,7 @@
   
   <PropertyGroup>
     <IsPackable>true</IsPackable>
+    <RootNamespace>Underscore.Bot.MessageRouting</RootNamespace>
   </PropertyGroup>
 
 </Project>

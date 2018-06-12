@@ -1,7 +1,7 @@
-﻿using BotMessageRouting.UnitTests.AutoMocking;
+﻿using Bot.MessageRouting.Tests.AutoMocking;
 using Moq;
 
-namespace BotMessageRouting.UnitTests
+namespace Bot.MessageRouting.Tests
 {
     public class TestsFor<TInstance> where TInstance : class
     {

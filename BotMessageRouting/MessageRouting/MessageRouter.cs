@@ -1,12 +1,11 @@
-﻿using BotMessageRouting.MessageRouting.Handlers;
-using BotMessageRouting.MessageRouting.Logging;
-using Microsoft.Bot.Connector;
+﻿using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.MessageRouting.Logging;
 using Underscore.Bot.MessageRouting.Models;
 using Underscore.Bot.MessageRouting.Results;
 using Underscore.Bot.MessageRouting.Utils;
@@ -18,22 +17,16 @@ namespace Underscore.Bot.MessageRouting
     /// </summary>
     public class MessageRouter
     {
-        private ILogger            _logger;
-        private readonly ExceptionHandler   _exceptionHandler;
-        private MicrosoftAppCredentials     _microsoftAppCredentials;
+        protected MicrosoftAppCredentials _microsoftAppCredentials;
+        protected ILogger _logger;
 
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
         /// </summary>
-        public RoutingDataManager RoutingDataManager { get; protected set; }
-
-        /// <summary>
-        /// For access to the current ILogger instance
-        /// </summary>
-        public ILogger Logger
+        public RoutingDataManager RoutingDataManager
         {
-            get { return _logger; }
-            set { _logger = value; }
+            get;
+            protected set;
         }
 
         /// <summary>
@@ -43,17 +36,16 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="microsoftAppCredentials">The bot application credentials.
         /// May be required, depending on the setup of your app, for sending messages.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
-        /// <param name="logger">Logger to use. Defaults to DebugLogger</param>
+        /// <param name="ILogger">_logger to use. Defaults to Debug_logger.</param>
         /// time for various events such as when a connection is requested.</param>
-        public MessageRouter(IRoutingDataStore routingDataStore, MicrosoftAppCredentials microsoftAppCredentials, GlobalTimeProvider globalTimeProvider = null, ILogger logger = null)
+        public MessageRouter(
+            IRoutingDataStore routingDataStore,
+            MicrosoftAppCredentials microsoftAppCredentials,
+            GlobalTimeProvider globalTimeProvider = null,
+            ILogger logger = null)
         {
-            _logger                  = logger ?? DebugLogger.Default;
-            _logger.Enter();
-
-            _exceptionHandler        = new ExceptionHandler(_logger);
-            _microsoftAppCredentials = microsoftAppCredentials;
-
-            RoutingDataManager       = new RoutingDataManager(routingDataStore, globalTimeProvider);
+            _logger = logger ?? new DebugLogger();
+            RoutingDataManager = new RoutingDataManager(routingDataStore, globalTimeProvider, _logger);
         }
 
         /// <summary>
@@ -62,7 +54,8 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="activity">The activity.</param>
         /// <param name="senderIsBot">Defines whether to classify the sender as a bot or a user.</param>
         /// <returns>A newly created conversation reference instance.</returns>
-        public static ConversationReference CreateSenderConversationReference(IActivity activity, bool senderIsBot = false)
+        public static ConversationReference CreateSenderConversationReference(
+            IActivity activity, bool senderIsBot = false)
         {            
             return new ConversationReference(
                 null,
@@ -91,69 +84,33 @@ namespace Underscore.Bot.MessageRouting
         }
 
         /// <summary>
-        /// Handles the new activity:
-        ///   1. Adds both the sender and the recipient of the given activity into the routing data
-        ///      storage (if they do not already exist there). 
-        ///   2. The message in the given activity is routed to the appropriate recipient,
-        ///      if its sender is connected in a conversation with the recipient.
-        ///   3. If connection requests are set to happen automatically
-        ///      (tryToRequestConnectionIfNotConnected is true) and the sender is not yet
-        ///      connected in a conversation, a request is made.
-        /// </summary>
-        /// <param name="activity">The activity to handle.</param>
-        /// <param name="tryToRequestConnectionIfNotConnected">If true, will try to initiate
-        /// the connection (1:1 conversation) automatically, if the sender is not connected already.</param>
-        /// <param name="rejectConnectionRequestIfNoAggregationChannel">If true and the automatical
-        /// connection request is made, will reject all requests, if there is no aggregation channel.</param>
-        /// <param name="addSenderNameToMessage">If true, will add the name of the sender to the beginning of the message.</param>
-        /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
-        /// <returns>The result of the operation.</returns>    
-        public virtual async Task<AbstractMessageRouterResult> HandleActivityAsync(IMessageActivity activity, bool tryToRequestConnectionIfNotConnected, bool rejectConnectionRequestIfNoAggregationChannel, bool addSenderNameToMessage = true)
-        {
-            _logger.Enter();
-
-            if (activity == null)
-            {
-                throw new ArgumentNullException("The value for IMessageActivity cannot be null");
-            }        
-            StoreConversationReferences(activity);
-            var messageRoutingResult = await RouteMessageIfSenderIsConnectedAsync(activity, addSenderNameToMessage);
-
-            if (tryToRequestConnectionIfNotConnected && messageRoutingResult.Type == MessageRoutingResultType.NoActionTaken)
-            {
-                return CreateConnectionRequest(CreateSenderConversationReference(activity),rejectConnectionRequestIfNoAggregationChannel);
-            }
-            return messageRoutingResult;
-        }
-
-        /// <summary>
         /// Sends the given message to the given recipient.
         /// </summary>
         /// <param name="recipient">The conversation reference of the recipient.</param>
         /// <param name="messageActivity">The message activity to send.</param>
         /// <returns>A valid resource response instance, if successful. Null in case of an error.</returns>
-        public virtual async Task<ResourceResponse> SendMessageAsync(ConversationReference recipient, IMessageActivity messageActivity)
+        public virtual async Task<ResourceResponse> SendMessageAsync(
+            ConversationReference recipient, IMessageActivity messageActivity)
         {
-            _logger.Enter();
-
             if (recipient == null)
             {
-                System.Diagnostics.Debug.WriteLine("The conversation reference is null");
+                _logger.Log("The conversation reference is null");
                 return null;
             }
 
             // We need the bot identity in the SAME CHANNEL/CONVERSATION as the RECIPIENT -
             // Otherwise, the platform (e.g. Slack) will reject the incoming message as it does not
             // recognize the sender
-            ConversationReference botInstance = RoutingDataManager.FindConversationReference(recipient.ChannelId, recipient.Conversation.Id, null, true);
+            ConversationReference botInstance = RoutingDataManager.FindConversationReference(
+                recipient.ChannelId, recipient.Conversation.Id, null, true);
 
             if (botInstance == null || botInstance.Bot == null)
             {
-                _logger.LogWarning("Failed to find the bot instance");
+                _logger.Log("Failed to find the bot instance");
                 return null;
             }
 
-            messageActivity.From      = botInstance.Bot;
+            messageActivity.From = botInstance.Bot;
             messageActivity.Recipient = RoutingDataManager.GetChannelAccount(recipient);
 
             // Make sure the message activity contains a valid conversation ID
@@ -162,11 +119,27 @@ namespace Underscore.Bot.MessageRouting
                 messageActivity.Conversation = recipient.Conversation;
             }
 
-            var bundle = new ConnectorClientMessageBundle(recipient.ServiceUrl, messageActivity, _microsoftAppCredentials);
+            ConnectorClientMessageBundle bundle = new ConnectorClientMessageBundle(
+                recipient.ServiceUrl, messageActivity, _microsoftAppCredentials);
 
-            return await _exceptionHandler.GetAsync(() =>
-                bundle.ConnectorClient.Conversations.SendToConversationAsync((Activity)bundle.MessageActivity),
-                returnDefaultType: false);
+            ResourceResponse resourceResponse = null;
+
+            try
+            {
+                resourceResponse =
+                    await bundle.ConnectorClient.Conversations.SendToConversationAsync(
+                        (Activity)bundle.MessageActivity);
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                _logger.Log($"Failed to send message: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                _logger.Log($"Failed to send message: {e.Message}");
+            }
+
+            return resourceResponse;
         }
 
         /// <summary>
@@ -175,11 +148,11 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="recipient">The conversation reference of the recipient.</param>
         /// <param name="message">The message to send.</param>
         /// <returns>A valid resource response instance, if successful. Null in case of an error.</returns>
-        public virtual async Task<ResourceResponse> SendMessageAsync(ConversationReference recipient, string message)
+        public virtual async Task<ResourceResponse> SendMessageAsync(
+            ConversationReference recipient, string message)
         {
-            _logger.Enter();
-
-            var messageActivity = ConnectorClientMessageBundle.CreateMessageActivity(null, recipient, message);
+            IMessageActivity messageActivity =
+                ConnectorClientMessageBundle.CreateMessageActivity(null, recipient, message);
 
             return await SendMessageAsync(recipient, messageActivity);
         }
@@ -188,12 +161,14 @@ namespace Underscore.Bot.MessageRouting
         /// Stores the conversation reference instances (sender and recipient) in the given activity.
         /// </summary>
         /// <param name="activity">The activity.</param>
-        public void StoreConversationReferences(IActivity activity)
+        /// <returns>The list of two results, where the first element is for the sender and the last for the recipient.</returns>
+        public IList<ModifyRoutingDataResult> StoreConversationReferences(IActivity activity)
         {
-            _logger.Enter();
-
-            RoutingDataManager.AddConversationReference(CreateSenderConversationReference(activity));
-            RoutingDataManager.AddConversationReference(CreateRecipientConversationReference(activity));
+            return new List<ModifyRoutingDataResult>()
+            {
+                RoutingDataManager.AddConversationReference(CreateSenderConversationReference(activity)),
+                RoutingDataManager.AddConversationReference(CreateRecipientConversationReference(activity))
+            };
         }
 
         /// <summary>
@@ -209,10 +184,9 @@ namespace Underscore.Bot.MessageRouting
         /// - ConnectionRequestResultType.NotSetup or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual ConnectionRequestResult CreateConnectionRequest(ConversationReference requestor, bool rejectConnectionRequestIfNoAggregationChannel = false)
+        public virtual ConnectionRequestResult CreateConnectionRequest(
+            ConversationReference requestor, bool rejectConnectionRequestIfNoAggregationChannel = false)
         {
-            _logger.Enter();
-
             if (requestor == null)
             {
                 throw new ArgumentNullException("Requestor missing");
@@ -248,10 +222,9 @@ namespace Underscore.Bot.MessageRouting
         /// - ConnectionRequestResultType.Rejected or
         /// - ConnectionRequestResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual ConnectionRequestResult RejectConnectionRequest(ConversationReference requestorToReject, ConversationReference rejecter = null)
+        public virtual ConnectionRequestResult RejectConnectionRequest(
+            ConversationReference requestorToReject, ConversationReference rejecter = null)
         {
-            _logger.Enter();
-
             if (requestorToReject == null)
             {
                 throw new ArgumentNullException("The conversation reference instance of the party whose request to reject cannot be null");
@@ -291,16 +264,20 @@ namespace Underscore.Bot.MessageRouting
         /// - ConnectionResultType.Connected,
         /// - ConnectionResultType.Error (see the error message for more details).
         /// </returns>
-        public virtual async Task<ConnectionResult> ConnectAsync(ConversationReference conversationReference1, ConversationReference conversationReference2, bool createNewDirectConversation)
+        public virtual async Task<ConnectionResult> ConnectAsync(
+            ConversationReference conversationReference1,
+            ConversationReference conversationReference2,
+            bool createNewDirectConversation)
         {
-            _logger.Enter();
-
             if (conversationReference1 == null || conversationReference2 == null)
             {
-                throw new ArgumentNullException($"Neither of the arguments ({nameof(conversationReference1)}, {nameof(conversationReference2)}) can be null");
+                throw new ArgumentNullException(
+                    $"Neither of the arguments ({nameof(conversationReference1)}, {nameof(conversationReference2)}) can be null");
             }
 
-            ConversationReference botInstance = RoutingDataManager.FindConversationReference(conversationReference1.ChannelId, conversationReference1.Conversation.Id, null, true);
+            ConversationReference botInstance =
+                RoutingDataManager.FindConversationReference(
+                    conversationReference1.ChannelId, conversationReference1.Conversation.Id, null, true);
 
             if (botInstance == null)
             {
@@ -315,19 +292,32 @@ namespace Underscore.Bot.MessageRouting
 
             if (createNewDirectConversation)
             {
-                ChannelAccount conversationReference1ChannelAccount = RoutingDataManager.GetChannelAccount(conversationReference1, out bool conversationReference1IsBot);
-                ConnectorClient connectorClient                     = new ConnectorClient(new Uri(conversationReference1.ServiceUrl));
+                ChannelAccount conversationReference1ChannelAccount =
+                    RoutingDataManager.GetChannelAccount(
+                        conversationReference1, out bool conversationReference1IsBot);
 
-                conversationResourceResponse = await _exceptionHandler.GetAsync(
-                        () => connectorClient.Conversations.CreateDirectConversationAsync(botInstance.Bot, conversationReference1ChannelAccount)
-                    );
+                ConnectorClient connectorClient =
+                    new ConnectorClient(new Uri(conversationReference1.ServiceUrl));
 
+                try
+                {
+                    conversationResourceResponse =
+                        await connectorClient.Conversations.CreateDirectConversationAsync(
+                            botInstance.Bot, conversationReference1ChannelAccount);
+                }
+                catch (Exception e)
+                {
+                    _logger.Log($"Failed to create a direct conversation: {e.Message}");
+                    // Do nothing here as we fallback (continue without creating a direct conversation)
+                }
 
-                if (conversationResourceResponse != null && !string.IsNullOrEmpty(conversationResourceResponse.Id))
+                if (conversationResourceResponse != null
+                    && !string.IsNullOrEmpty(conversationResourceResponse.Id))
                 {
                     // The conversation account of the conversation owner for this 1:1 chat is different -
                     // thus, we need to re-create the conversation owner instance
-                    ConversationAccount directConversationAccount = new ConversationAccount(id: conversationResourceResponse.Id);
+                    ConversationAccount directConversationAccount =
+                        new ConversationAccount(id: conversationResourceResponse.Id);
 
 
                     conversationReference1 = new ConversationReference(
@@ -350,8 +340,9 @@ namespace Underscore.Bot.MessageRouting
                 }
             }
 
-            Connection connection                      = new Connection(conversationReference1, conversationReference2);
-            ConnectionResult connectResult             = RoutingDataManager.ConnectAndRemoveConnectionRequest(connection, conversationReference2);
+            Connection connection = new Connection(conversationReference1, conversationReference2);
+            ConnectionResult connectResult =
+                RoutingDataManager.ConnectAndRemoveConnectionRequest(connection, conversationReference2);
             connectResult.ConversationResourceResponse = conversationResourceResponse;
 
             return connectResult;
@@ -367,8 +358,6 @@ namespace Underscore.Bot.MessageRouting
         /// </returns>
         public virtual IList<ConnectionResult> Disconnect(ConversationReference conversationReference)
         {
-            _logger.Enter();
-
             IList<ConnectionResult> disconnectResults = new List<ConnectionResult>();
             bool wasDisconnected = true;
 
@@ -402,12 +391,11 @@ namespace Underscore.Bot.MessageRouting
         /// - MessageRouterResultType.OK, if the message was routed successfully OR
         /// - MessageRouterResultType.FailedToForwardMessage in case of an error (see the error message).
         /// </returns>
-        public virtual async Task<MessageRoutingResult> RouteMessageIfSenderIsConnectedAsync(IMessageActivity activity, bool addNameToMessage = true)
+        public virtual async Task<MessageRoutingResult> RouteMessageIfSenderIsConnectedAsync(
+            IMessageActivity activity, bool addNameToMessage = true)
         {
-            _logger.Enter();
-
             ConversationReference sender = CreateSenderConversationReference(activity);
-            Connection connection        = RoutingDataManager.FindConnection(sender);
+            Connection connection = RoutingDataManager.FindConnection(sender);
 
             MessageRoutingResult messageRoutingResult = new MessageRoutingResult()
             {
@@ -441,8 +429,7 @@ namespace Underscore.Bot.MessageRouting
 
                         if (!RoutingDataManager.UpdateTimeSinceLastActivity(connection))
                         {
-                            System.Diagnostics.Debug.WriteLine(
-                                "Failed to update the time since the last activity property of the connection");
+                            _logger.Log("Failed to update the time since the last activity property of the connection");
                         }
                     }
                     else

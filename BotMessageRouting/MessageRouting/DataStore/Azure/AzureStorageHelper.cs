@@ -1,6 +1,4 @@
-﻿using BotMessageRouting.MessageRouting.Handlers;
-using BotMessageRouting.MessageRouting.Logging;
-using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
@@ -14,22 +12,6 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
     /// </summary>
     public static class AzureStorageHelper
     {
-        private static ILogger          _logger = DebugLogger.Default;
-        private static ExceptionHandler _exceptionHandler = new ExceptionHandler(_logger);
-
-        /// <summary>
-        /// Allows you to override the default built-in logger and replace it with your own ILogger implementation
-        /// </summary>
-        /// <param name="logger">The logger to use instead of the built-in one</param>
-        public static void SetLogger(ILogger logger)
-        {
-            if (logger != null)
-            {
-                _logger           = logger;
-                _exceptionHandler = new ExceptionHandler(_logger);
-            }
-        }
-
         /// <summary>
         /// Tries to resolve a table in the storage defined by the given connection string and table name.
         /// </summary>
@@ -41,13 +23,16 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <exception cref="FormatException"></exception>
         public static CloudTable GetTable(string connectionString, string tableName)
         {
-            _logger.Enter();
             CloudStorageAccount cloudStorageAccount = null;
 
-            var storageAccount = _exceptionHandler.Get(
-                    () => CloudStorageAccount.Parse(connectionString),
-                    returnDefaultType: false
-                );
+            try
+            {
+                cloudStorageAccount = CloudStorageAccount.Parse(connectionString);
+            }
+            catch
+            {
+                throw;
+            }
 
             CloudTableClient cloudTableClient = cloudStorageAccount?.CreateCloudTableClient();
             return cloudTableClient?.GetTableReference(tableName);
@@ -62,13 +47,18 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <returns>True, if the given entry was inserted successfully. False otherwise.</returns>
         public static async Task<bool> InsertAsync<T>(CloudTable cloudTable, T entryToInsert) where T : ITableEntity
         {
-            _logger.Enter();
-            var insertOperation = TableOperation.Insert(entryToInsert);
+            TableOperation insertOperation = TableOperation.Insert(entryToInsert);
+            TableResult insertResult = null;
 
-            var insertResult = await _exceptionHandler.GetAsync(
-                    unsafeFunction: ( ) => cloudTable.ExecuteAsync(insertOperation),
-                    customHandler : (e) => _logger.LogException(e, $"Failed to insert the given entity into table '{cloudTable.Name}'")
-                );
+            try
+            {
+                insertResult = await cloudTable.ExecuteAsync(insertOperation);
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to insert the given entity into table '{cloudTable.Name}': {e.Message}");
+                return false;
+            }
 
             return (insertResult?.Result != null);
         }
@@ -80,46 +70,52 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="partitionKey">The partition key.</param>
         /// <param name="rowKey">The row key.</param>
         /// <returns>True, if an entry (entity) was deleted. False otherwise.</returns>
-        public static async Task<bool> DeleteEntryAsync<T>(CloudTable cloudTable, string partitionKey, string rowKey) where T : ITableEntity
+        public static async Task<bool> DeleteEntryAsync<T>(
+            CloudTable cloudTable, string partitionKey, string rowKey) where T : ITableEntity
         {
-            _logger.Enter();
-            var retrieveOperation = TableOperation.Retrieve<T>(partitionKey, rowKey);
-            var retrieveResult    = await _exceptionHandler.GetAsync(() => cloudTable.ExecuteAsync(retrieveOperation));
+            TableOperation retrieveOperation = TableOperation.Retrieve<T>(partitionKey, rowKey);
+            TableResult retrieveResult = await cloudTable.ExecuteAsync(retrieveOperation);
 
             if (retrieveResult.Result is T entityToDelete)
             {
                 TableOperation deleteOperation = TableOperation.Delete(entityToDelete);
-                await _exceptionHandler.ExecuteAsync(() => cloudTable.ExecuteAsync(deleteOperation));
+                await cloudTable.ExecuteAsync(deleteOperation);
                 return true;
             }
+
             return false;
         }
 
         /// <summary>
-        /// 
+        /// A utility method for executing table queries.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="cloudTable"></param>
-        /// <param name="tableQuery"></param>
+        /// <param name="cloudTable">The table.</param>
+        /// <param name="tableQuery">The table query to execute.</param>
         /// <param name="cancellationToken"></param>
         /// <param name="onProgress"></param>
-        /// <returns></returns>
-        public static async Task<IList<T>> ExecuteTableQueryAsync<T>(this CloudTable cloudTable, TableQuery<T> tableQuery, CancellationToken cancellationToken = default(CancellationToken), Action<IList<T>> onProgress = null) where T : ITableEntity, new()
+        /// <returns>The resulting list of items.</returns>
+        public static async Task<IList<T>> ExecuteTableQueryAsync<T>(
+            this CloudTable cloudTable, TableQuery<T> tableQuery,
+            CancellationToken cancellationToken = default(CancellationToken),
+            Action<IList<T>> onProgress = null) where T : ITableEntity, new()
         {
-            _logger.Enter();
             var items = new List<T>();
             TableContinuationToken tableContinuationToken = null;
 
             do
             {
-                bool failed = false;
-                TableQuerySegment<T> tableQuerySegment = await _exceptionHandler.GetAsync(
-                    unsafeFunction: () => cloudTable.ExecuteQuerySegmentedAsync<T>(tableQuery, tableContinuationToken),
-                    customHandler: (e) => failed = true
-                    );
+                TableQuerySegment<T> tableQuerySegment = null;
 
-                if (failed)
+                try
+                {
+                    tableQuerySegment = await cloudTable.ExecuteQuerySegmentedAsync<T>(tableQuery, tableContinuationToken);
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to execute a table query: {e.Message}");
                     return items;
+                }
 
                 tableContinuationToken = tableQuerySegment.ContinuationToken;
                 items.AddRange(tableQuerySegment);

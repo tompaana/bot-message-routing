@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BotMessageRouting", "BotMessageRouting\BotMessageRouting.csproj", "{4A90870F-6202-4025-BAEA-BD9EBDE317C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BotMessageRouting.UnitTests", "BotMessageRouting.UnitTests\BotMessageRouting.UnitTests.csproj", "{C5507D42-0203-4D43-9C2D-34BDBE065FB5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BotMessageRouting.Tests", "BotMessageRouting.Tests\BotMessageRouting.Tests.csproj", "{C5507D42-0203-4D43-9C2D-34BDBE065FB5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
