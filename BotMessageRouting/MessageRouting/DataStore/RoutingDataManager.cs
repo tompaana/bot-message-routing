@@ -216,16 +216,20 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// </returns>
         public virtual ModifyRoutingDataResult AddConversationReference(ConversationReference conversationReferenceToAdd)
         {
+            if (conversationReferenceToAdd == null)
+            {
+                throw new ArgumentNullException("The given conversation reference is null");
+            }
+
             if (conversationReferenceToAdd.Bot == null
                 && conversationReferenceToAdd.User == null)
             {
                 throw new ArgumentNullException("Both channel accounts in the conversation reference cannot be null");
             }
 
-            if (conversationReferenceToAdd == null
-                || (IsBot(conversationReferenceToAdd) ?
-                    Contains(GetBotInstances(), conversationReferenceToAdd)
-                    : Contains(GetUsers(), conversationReferenceToAdd)))
+            if (IsBot(conversationReferenceToAdd)
+                    ? Contains(GetBotInstances(), conversationReferenceToAdd)
+                    : Contains(GetUsers(), conversationReferenceToAdd))
             {
                 return new ModifyRoutingDataResult()
                 {
@@ -256,6 +260,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
         public virtual IList<AbstractMessageRouterResult> RemoveConversationReference(
             ConversationReference conversationReferenceToRemove)
         {
+            if (conversationReferenceToRemove == null)
+            {
+                throw new ArgumentNullException("The given conversation reference is null");
+            }
+
             List<AbstractMessageRouterResult> messageRouterResults = new List<AbstractMessageRouterResult>();
             bool wasRemoved = false;
 
@@ -267,25 +276,22 @@ namespace Underscore.Bot.MessageRouting.DataStore
                 conversationReferenceToSearch, null, null,
                 GetChannelAccount(conversationReferenceToRemove)?.Id);
 
-            if (conversationReferencesToRemove != null)
+            foreach (ConversationReference conversationReference in conversationReferencesToRemove)
             {
-                foreach (ConversationReference conversationReference in conversationReferencesToRemove)
+                if (RoutingDataStore.RemoveConversationReference(conversationReference))
                 {
-                    if (RoutingDataStore.RemoveConversationReference(conversationReference))
+                    messageRouterResults.Add(new ModifyRoutingDataResult()
                     {
-                        messageRouterResults.Add(new ModifyRoutingDataResult()
-                        {
-                            Type = ModifyRoutingDataResultType.Removed
-                        });
-                    }
-                    else
+                        Type = ModifyRoutingDataResultType.Removed
+                    });
+                }
+                else
+                {
+                    messageRouterResults.Add(new ModifyRoutingDataResult()
                     {
-                        messageRouterResults.Add(new ModifyRoutingDataResult()
-                        {
-                            Type = ModifyRoutingDataResultType.Error,
-                            ErrorMessage = "Failed to remove conversation reference"
-                        });
-                    }
+                        Type = ModifyRoutingDataResultType.Error,
+                        ErrorMessage = "Failed to remove conversation reference"
+                    });
                 }
             }
 
@@ -298,8 +304,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
                 foreach (ConnectionRequest connectionRequest in GetConnectionRequests())
                 {
-                    if (Match(
-                            conversationReferenceToRemove, connectionRequest.Requestor))
+                    if (Match(conversationReferenceToRemove, connectionRequest.Requestor))
                     {
                         ConnectionRequestResult removeConnectionRequestResult =
                             RemoveConnectionRequest(connectionRequest);
@@ -370,25 +375,46 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// Adds the given aggregation channel.
         /// </summary>
         /// <param name="aggregationChannelToAdd">The aggregation channel to add.</param>
-        /// <returns>True, if added. False otherwise (e.g. matching request already exists).</returns>
-        public virtual bool AddAggregationChannel(ConversationReference aggregationChannelToAdd)
+        /// <returns>The result of the operation with type:
+        /// - ModifyRoutingDataResultType.Added,
+        /// - ModifyRoutingDataResultType.AlreadyExists or
+        /// - ModifyRoutingDataResultType.Error (see the error message for more details).
+        /// </returns>
+        public virtual ModifyRoutingDataResult AddAggregationChannel(ConversationReference aggregationChannelToAdd)
         {
-            if (aggregationChannelToAdd != null)
+            if (aggregationChannelToAdd == null)
             {
-                if (GetChannelAccount(aggregationChannelToAdd) != null)
-                {
-                    throw new ArgumentException("The conversation reference instance for an aggregation channel cannot contain a channel account");
-                }
-
-                IList<ConversationReference> aggregationParties = GetAggregationChannels();
-
-                if (!Contains(aggregationParties, aggregationChannelToAdd))
-                {
-                    return RoutingDataStore.AddAggregationChannel(aggregationChannelToAdd);
-                }
+                throw new ArgumentNullException("The given conversation reference is null");
             }
 
-            return false;
+            if (GetChannelAccount(aggregationChannelToAdd) != null)
+            {
+                throw new ArgumentException("The conversation reference instance for an aggregation channel cannot contain a channel account");
+            }
+
+            IList<ConversationReference> aggregationParties = GetAggregationChannels();
+
+            if (Contains(aggregationParties, aggregationChannelToAdd))
+            {
+                return new ModifyRoutingDataResult()
+                {
+                    Type = ModifyRoutingDataResultType.AlreadyExists
+                };
+            }
+
+            if (RoutingDataStore.AddAggregationChannel(aggregationChannelToAdd))
+            {
+                return new ModifyRoutingDataResult()
+                {
+                    Type = ModifyRoutingDataResultType.Added
+                };
+            }
+
+            return new ModifyRoutingDataResult()
+            {
+                Type = ModifyRoutingDataResultType.Error,
+                ErrorMessage = "Failed to add the aggregation channel"
+            };
         }
 
         /// <summary>
