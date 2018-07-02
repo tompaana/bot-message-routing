@@ -128,11 +128,13 @@ namespace Underscore.Bot.MessageRouting.DataStore
             ChannelAccount channelAccount1 = GetChannelAccount(conversationReference1, out bool isBot1);
             ChannelAccount channelAccount2 = GetChannelAccount(conversationReference2, out bool isBot2);
 
-            return (conversationAccountsMatch
-                && isBot1 == isBot2
-                && channelAccount1 != null
-                && channelAccount2 != null
-                && channelAccount1.Id.Equals(channelAccount2.Id));
+            bool channelAccountsMatch =
+                (isBot1 == isBot2)
+                && ((channelAccount1 == null && channelAccount2 == null)
+                    || (channelAccount1 != null && channelAccount2 != null
+                        && channelAccount1.Id.Equals(channelAccount2.Id)));
+
+            return (conversationAccountsMatch && channelAccountsMatch);
         }
 
         /// <summary>
@@ -390,6 +392,17 @@ namespace Underscore.Bot.MessageRouting.DataStore
             if (GetChannelAccount(aggregationChannelToAdd) != null)
             {
                 throw new ArgumentException("The conversation reference instance for an aggregation channel cannot contain a channel account");
+            }
+
+            if (string.IsNullOrWhiteSpace(aggregationChannelToAdd.ChannelId)
+                || aggregationChannelToAdd.Conversation == null
+                || string.IsNullOrWhiteSpace(aggregationChannelToAdd.Conversation.Id))
+            {
+                return new ModifyRoutingDataResult()
+                {
+                    Type = ModifyRoutingDataResultType.Error,
+                    ErrorMessage = "Aggregation channel must contain a valid channel and conversation ID"
+                };
             }
 
             IList<ConversationReference> aggregationParties = GetAggregationChannels();

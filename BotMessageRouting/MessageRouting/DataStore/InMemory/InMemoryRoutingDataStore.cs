@@ -110,12 +110,16 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         {
             if (conversationReferenceToRemove.User !=null)
             {
-                return Users.Remove(conversationReferenceToRemove);
+                return ((Users as List<ConversationReference>)
+                    .RemoveAll(conversationReference =>
+                        RoutingDataManager.Match(conversationReference, conversationReferenceToRemove)) > 0);
             }
 
             if (conversationReferenceToRemove.Bot != null)
             {
-                return BotInstances.Remove(conversationReferenceToRemove);
+                return ((BotInstances as List<ConversationReference>)
+                    .RemoveAll(conversationReference =>
+                        RoutingDataManager.Match(conversationReference, conversationReferenceToRemove)) > 0);
             }
 
             return false;
@@ -135,7 +139,9 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
 
         public bool RemoveAggregationChannel(ConversationReference aggregationConversationReferenceToRemove)
         {
-            return AggregationChannels.Remove(aggregationConversationReferenceToRemove);
+            return ((AggregationChannels as List<ConversationReference>)
+                .RemoveAll(conversationReference =>
+                    RoutingDataManager.Match(conversationReference, aggregationConversationReferenceToRemove)) > 0);
         }
 
         public IList<ConnectionRequest> GetConnectionRequests()
