@@ -18,7 +18,6 @@ namespace Underscore.Bot.MessageRouting
     public class MessageRouter
     {
         protected MicrosoftAppCredentials _microsoftAppCredentials;
-        protected ILogger _logger;
 
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
@@ -29,6 +28,12 @@ namespace Underscore.Bot.MessageRouting
             protected set;
         }
 
+        public ILogger Logger
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -36,7 +41,7 @@ namespace Underscore.Bot.MessageRouting
         /// <param name="microsoftAppCredentials">The bot application credentials.
         /// May be required, depending on the setup of your app, for sending messages.</param>
         /// <param name="globalTimeProvider">The global time provider for providing the current
-        /// <param name="ILogger">_logger to use. Defaults to Debug_logger.</param>
+        /// <param name="ILogger">Logger to use. Defaults to DebugLogger.</param>
         /// time for various events such as when a connection is requested.</param>
         public MessageRouter(
             IRoutingDataStore routingDataStore,
@@ -44,8 +49,8 @@ namespace Underscore.Bot.MessageRouting
             GlobalTimeProvider globalTimeProvider = null,
             ILogger logger = null)
         {
-            _logger = logger ?? new DebugLogger();
-            RoutingDataManager = new RoutingDataManager(routingDataStore, globalTimeProvider, _logger);
+            Logger = logger ?? new DebugLogger();
+            RoutingDataManager = new RoutingDataManager(routingDataStore, globalTimeProvider, Logger);
             _microsoftAppCredentials = microsoftAppCredentials;
         }
 
@@ -95,7 +100,7 @@ namespace Underscore.Bot.MessageRouting
         {
             if (recipient == null)
             {
-                _logger.Log("The conversation reference is null");
+                Logger.Log("The conversation reference is null");
                 return null;
             }
 
@@ -107,7 +112,7 @@ namespace Underscore.Bot.MessageRouting
 
             if (botInstance == null || botInstance.Bot == null)
             {
-                _logger.Log("Failed to find the bot instance");
+                Logger.Log("Failed to find the bot instance");
                 return null;
             }
 
@@ -133,11 +138,11 @@ namespace Underscore.Bot.MessageRouting
             }
             catch (UnauthorizedAccessException e)
             {
-                _logger.Log($"Failed to send message: {e.Message}");
+                Logger.Log($"Failed to send message: {e.Message}");
             }
             catch (Exception e)
             {
-                _logger.Log($"Failed to send message: {e.Message}");
+                Logger.Log($"Failed to send message: {e.Message}");
             }
 
             return resourceResponse;
@@ -298,8 +303,8 @@ namespace Underscore.Bot.MessageRouting
                     RoutingDataManager.GetChannelAccount(
                         conversationReference1, out bool conversationReference1IsBot);
 
-                ConnectorClient connectorClient =
-                    new ConnectorClient(new Uri(conversationReference1.ServiceUrl));
+                ConnectorClient connectorClient = new ConnectorClient(
+                    new Uri(conversationReference1.ServiceUrl), _microsoftAppCredentials);
 
                 try
                 {
@@ -309,7 +314,7 @@ namespace Underscore.Bot.MessageRouting
                 }
                 catch (Exception e)
                 {
-                    _logger.Log($"Failed to create a direct conversation: {e.Message}");
+                    Logger.Log($"Failed to create a direct conversation: {e.Message}");
                     // Do nothing here as we fallback (continue without creating a direct conversation)
                 }
 
@@ -413,17 +418,19 @@ namespace Underscore.Bot.MessageRouting
 
                 if (recipient != null)
                 {
+                    string message = activity.Text;
+
                     if (addNameToMessage)
                     {
                         string senderName = RoutingDataManager.GetChannelAccount(sender).Name;
 
                         if (!string.IsNullOrWhiteSpace(senderName))
                         {
-                            activity.Text = $"{senderName}: {activity.Text}";
+                            message = $"{senderName}: {message}";
                         }
                     }
 
-                    ResourceResponse resourceResponse = await SendMessageAsync(recipient, activity);
+                    ResourceResponse resourceResponse = await SendMessageAsync(recipient, message);
 
                     if (resourceResponse != null)
                     {
@@ -431,7 +438,7 @@ namespace Underscore.Bot.MessageRouting
 
                         if (!RoutingDataManager.UpdateTimeSinceLastActivity(connection))
                         {
-                            _logger.Log("Failed to update the time since the last activity property of the connection");
+                            Logger.Log("Failed to update the time since the last activity property of the connection");
                         }
                     }
                     else
