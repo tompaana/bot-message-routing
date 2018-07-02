@@ -2,7 +2,7 @@ Bot Message Routing (component)
 ===============================
 
 [![Build status](https://ci.appveyor.com/api/projects/status/ig99aq8273sx2tyh?svg=true)](https://ci.appveyor.com/project/tompaana/bot-message-routing)
-[![Nuget status](https://img.shields.io/nuget/v/Underscore.Bot.MessageRouting.svg)](https://www.nuget.org/packages/Underscore.Bot.MessageRouting)
+[![Nuget status](https://img.shields.io/nuget/v/BotMessageRouting.svg)](https://www.nuget.org/packages/BotMessageRouting)
 
 This project is a message routing component for chatbots built with
 [Microsoft Bot Framework](https://dev.botframework.com/) C# SDK. It enables routing messages between
