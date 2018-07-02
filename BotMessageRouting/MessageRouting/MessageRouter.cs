@@ -46,6 +46,7 @@ namespace Underscore.Bot.MessageRouting
         {
             _logger = logger ?? new DebugLogger();
             RoutingDataManager = new RoutingDataManager(routingDataStore, globalTimeProvider, _logger);
+            _microsoftAppCredentials = microsoftAppCredentials;
         }
 
         /// <summary>
@@ -101,8 +102,8 @@ namespace Underscore.Bot.MessageRouting
             // We need the bot identity in the SAME CHANNEL/CONVERSATION as the RECIPIENT -
             // Otherwise, the platform (e.g. Slack) will reject the incoming message as it does not
             // recognize the sender
-            ConversationReference botInstance = RoutingDataManager.FindConversationReference(
-                recipient.ChannelId, recipient.Conversation.Id, null, true);
+            ConversationReference botInstance =
+                RoutingDataManager.FindBotInstanceForRecipient(recipient);
 
             if (botInstance == null || botInstance.Bot == null)
             {
@@ -154,6 +155,7 @@ namespace Underscore.Bot.MessageRouting
             IMessageActivity messageActivity =
                 ConnectorClientMessageBundle.CreateMessageActivity(null, recipient, message);
 
+            // The sender to the message activity above is resolved in the method here:
             return await SendMessageAsync(recipient, messageActivity);
         }
 

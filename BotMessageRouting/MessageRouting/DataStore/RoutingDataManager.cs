@@ -879,5 +879,23 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return null;
         }
+
+        /// <summary>
+        /// Tries to find the bot instance that can reach the recipient.
+        /// This means that the bot instance, if found, is in the same channel and the conversation
+        /// as the recipient.
+        /// </summary>
+        /// <param name="recipient">The recipient.</param>
+        /// <returns>The bot instance or null, if not found.</returns>
+        public ConversationReference FindBotInstanceForRecipient(ConversationReference recipient)
+        {
+            if (recipient == null)
+            {
+                throw new ArgumentNullException("The given conversation reference is null");
+            }
+
+            return FindConversationReference(
+                recipient.ChannelId, recipient.Conversation?.Id, null, true);
+        }
     }
 }
