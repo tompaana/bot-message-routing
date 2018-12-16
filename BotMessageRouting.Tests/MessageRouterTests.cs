@@ -1,13 +1,5 @@
 ﻿using Microsoft.Bot.Connector.Authentication;
-using Microsoft.Bot.Schema;
-using Moq;
-using Should;
-using System;
-using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
-using Underscore.Bot.MessageRouting.Logging;
-using Underscore.Bot.MessageRouting.DataStore;
-using Xunit;
 
 namespace Bot.MessageRouting.Tests
 {
@@ -26,13 +18,14 @@ namespace Bot.MessageRouting.Tests
         {
             get
             {
-                if(_credentials == null)
+                if (_credentials == null)
                     _credentials = new MicrosoftAppCredentials("randomAppId", "randomPassword");
 
-                return _credentials; 
+                return _credentials;
             }
         }
 
-        #endregion  
+        #endregion Useful testhelpers
+
     }
 }

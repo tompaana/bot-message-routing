@@ -18,19 +18,19 @@ namespace Bot.MessageRouting.Tests.AutoMocking
 
         public object CreateMock(Type type)
         {
-            Type closedType             = mockOpenType.MakeGenericType(new[] { type });
+            Type closedType = mockOpenType.MakeGenericType(new[] { type });
             PropertyInfo objectProperty = closedType.GetProperty("Object", type);
-            object instance             = Activator.CreateInstance(closedType);
+            object instance = Activator.CreateInstance(closedType);
 
             return objectProperty.GetValue(instance, null);
         }
 
         public object CreateMockThatCallsBase(Type type, object[] args)
         {
-            Type closedType               = mockOpenType.MakeGenericType(new[] { type });
+            Type closedType = mockOpenType.MakeGenericType(new[] { type });
             PropertyInfo callBaseProperty = closedType.GetProperty("CallBase", typeof(bool));
-            PropertyInfo objectProperty   = closedType.GetProperty("Object", type);
-            ConstructorInfo constructor   = closedType.GetConstructor(new[] { typeof(object[]) });
+            PropertyInfo objectProperty = closedType.GetProperty("Object", type);
+            ConstructorInfo constructor = closedType.GetConstructor(new[] { typeof(object[]) });
 
             object instance = constructor.Invoke(new[] { args });
             callBaseProperty.SetValue(instance, true, null);

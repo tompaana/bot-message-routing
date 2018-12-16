@@ -1,6 +1,6 @@
 ﻿using Microsoft.Bot.Schema;
-using System;
 using Newtonsoft.Json;
+using System;
 using Underscore.Bot.MessageRouting.DataStore;
 
 namespace Underscore.Bot.MessageRouting.Models

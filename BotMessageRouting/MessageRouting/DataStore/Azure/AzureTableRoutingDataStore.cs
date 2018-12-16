@@ -78,7 +78,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             foreach (RoutingDataEntity entity in entities)
             {
-                var connectionRequest = 
+                var connectionRequest =
                     JsonConvert.DeserializeObject<ConnectionRequest>(entity.Body);
                 connectionRequests.Add(connectionRequest);
             }
@@ -93,7 +93,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
             foreach (RoutingDataEntity entity in entities)
             {
-                var connection = 
+                var connection =
                     JsonConvert.DeserializeObject<Connection>(entity.Body);
                 connections.Add(connection);
             }
@@ -101,7 +101,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return connections;
         }
 
-        #endregion
+        #endregion Get region
 
         #region Add region
 
@@ -149,7 +149,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
             return InsertEntityToTable(rowKey, body, _connectionsTable);
         }
 
-        #endregion
+        #endregion Add region
 
         #region Remove region
 
@@ -193,7 +193,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 _connectionsTable, DefaultPartitionKey, rowKey).Result;
         }
 
-        #endregion
+        #endregion Remove region
 
         #region Validators and helpers
 
@@ -250,13 +250,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
 
         private static bool InsertEntityToTable(string rowKey, string body, CloudTable table)
         {
-            return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table, 
+            return AzureStorageHelper.InsertAsync<RoutingDataEntity>(table,
                 new RoutingDataEntity()
                 {
-                    Body = body, PartitionKey = DefaultPartitionKey, RowKey = rowKey
+                    Body = body,
+                    PartitionKey = DefaultPartitionKey,
+                    RowKey = rowKey
                 }).Result;
         }
 
-        #endregion
+        #endregion Validators and helpers
     }
 }

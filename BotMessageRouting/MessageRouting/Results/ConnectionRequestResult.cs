@@ -12,7 +12,7 @@ namespace Underscore.Bot.MessageRouting.Results
     /// - NotSetup: No aggregation channel or portal available (no-one to accept/reject the request),
     /// - Rejected: The request was rejected,
     /// - Error: Generic error, see the error message.
-    /// 
+    ///
     /// Note: Accepted requests are provided with connection result instead of this class.
     /// </summary>
     public enum ConnectionRequestResultType
