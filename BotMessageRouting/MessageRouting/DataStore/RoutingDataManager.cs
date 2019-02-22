@@ -161,7 +161,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return false;
         }
 
-        #endregion
+        #endregion Static helper methods
 
         /// <returns>The current global time.</returns>
         public virtual DateTime GetCurrentGlobalTime()
@@ -343,7 +343,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return messageRouterResults;
         }
 
-        #endregion
+        #endregion Users and bots
 
         #region Aggregation channels
 
@@ -440,7 +440,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return RoutingDataStore.RemoveAggregationChannel(aggregationChannelToRemove);
         }
 
-        #endregion
+        #endregion Aggregation channels
 
         #region Connection requests
 
@@ -564,7 +564,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return removeConnectionRequestResult;
         }
 
-        #endregion
+        #endregion Connection requests
 
         #region Connections
 
@@ -622,7 +622,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
                             conversationReferenceWhoseCounterpartToFind, connection.ConversationReference2))
                 {
                     return connection.ConversationReference1;
-                } 
+                }
             }
 
             return null;
@@ -726,7 +726,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
             return disconnectResult;
         }
 
-        #endregion
+        #endregion Connections
 
         /// <summary>
         /// Tries to find the conversation references in the given list matching the given criteria.
@@ -812,7 +812,7 @@ namespace Underscore.Bot.MessageRouting.DataStore
         /// <summary>
         /// Tries to find the conversation references in all the collections including connection
         /// requests and connections.
-        /// 
+        ///
         /// You can define one or more criteria, but you must define at least one.
         /// </summary>
         /// <param name="channelId">The channel ID to match (optional).</param>

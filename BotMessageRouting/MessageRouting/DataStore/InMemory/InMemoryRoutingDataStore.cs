@@ -7,11 +7,11 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
 {
     /// <summary>
     /// Routing data store that stores the data locally.
-    /// 
+    ///
     /// NOTE: USE THIS CLASS ONLY FOR TESTING!
     /// Storing the data like this in production would not work since the bot can and likely will
     /// have multiple instances.
-    /// 
+    ///
     /// See the IRoutingDataStore interface for the general documentation of properties and methods.
     /// </summary>
     [Serializable]
@@ -39,7 +39,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
         /// <summary>
         /// Represents the channels (and the specific conversations e.g. specific channel in Teams),
         /// where the chat requests are directed. For instance, a channel could be where the
-        /// customer service agents accept customer chat requests. 
+        /// customer service agents accept customer chat requests.
         /// </summary>
         protected IList<ConversationReference> AggregationChannels
         {
@@ -96,7 +96,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
                 Users.Add(conversationReferenceToAdd);
                 return true;
             }
-            
+
             if (conversationReferenceToAdd.Bot != null)
             {
                 BotInstances.Add(conversationReferenceToAdd);
@@ -108,7 +108,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
 
         public bool RemoveConversationReference(ConversationReference conversationReferenceToRemove)
         {
-            if (conversationReferenceToRemove.User !=null)
+            if (conversationReferenceToRemove.User != null)
             {
                 return ((Users as List<ConversationReference>)
                     .RemoveAll(conversationReference =>
@@ -149,7 +149,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Local
             List<ConnectionRequest> connectionRequestsAsList = ConnectionRequests as List<ConnectionRequest>;
             return connectionRequestsAsList?.AsReadOnly();
         }
-   
+
         public bool AddConnectionRequest(ConnectionRequest requestorConversationReference)
         {
             ConnectionRequests.Add(requestorConversationReference);

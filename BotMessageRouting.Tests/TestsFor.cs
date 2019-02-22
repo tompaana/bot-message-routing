@@ -19,11 +19,13 @@ namespace Bot.MessageRouting.Tests
             AfterTestClassCreation();
         }
 
-        public virtual void BeforeTestClassCreation(){
+        public virtual void BeforeTestClassCreation()
+        {
             // No code - ever!
         }
 
-        public virtual void AfterTestClassCreation(){
+        public virtual void AfterTestClassCreation()
+        {
             // No code - ever!
         }
 

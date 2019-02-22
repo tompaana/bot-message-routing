@@ -56,7 +56,7 @@ namespace Underscore.Bot.MessageRouting.Utils
             ChannelAccount sender, ConversationReference recipient, string message)
         {
             IMessageActivity messageActivity = Activity.CreateMessageActivity();
-            
+
             if (sender != null)
             {
                 messageActivity.From = sender;

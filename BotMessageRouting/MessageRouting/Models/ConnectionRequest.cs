@@ -27,7 +27,7 @@ namespace Underscore.Bot.MessageRouting.Models
         public ConnectionRequest(ConversationReference requestor)
         {
             Requestor = requestor;
-            ResetConnectionRequestTime(); 
+            ResetConnectionRequestTime();
         }
 
         public void ResetConnectionRequestTime()

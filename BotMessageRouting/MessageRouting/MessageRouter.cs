@@ -62,7 +62,7 @@ namespace Underscore.Bot.MessageRouting
         /// <returns>A newly created conversation reference instance.</returns>
         public static ConversationReference CreateSenderConversationReference(
             IActivity activity, bool senderIsBot = false)
-        {            
+        {
             return new ConversationReference(
                 null,
                 senderIsBot ? null : activity.From,
@@ -252,7 +252,7 @@ namespace Underscore.Bot.MessageRouting
 
         /// <summary>
         /// Tries to establish a connection (1:1 chat) between the two given parties.
-        /// 
+        ///
         /// Note that the conversation owner will have a new separate conversation reference in the created
         /// conversation, if a new direct conversation is created.
         /// </summary>
@@ -262,7 +262,7 @@ namespace Underscore.Bot.MessageRouting
         /// If true, will try to create a new direct conversation between the bot and the
         /// conversation owner (e.g. agent) where the messages from the other (client) conversation
         /// reference are routed.
-        /// 
+        ///
         /// Note that this will result in the conversation owner having a new separate conversation
         /// reference in the created connection (for the new direct conversation).
         /// </param>
@@ -325,7 +325,6 @@ namespace Underscore.Bot.MessageRouting
                     // thus, we need to re-create the conversation owner instance
                     ConversationAccount directConversationAccount =
                         new ConversationAccount(id: conversationResourceResponse.Id);
-
 
                     conversationReference1 = new ConversationReference(
                         null,
