@@ -1,6 +1,10 @@
 Bot Message Routing (component)
 ===============================
 
+> **NOTE!**
+>
+> This project is not maintained actively.
+
 [![Build status](https://ci.appveyor.com/api/projects/status/ig99aq8273sx2tyh?svg=true)](https://ci.appveyor.com/project/tompaana/bot-message-routing)
 [![Nuget status](https://img.shields.io/nuget/v/BotMessageRouting.svg)](https://www.nuget.org/packages/BotMessageRouting)
 
