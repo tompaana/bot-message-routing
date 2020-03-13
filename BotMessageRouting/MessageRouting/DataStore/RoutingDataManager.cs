@@ -366,11 +366,11 @@ namespace Underscore.Bot.MessageRouting.DataStore
 
             return (conversationReference != null
                     && aggregationParties != null
-                    && aggregationParties.Count() > 0
+                    && aggregationParties.Count > 0
                     && aggregationParties.Where(aggregationChannel =>
-                        aggregationChannel.Conversation.Id == conversationReference.Conversation.Id
-                        && aggregationChannel.ServiceUrl == conversationReference.ServiceUrl
-                        && aggregationChannel.ChannelId == conversationReference.ChannelId).Count() > 0);
+                        aggregationChannel.Conversation.Id.Equals(conversationReference.Conversation.Id, StringComparison.OrdinalIgnoreCase)
+                        && aggregationChannel.ServiceUrl.Equals(conversationReference.ServiceUrl)
+                        && aggregationChannel.ChannelId.Equals(conversationReference.ChannelId)).Any());
         }
 
         /// <summary>
