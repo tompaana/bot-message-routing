@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting.Logging;
 using Underscore.Bot.MessageRouting.Models;
 using Underscore.Bot.MessageRouting.Models.Azure;
 
@@ -24,7 +25,7 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         protected const string TableNameAggregationChannels = "AggregationChannels";
         protected const string TableNameConnectionRequests = "ConnectionRequests";
         protected const string TableNameConnections = "Connections";
-
+        protected readonly ILogger _logger;
         protected CloudTable _botInstancesTable;
         protected CloudTable _usersTable;
         protected CloudTable _aggregationChannelsTable;
@@ -35,13 +36,15 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// Constructor.
         /// </summary>
         /// <param name="connectionString">The connection string associated with an Azure Table Storage.</param>
-        public AzureTableRoutingDataStore(string connectionString)
+        public AzureTableRoutingDataStore(string connectionString, ILogger logger)
         {
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new ArgumentNullException("The connection string cannot be null or empty");
             }
 
+            _logger = logger;
+            
             _botInstancesTable = AzureStorageHelper.GetTable(connectionString, TableNameBotInstances);
             _usersTable = AzureStorageHelper.GetTable(connectionString, TableNameUsers);
             _aggregationChannelsTable = AzureStorageHelper.GetTable(connectionString, TableNameAggregationChannels);
@@ -216,11 +219,11 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
                 try
                 {
                     await cloudTable.CreateIfNotExistsAsync();
-                    Debug.WriteLine($"Table '{cloudTable.Name}' created or did already exist");
+                    _logger.LogInformation($"Table '{cloudTable.Name}' created or did already exist");
                 }
                 catch (StorageException e)
                 {
-                    Debug.WriteLine($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
+                    _logger.LogError($"Failed to create table '{cloudTable.Name}' (perhaps it already exists): {e.Message}");
                 }
             }
         }
