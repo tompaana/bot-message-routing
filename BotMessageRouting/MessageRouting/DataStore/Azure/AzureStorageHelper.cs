@@ -45,6 +45,31 @@ namespace Underscore.Bot.MessageRouting.DataStore.Azure
         /// <param name="cloudTable">The destination table.</param>
         /// <param name="entryToInsert">The entry to insert into the table.</param>
         /// <returns>True, if the given entry was inserted successfully. False otherwise.</returns>
+        public static async Task<bool> ReplaceAsync<T>(CloudTable cloudTable, T entryToInsert) where T : ITableEntity
+        {
+            TableOperation replaceOperation = TableOperation.InsertOrReplace(entryToInsert);
+            TableResult replaceResult = null;
+
+            try
+            {
+                replaceResult = await cloudTable.ExecuteAsync(replaceOperation);
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to replace the given entity into table '{cloudTable.Name}': {e.Message}");
+                return false;
+            }
+
+            return (replaceResult?.Result != null);
+        }
+
+        /// <summary>
+        /// Tries to insert the given entry into the given table.
+        /// </summary>
+        /// <typeparam name="T">TableEntity derivative.</typeparam>
+        /// <param name="cloudTable">The destination table.</param>
+        /// <param name="entryToInsert">The entry to insert into the table.</param>
+        /// <returns>True, if the given entry was inserted successfully. False otherwise.</returns>
         public static async Task<bool> InsertAsync<T>(CloudTable cloudTable, T entryToInsert) where T : ITableEntity
         {
             TableOperation insertOperation = TableOperation.Insert(entryToInsert);

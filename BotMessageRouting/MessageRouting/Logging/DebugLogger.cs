@@ -15,5 +15,15 @@ namespace Underscore.Bot.MessageRouting.Logging
 
             Debug.WriteLine($"{DateTime.Now}> {message}");
         }
+
+        public void LogError(string message, [CallerMemberName] string methodName = "")
+        {
+            Log(message, methodName);
+        }
+
+        public void LogInformation(string message, [CallerMemberName] string methodName = "")
+        {
+            Log(message, methodName);
+        }
     }
 }
